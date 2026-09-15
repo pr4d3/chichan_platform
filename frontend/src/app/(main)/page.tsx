@@ -90,18 +90,20 @@ export default function HomePage() {
       <section className="relative pt-16 pb-16 md:pt-24 md:pb-24 px-4 md:px-16">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="flex flex-col gap-6 md:gap-8">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold w-fit shadow-xs">
+              <ShieldCheck size={16} weight="fill" />
+              <span>Đề tài NCKH THPT Giồng Ông Tố</span>
+            </div>
             <HeroTypingTitle />
-            <p className="text-base md:text-lg text-on-surface-variant font-light leading-relaxed max-w-lg">
-              Môi trường học tập an toàn, thân thiện và chuẩn y khoa, giúp gỡ bỏ
-              những rào cản và ngần ngại trong việc tiếp cận kiến thức giới
-              tính.
+            <p className="text-base md:text-lg text-on-surface-variant font-normal leading-relaxed max-w-lg">
+              Nền tảng hỗ trợ giáo viên trong công tác Giáo dục giới tính tại THPT Giồng Ông Tố — Tiện lợi, khoa học, thú vị — đồng hành cùng Học sinh, Phụ huynh và Nhà trường. Môi trường học tập số tiện lợi, an toàn, hỗ trợ giảm thiểu rào cản trong việc GDGT ở nhà trường và gia đình.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 pt-2">
               <Link
                 href="/courses"
                 className="px-6 py-3.5 bg-primary text-white rounded-full text-sm font-bold hover:opacity-90 shadow-md flex items-center justify-center gap-2 transition-all"
               >
-                Khám phá Khóa học
+                Khám phá Góc Học Tập
                 <ArrowRight size={18} weight="bold" />
               </Link>
               <Link
@@ -116,6 +118,27 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* NCKH THPT Giồng Ông Tố Intro Banner */}
+      <section className="px-4 md:px-16 -mt-4 mb-4">
+        <div className="max-w-7xl mx-auto p-6 md:p-8 rounded-3xl bg-gradient-to-r from-primary-container/20 via-white/80 to-secondary-container/20 border border-outline-variant/30 backdrop-blur-md shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <span className="text-xs font-black uppercase tracking-wider text-primary">Về chúng tôi</span>
+            <h3 className="text-lg md:text-xl font-extrabold text-on-surface">
+              Nhóm nghiên cứu khoa học THPT Giồng Ông Tố
+            </h3>
+            <p className="text-xs sm:text-sm text-on-surface-variant leading-relaxed max-w-3xl">
+              Mô hình trang web học tập online hỗ trợ nhà trường cung cấp kiến thức và giảm thiểu các rào cản tiếp cận GDGT ở học sinh. Tích hợp E-learning trực quan và gamification giúp tăng tính tương tác, đồng hành cùng Học sinh, Phụ huynh và Nhà trường.
+            </p>
+          </div>
+          <Link
+            href="/about"
+            className="shrink-0 px-5 py-2.5 rounded-full bg-white border border-outline-variant/30 text-xs font-bold text-primary hover:bg-primary/5 transition-all shadow-2xs"
+          >
+            Tìm hiểu đề tài
+          </Link>
+        </div>
+      </section>
+
       {/* 3-Step Interactive Learning Journey */}
       <ThreeStepJourney />
 
@@ -127,14 +150,14 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto flex flex-col items-center">
           <div className="text-center mb-12">
             <h2 className="text-2xl md:text-3xl font-extrabold text-on-surface mb-4">
-              Khám phá các khoá học
+              Khám phá Góc Học Tập
             </h2>
             <p className="text-sm text-on-surface-variant max-w-xl mx-auto">
               {isParent
-                ? "Chương trình hướng dẫn chuyên sâu giúp phụ huynh trang bị kiến thức y khoa và kỹ năng đồng hành cùng con."
+                ? "Chương trình hướng dẫn chuyên sâu giúp phụ huynh trang bị kiến thức và kỹ năng đồng hành cùng con."
                 : isChild
-                  ? "Khám phá kiến thức cơ thể, giới tính và các kỹ năng phòng tránh xâm hại an toàn chuẩn khoa học."
-                  : "Lựa chọn chương trình phù hợp với độ tuổi và nhu cầu để có hiệu quả tiếp thu tốt nhất."}
+                  ? "Hệ thống bài giảng do giáo viên phụ trách, học sinh hoàn thành như bài giảng trên lớp."
+                  : "Lựa chọn chương trình học tập phù hợp để đồng hành hiệu quả giữa Nhà trường, Học sinh và Phụ huynh."}
             </p>
           </div>
 
@@ -159,7 +182,7 @@ export default function HomePage() {
                     : "text-on-surface-variant hover:text-on-surface"
                 }`}
               >
-                Dành cho Trẻ nhỏ
+                Dành cho Học sinh
               </button>
             </div>
           )}
@@ -197,10 +220,10 @@ export default function HomePage() {
           <div className="flex justify-between items-end mb-12">
             <div>
               <h2 className="text-2xl md:text-3xl font-extrabold text-on-surface mb-2">
-                Thảo luận Cộng đồng
+                Góc Trò Chuyện &amp; Thảo Luận
               </h2>
               <p className="text-sm text-on-surface-variant">
-                Không gian chia sẻ kiến thức cho phụ huynh và trẻ em.
+                Không gian đối thoại cởi mở, giải đáp thắc mắc giữa học sinh, phụ huynh và giáo viên.
               </p>
             </div>
             <Link

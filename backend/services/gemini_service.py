@@ -22,18 +22,18 @@ def get_client() -> genai.Client:
     return _client
 
 async def generate_embedding(text_content: str) -> List[float]:
-    """Tạo vector nhúng 768 chiều sử dụng model text-embedding-004"""
+    """Tạo vector nhúng 768 chiều sử dụng model gemini-embedding-001"""
     try:
         client = get_client()
-        response = client.models.embed_content(
-            model="text-embedding-004",
-            contents=text_content
+        response = await client.aio.models.embed_content(
+            model="gemini-embedding-001",
+            contents=text_content,
+            config=types.EmbedContentConfig(output_dimensionality=768)
         )
         if response and response.embeddings:
             return response.embeddings[0].values
     except Exception as e:
         print(f"Error generating embedding: {e}")
-        # Trả về vector mặc định nếu có lỗi
         return [0.0] * 768
     return [0.0] * 768
 
@@ -44,7 +44,7 @@ async def generate_chat_stream(
 ) -> AsyncGenerator[str, None]:
     """Gọi Gemini API và stream luồng phản hồi dưới dạng JSON"""
     client = get_client()
-    model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    model_name = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
     
     # Ráp ngữ cảnh tri thức RAG (nếu có) vào hệ thống
     rag_context = ""
@@ -57,11 +57,9 @@ async def generate_chat_stream(
     full_system_prompt = system_prompt + rag_context
     
     # Chuyển đổi lịch sử chat sang định dạng của Gemini SDK
-    # Gemini nhận danh sách Content objects
     contents = []
     for msg in history_messages:
         role = "user" if msg["sender"] == "USER" else "model"
-        # Với NPC, vì Gemini xuất ra JSON nên history cũng phải là chuỗi JSON để nó nhất quán ngữ cảnh
         contents.append(types.Content(
             role=role,
             parts=[types.Part.from_text(text=msg["text"])]
@@ -71,17 +69,18 @@ async def generate_chat_stream(
     config = types.GenerateContentConfig(
         system_instruction=full_system_prompt,
         temperature=0.6,
-        max_output_tokens=180,
+        max_output_tokens=300,
         response_mime_type="application/json",
         response_schema=GeminiRoleplayOutput,
     )
     
     # Thực hiện gọi API bất đồng bộ và stream kết quả
-    async for chunk in client.aio.models.generate_content_stream(
+    stream_response = await client.aio.models.generate_content_stream(
         model=model_name,
         contents=contents,
         config=config
-    ):
+    )
+    async for chunk in stream_response:
         text = chunk.text or ""
         if text:
             yield text
@@ -90,7 +89,7 @@ async def summarize_session(history_messages: List[dict]) -> str:
     """Tạo tóm tắt ngắn gọn (recent_summary) về diễn biến hội thoại cũ"""
     try:
         client = get_client()
-        model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        model_name = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
         
         # Tạo chuỗi hội thoại
         chat_log = ""
@@ -104,12 +103,12 @@ Tập trung vào phản ứng, thái độ của người chơi (đồng ý, t�
 Hội thoại:
 {chat_log}
 """
-        response = client.models.generate_content(
+        response = await client.aio.models.generate_content(
             model=model_name,
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.3,
-                max_output_tokens=100
+                max_output_tokens=200
             )
         )
         return response.text.strip() if response.text else ""
@@ -125,7 +124,7 @@ async def evaluate_session(
     """Đánh giá chi tiết phản xạ của người chơi ở cuối màn game để viết báo cáo khoa học"""
     try:
         client = get_client()
-        model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        model_name = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
         
         chat_log = ""
         for m in history_messages:
@@ -133,26 +132,26 @@ async def evaluate_session(
             chat_log += f"{m['sender']}: {m['dialogue']}{action_text}\n"
             
         prompt = f"""
-Bạn là một chuyên gia tâm lý học đường và bác sĩ giáo dục giới tính tại Việt Nam.
-Hãy viết nhận xét đánh giá chi tiết (khoảng 100-150 từ) về phản xạ và cách xử lý tình huống của người học trong trò chơi mô phỏng.
+Bạn là chuyên gia tâm lý học đường và cố vấn an toàn giáo dục giới tính tại Việt Nam.
+Hãy viết nhận xét đánh giá tổng kết chi tiết (khoảng 150-200 từ) về màn chơi mô phỏng của người học.
 
-Kịch bản chơi: {scenario_title}
+Kịch bản: {scenario_title}
 Điểm số đạt được: {final_score}/100
-Lịch sử chat:
+Toàn bộ diễn biến hội thoại:
 {chat_log}
 
-Yêu cầu nhận xét:
-1. Đánh giá khách quan điểm tích cực (Ví dụ: Từ chối khéo léo, cảnh giác cao, biết nhờ người lớn, lắng nghe tôn trọng).
-2. Chỉ ra điểm chưa tốt hoặc nguy cơ (Ví dụ: Dễ bị dụ dỗ, giọng điệu tra khảo gây phòng thủ, khuyên tự trách bản thân).
-3. Đưa ra 1 lời khuyên ngắn gọn áp dụng ngoài đời thực.
-4. Trình bày trực tiếp, ấm áp, mang tính xây dựng giáo dục.
+CẤU TRÚC ĐÁNH GIÁ (BẮT BUỘC):
+1. Hướng đi đã chọn: Xác định rõ người chơi đã hành xử theo hướng nào (Hướng An toàn / Tốt, Hướng Trung gian / Do dự, hay Hướng Nguy hiểm / Xấu).
+2. Phân tích phản xạ: Chỉ ra cụ thể những điểm tốt trong cách đối đáp (ví dụ: cảnh giác, kiên quyết từ chối, lưu bằng chứng, lắng nghe thấu cảm, cởi mở) và điểm cần khắc phục.
+3. Hậu quả thực tế & Bài học: Giải thích rõ nếu xảy ra ngoài đời thực, cách xử lý này mang lại kết quả hay hậu quả gì cho bản thân và đưa ra 1 nguyên tắc vàng cần ghi nhớ.
+4. Giọng điệu ấm áp, tôn trọng, giàu tính giáo dục và bảo vệ người học.
 """
-        response = client.models.generate_content(
+        response = await client.aio.models.generate_content(
             model=model_name,
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.5,
-                max_output_tokens=300
+                max_output_tokens=600
             )
         )
         return response.text.strip() if response.text else "Chúc mừng bạn đã hoàn thành màn chơi mô phỏng!"

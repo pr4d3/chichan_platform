@@ -9,7 +9,7 @@ class GeminiRoleplayOutput(BaseModel):
     action: str = Field(..., description="Mô tả hành động/cử chỉ đặt trong dấu sao (VD: *nghi ngờ nhìn bạn*)")
     emotion: str = Field(..., description="Trạng thái cảm xúc: neutral | suspicious | anxious | friendly | angry | touched")
     score_change: int = Field(..., description="Điểm thay đổi tại lượt này (phạm vi từ -30 đến +30)")
-    trigger_event: str = Field(..., description="Sự kiện đặc biệt: none | danger_alert | safe_exit | mission_success | close_heart | open_heart | problem_resolved")
+    trigger_event: str = Field(..., description="Sự kiện đặc biệt: none | danger_alert | safe_exit | mission_success | close_heart | open_heart | problem_resolved | blackmailed")
 
 # --- API Request/Response Schemas ---
 class ScenarioResponse(BaseModel):
@@ -21,6 +21,11 @@ class ScenarioResponse(BaseModel):
     initial_score: int
     target_audience: str
     is_active: bool
+    description: Optional[str] = None
+    guide_script: Optional[str] = None
+    first_message_sender: Optional[str] = "USER"
+    opening_message: Optional[str] = None
+    gender_info: Optional[str] = None
 
     class Config:
         from_attributes = True

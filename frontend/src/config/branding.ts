@@ -14,14 +14,14 @@ export const BRAND_CONFIG = {
   shortName: "ChiChan Edu",
 
   // Slogan chính thức
-  slogan: "Nền tảng Giáo dục Giới tính Trực tuyến An toàn & Khoa học",
+  slogan: "Nền tảng Giáo dục Giới tính đồng hành cùng HS, PH và Nhà trường",
 
   // Slogan ngắn gọn
-  shortSlogan: "Giáo dục Giới tính An toàn & Khoa học",
+  shortSlogan: "Tiện lợi • Khoa học • Thú vị",
 
   // Mô tả định vị thương hiệu
   description:
-    "Môi trường học tập an toàn, thân thiện và chuẩn y khoa, giúp gỡ bỏ những rào cản và ngần ngại trong việc tiếp cận kiến thức giới tính.",
+    "Nền tảng hỗ trợ GV GDGT ở GOT — Tiện lợi, khoa học, thú vị, đồng hành cùng HS, PH và Nhà trường. Môi trường học tập số tiện lợi, an toàn, hỗ trợ giảm thiểu rào cản trong việc GDGT ở nhà trường và PH, HS.",
 
   // Thông tin liên hệ & hỗ trợ
   email: "contact@chichan.edu.vn",
@@ -31,7 +31,7 @@ export const BRAND_CONFIG = {
   defaultSurveyUrl: "https://forms.gle/research_feedback",
 
   // Bản quyền footer
-  copyright: `© ${new Date().getFullYear()} ChiChan Education. Nền tảng Giáo dục Giới tính Chuẩn Khoa học.`,
+  copyright: `© ${new Date().getFullYear()} ChiChan - Đề tài NCKH THPT Giồng Ông Tố. Đồng hành cùng HS, PH và Nhà trường.`,
 };
 
 // Export biến tiện lợi nhanh

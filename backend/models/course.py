@@ -24,3 +24,5 @@ class Course(Base):
 
     instructor = relationship("User", lazy="joined")
     lessons = relationship("Lesson", back_populates="course", cascade="all, delete-orphan", order_by="Lesson.order_index", lazy="selectin")
+    quizzes = relationship("Quiz", back_populates="course", cascade="all, delete-orphan", lazy="selectin")
+

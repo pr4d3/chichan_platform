@@ -20,3 +20,5 @@ class Lesson(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     course = relationship("Course", back_populates="lessons")
+    quiz = relationship("Quiz", back_populates="lesson", uselist=False, cascade="all, delete-orphan", lazy="selectin")
+

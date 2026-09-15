@@ -200,17 +200,17 @@ export function HeroVisualShowcase() {
               </div>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-fixed/60 text-on-primary-fixed-variant text-[9px] font-extrabold uppercase tracking-wider">
                 <SealCheck size={13} weight="fill" className="text-primary" />
-                Y tế &amp; Tâm lý
+                NCKH Giồng Ông Tố
               </span>
             </div>
 
             {/* Title & Subtext */}
             <div className="flex flex-col">
               <span className="text-xs sm:text-[13px] font-extrabold text-on-surface leading-snug">
-                Đội ngũ nghiên cứu tâm huyết
+                Nhóm NCKH THPT Giồng Ông Tố
               </span>
               <span className="text-[10px] sm:text-[11px] text-on-surface-variant font-medium mt-0.5">
-                Thẩm định đa tầng chuẩn y khoa
+                Hỗ trợ giáo viên &amp; học sinh GOT
               </span>
             </div>
           </div>
@@ -240,10 +240,10 @@ export function HeroVisualShowcase() {
             {/* Title & Subtext */}
             <div className="flex flex-col">
               <span className="text-xs sm:text-[13px] font-extrabold text-on-surface leading-snug">
-                Rèn luyện không rủi ro cùng AI
+                Củng cố &amp; rèn luyện cùng AI
               </span>
               <span className="text-[10px] sm:text-[11px] text-on-surface-variant font-medium mt-0.5">
-                Giả lập tình huống an toàn 100%
+                Tình huống ranh giới &amp; an toàn mạng
               </span>
             </div>
           </div>
@@ -275,11 +275,11 @@ export function HeroVisualShowcase() {
             {/* Title & Subtext */}
             <div className="flex flex-col">
               <span className="text-xs sm:text-[13px] font-extrabold text-on-surface leading-snug flex items-center gap-1">
-                <span>Nơi chia sẻ &amp; gỡ rối</span>
+                <span>Đồng hành &amp; Lắng nghe</span>
                 <Sparkle size={13} weight="fill" className="text-amber-500" />
               </span>
               <span className="text-[10px] sm:text-[11px] text-on-surface-variant font-medium mt-0.5">
-                Tâm sự an toàn, không phán xét
+                Đối thoại cởi mở cùng Giáo viên
               </span>
             </div>
 

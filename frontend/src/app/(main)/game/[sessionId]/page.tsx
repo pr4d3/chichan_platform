@@ -13,6 +13,9 @@ import {
   Brain,
   ArrowCounterClockwise,
   WarningCircle,
+  BookOpen,
+  X,
+  Target,
 } from "@phosphor-icons/react";
 
 interface Message {
@@ -41,6 +44,11 @@ interface Scenario {
   npc_avatar_url: string;
   initial_score: number;
   target_audience: string;
+  description?: string;
+  guide_script?: string;
+  first_message_sender?: string;
+  opening_message?: string;
+  gender_info?: string;
 }
 
 const emotionEmojiMap: Record<string, string> = {
@@ -63,9 +71,10 @@ const emotionTextMap: Record<string, string> = {
 
 const scoreLabelMap: Record<string, string> = {
   ROOM_STRANGER: "Điểm An Toàn",
+  ROOM_SEXTORTION: "Điểm Bản Lĩnh",
   ROOM_DOCTOR: "Điểm Cởi Mở",
   ROOM_TEEN_CHILD: "Điểm Tin Tưởng",
-  ROOM_BULLYING: "Điểm Hỗ Trợ",
+  ROOM_BULLYING: "Điểm Đồng Cảm",
 };
 
 export default function GamePlayPage() {
@@ -94,6 +103,7 @@ export default function GamePlayPage() {
   const [showEvalModal, setShowEvalModal] = useState(false);
   const [evaluation, setEvaluation] = useState<any>(null);
   const [loadingEval, setLoadingEval] = useState(false);
+  const [showGuideModal, setShowGuideModal] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -338,7 +348,7 @@ export default function GamePlayPage() {
           onClick={() => router.push("/game")}
           className="bg-primary text-white px-6 py-2.5 rounded-full text-xs font-bold shadow-sm hover:opacity-90 transition-all cursor-pointer"
         >
-          Trở về Danh sách kịch bản
+          Trở về Góc giải trí
         </button>
       </div>
     );
@@ -358,7 +368,7 @@ export default function GamePlayPage() {
           <button
             onClick={() => router.push("/game")}
             className="p-2 hover:bg-surface-container rounded-full transition-colors text-on-surface-variant hover:text-primary cursor-pointer flex items-center justify-center"
-            title="Quay lại danh sách"
+            title="Quay lại Góc giải trí"
           >
             <ArrowLeft size={20} weight="bold" />
           </button>
@@ -375,7 +385,17 @@ export default function GamePlayPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          {scenario?.guide_script && (
+            <button
+              type="button"
+              onClick={() => setShowGuideModal(true)}
+              className="text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 px-3.5 py-2 rounded-full flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <BookOpen size={16} weight="bold" />
+              <span className="hidden sm:inline">Kịch bản &amp; Hướng dẫn</span>
+            </button>
+          )}
           {!isSessionEnded && (
             <button
               onClick={handleAbandon}
@@ -466,20 +486,32 @@ export default function GamePlayPage() {
           {/* Messages container */}
           <div className="flex-grow p-4 md:p-6 overflow-y-auto space-y-4">
             {messages.length === 0 && (
-              <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-2">
+              <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-3 p-4">
                 <PlayCircle
-                  size={40}
+                  size={44}
                   weight="duotone"
                   className="text-primary animate-pulse"
                 />
                 <h4 className="font-extrabold text-on-surface text-sm">
-                  Bắt đầu mô phỏng
+                  {scenario?.first_message_sender === "USER"
+                    ? "Lượt nhắn đầu tiên thuộc về bạn!"
+                    : "Bắt đầu mô phỏng tình huống"}
                 </h4>
                 <p className="text-xs text-on-surface-variant font-light leading-relaxed">
-                  Hãy nhập lời thoại bên dưới để trò chuyện cùng{" "}
-                  <strong>{scenario?.npc_name}</strong> và giải quyết tình huống
-                  theo cách của bạn.
+                  {scenario?.first_message_sender === "USER"
+                    ? `Theo kịch bản, bạn là người chủ động mở lời hoặc đặt câu hỏi trước với ${scenario?.npc_name}. Hãy gõ lời thoại ở khung bên dưới!`
+                    : `Hãy nhập lời thoại bên dưới để trò chuyện cùng ${scenario?.npc_name} và giải quyết tình huống theo cách của bạn.`}
                 </p>
+                {scenario?.guide_script && (
+                  <button
+                    type="button"
+                    onClick={() => setShowGuideModal(true)}
+                    className="inline-flex items-center gap-1.5 text-xs text-primary font-bold bg-primary/10 hover:bg-primary/20 px-3.5 py-1.5 rounded-full cursor-pointer transition-colors"
+                  >
+                    <BookOpen size={14} weight="bold" />
+                    Xem lại hướng dẫn kịch bản
+                  </button>
+                )}
               </div>
             )}
 
@@ -690,6 +722,76 @@ export default function GamePlayPage() {
                 className="h-11 px-8 rounded-full border border-outline/30 bg-white/50 hover:bg-white text-on-surface font-bold text-xs cursor-pointer transition-all"
               >
                 Chọn kịch bản khác
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guide Script In-Game Modal */}
+      {showGuideModal && scenario?.guide_script && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white/95 border border-white/80 p-6 md:p-8 rounded-3xl max-w-2xl w-full shadow-2xl overflow-y-auto max-h-[85vh] relative space-y-5">
+            {/* Close button */}
+            <button
+              onClick={() => setShowGuideModal(false)}
+              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface transition-colors cursor-pointer"
+            >
+              <X size={18} weight="bold" />
+            </button>
+
+            {/* Modal Header */}
+            <div className="flex items-center gap-3 pr-10">
+              <div className="w-12 h-12 rounded-2xl bg-primary-fixed text-primary flex items-center justify-center text-xl shadow-xs">
+                <BookOpen size={24} weight="duotone" />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+                  Kịch Bản &amp; Hướng Dẫn Tình Huống
+                </span>
+                <h3 className="text-xl font-extrabold text-on-surface mt-1">
+                  {scenario.title}
+                </h3>
+              </div>
+            </div>
+
+            {/* Metadata Badges */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-surface-container-low/70 p-3.5 rounded-2xl border border-outline-variant/30 text-xs">
+              <div>
+                <p className="text-[10px] text-on-surface-variant font-bold">NHÂN VẬT ĐỐI THOẠI</p>
+                <p className="font-semibold text-on-surface mt-0.5">{scenario.npc_name}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-on-surface-variant font-bold">LƯỢT NHẮN ĐẦU TIÊN</p>
+                <p className="font-semibold text-primary mt-0.5">
+                  {scenario.first_message_sender === "NPC" ? "Nhân vật nhắn trước" : "Bạn nhắn trước"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] text-on-surface-variant font-bold">CHỈ SỐ ĐÁNH GIÁ</p>
+                <p className="font-semibold text-on-surface mt-0.5">{scoreLabel}</p>
+              </div>
+            </div>
+
+            {/* Guide Script Content */}
+            <div className="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/20 space-y-3">
+              <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
+                <Target size={16} weight="bold" className="text-primary" />
+                Chi Tiết Bối Cảnh, Mục Tiêu &amp; 3 Hướng Đi Khả Dĩ:
+              </h4>
+              <div className="text-xs text-on-surface leading-relaxed whitespace-pre-line font-light">
+                {scenario.guide_script}
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowGuideModal(false)}
+                className="h-10 px-6 rounded-full bg-primary hover:opacity-90 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+              >
+                Tiếp tục trò chơi
               </button>
             </div>
           </div>

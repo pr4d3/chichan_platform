@@ -35,17 +35,17 @@ export default function Footer() {
                 <div className="flex flex-col gap-3">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-on-surface">Khám phá</h4>
                     <Link className="text-on-surface-variant hover:text-primary transition-colors text-xs w-fit" href="/about">
-                        Đội ngũ nghiên cứu
+                        Nhóm NCKH THPT Giồng Ông Tố
                     </Link>
                     <Link className="text-on-surface-variant hover:text-primary transition-colors text-xs w-fit" href="/courses">
-                        Danh sách khóa học
+                        Góc học tập
                     </Link>
                     <Link className="text-on-surface-variant hover:text-primary transition-colors text-xs w-fit flex items-center gap-1.5" href="/game">
-                        <span>Phòng Chơi AI Roleplay</span>
+                        <span>Góc giải trí (Trò chơi AI)</span>
                         <span className="px-1 py-0.2 rounded bg-primary/10 text-primary text-[8px] font-bold">MỚI</span>
                     </Link>
                     <Link className="text-on-surface-variant hover:text-primary transition-colors text-xs w-fit" href="/forum">
-                        Diễn đàn thảo luận
+                        Góc trò chuyện
                     </Link>
                 </div>
             </div>

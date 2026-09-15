@@ -15,11 +15,11 @@ interface HeroTypingTitleProps {
 }
 
 const KEYWORDS = [
-  "An toàn & Khoa học",
-  "Chuẩn Y khoa Quốc tế",
-  "Thân thiện & Cởi mở",
-  "Đồng hành cùng Gia đình",
-  "Bảo mật & Đáng tin cậy",
+  "Tiện lợi, Khoa học & Thú vị",
+  "Đồng hành cùng HS, PH & Nhà trường",
+  "Môi trường học tập số an toàn",
+  "Rèn luyện phản xạ cùng AI",
+  "Giảm thiểu rào cản tiếp cận GDGT",
 ];
 
 export function HeroTypingTitle({ className = "" }: HeroTypingTitleProps) {

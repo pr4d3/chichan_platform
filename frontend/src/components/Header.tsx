@@ -34,15 +34,15 @@ export default function Header() {
                         Trang Chủ
                     </Link>
                     <Link href="/courses" className={`text-sm transition-colors ${isLinkActive('/courses') ? 'text-primary font-bold' : 'text-on-surface-variant hover:text-primary font-medium'}`}>
-                        Khóa Học
+                        Góc Học Tập
                     </Link>
                     <Link href="/game" className={`text-sm transition-all flex items-center gap-1.5 ${isLinkActive('/game') ? 'text-primary font-bold' : 'text-on-surface-variant hover:text-primary font-medium'}`}>
                         <Robot size={18} weight="duotone" className="text-primary" />
-                        Phòng Chơi AI
+                        Góc Giải Trí
                         <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[9px] font-black tracking-wide border border-primary/20">MỚI</span>
                     </Link>
                     <Link href="/forum" className={`text-sm transition-colors ${isLinkActive('/forum') ? 'text-primary font-bold' : 'text-on-surface-variant hover:text-primary font-medium'}`}>
-                        Diễn Đàn
+                        Góc Trò Chuyện
                     </Link>
                     <Link href="/about" className={`text-sm transition-colors ${isLinkActive('/about') ? 'text-primary font-bold' : 'text-on-surface-variant hover:text-primary font-medium'}`}>
                         Về Chúng Tôi

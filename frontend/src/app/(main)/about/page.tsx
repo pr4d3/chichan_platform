@@ -105,11 +105,11 @@ export default function AboutPage() {
   }, [feedbackContent]);
 
   const title =
-    "Nền tảng Giáo dục Giới tính Toàn diện & Khoa học cho Thanh Thiếu niên";
+    "Nền tảng giáo dục giới tính đồng hành cùng HS, PH và nhà trường";
   const purpose =
-    "Thực trạng thiếu hụt kiến thức giáo dục giới tính toàn diện và khoa học tại Việt Nam đang dẫn đến nhiều hệ lụy xã hội. Nhu cầu cấp thiết là một nền tảng giáo dục chuẩn y khoa, an toàn và dễ tiếp cận, nhằm trang bị kiến thức bảo vệ bản thân cho thanh thiếu niên, xóa bỏ các rào cản tâm lý và định kiến sai lệch.";
+    "Thiếu hụt công cụ để giảm thiểu bớt các rào cản triển khai và tiếp cận công tác GDGT cho HS, PH ở nhà trường. Nhóm nghiên cứu khoa học của THPT Giồng Ông Tố phát triển mô hình trang web học tập online hỗ trợ nhà trường cung cấp kiến thức và giảm thiểu các rào cản tiếp cận GDGT ở học sinh.";
   const methodology =
-    "Khung chương trình được cá nhân hóa sâu sắc, xây dựng dựa trên sự phát triển sinh lý và tâm lý của từng giai đoạn tuổi tác. Tích hợp E-learning với thiết kế trực quan, gamification để tăng tính tương tác, đồng thời đảm bảo nội dung phù hợp với văn hóa và chuẩn mực y tế, mang lại môi trường học tập an toàn tuyệt đối.";
+    "Khung chương trình được thiết kế theo định hướng triển khai và vận hành công tác giáo dục giới tính tại nhà trường. Tích hợp E-learning với thiết kế trực quan, gamification để tăng tính tương tác, đồng thời đảm bảo nội dung phù hợp với định hướng của nhà trường, mang lại môi trường học tập số an toàn, tiện lợi và thân thiện.";
 
   const handleSendFeedback = (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,10 +137,10 @@ export default function AboutPage() {
         <div className="relative z-10 max-w-4xl mx-auto text-center space-y-4">
           <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-xs font-bold mb-2">
             <Flask size={16} weight="fill" />
-            Đề tài Nghiên cứu Khoa học
+            Đề tài Nghiên cứu Khoa học — THPT Giồng Ông Tố
           </div>
           <h1 className="text-3xl md:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary-container mb-4 leading-tight">
-            Giáo dục giới tính &amp; {BRAND_CONFIG.fullName}
+            Mô Hình Học Tập Số Giáo Dục Giới Tính
           </h1>
           <p className="text-base md:text-lg font-medium text-on-surface-variant max-w-3xl mx-auto leading-relaxed">
             {title}
@@ -172,7 +172,7 @@ export default function AboutPage() {
               <Brain size={28} weight="duotone" />
             </div>
             <h2 className="text-xl font-bold text-on-surface mb-4">
-              Phương pháp tiếp cận theo lứa tuổi
+              Khung chương trình &amp; Vận hành
             </h2>
             <p className="text-sm text-on-surface-variant leading-relaxed font-light">
               {methodology}

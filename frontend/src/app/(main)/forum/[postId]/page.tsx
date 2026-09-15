@@ -310,7 +310,7 @@ export default function PostDetailPage() {
             href="/forum"
             className="inline-flex items-center gap-2 px-5 py-2 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary/90 transition-colors shadow-xs"
           >
-            <ArrowLeft size={16} weight="bold" /> Quay lại Diễn đàn
+            <ArrowLeft size={16} weight="bold" /> Quay lại Góc trò chuyện
           </Link>
         </div>
       </div>
@@ -335,7 +335,7 @@ export default function PostDetailPage() {
             className="inline-flex items-center gap-2 text-xs font-bold text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
           >
             <ArrowLeft size={16} weight="bold" />
-            <span>Diễn đàn</span>
+            <span>Góc trò chuyện</span>
           </Link>
 
           <span className="text-xs font-bold text-on-surface truncate max-w-[200px] sm:max-w-xs text-center">

@@ -13,7 +13,10 @@ class SyllabusLesson(BaseModel):
     id: UUID
     order_index: int
     title: str
+    content_type: str = "HYBRID"
     duration_minutes: Optional[int] = None
+    has_quiz: bool = False
+    quiz_id: Optional[UUID] = None
 
 class CourseIntroData(BaseModel):
     course_id: UUID
@@ -85,12 +88,19 @@ class LearningRoomLesson(BaseModel):
     video_url: Optional[str] = None
     content_body: Optional[str] = None
     is_completed: bool
+    has_quiz: bool = False
+    quiz_id: Optional[UUID] = None
+    is_quiz_passed: bool = False
 
 class CourseLearningData(BaseModel):
     course_id: UUID
     course_title: str
     progress_percentage: float
     lessons: list[LearningRoomLesson]
+    has_final_quiz: bool = False
+    final_quiz_id: Optional[UUID] = None
+    is_final_quiz_passed: bool = False
+
 
 class CourseLearningResponse(BaseModel):
     success: bool
@@ -112,7 +122,7 @@ class CourseOutroResponse(BaseModel):
 
 class LessonCreate(BaseModel):
     title: str = Field(..., max_length=255)
-    content_type: str = Field("HYBRID", pattern="^(VIDEO|TEXT|HYBRID)$")
+    content_type: str = Field("HYBRID", pattern="^(VIDEO|TEXT|HYBRID|QUIZ)$")
     video_url: Optional[str] = Field(None, max_length=500)
     content_body: Optional[str] = None
     order_index: int = 1

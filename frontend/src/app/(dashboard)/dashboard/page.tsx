@@ -16,7 +16,10 @@ import {
   Certificate,
   Percent,
   Article,
+  Question,
+  ShieldCheck,
 } from "@phosphor-icons/react";
+import { QuizEditorModal } from "@/components/quiz/QuizEditorModal";
 
 interface ManagedCourse {
   course_id: string;
@@ -34,6 +37,7 @@ interface SyllabusLesson {
   id: string;
   order_index: number;
   title: string;
+  content_type?: string;
   duration_minutes: number | null;
 }
 
@@ -64,7 +68,15 @@ export default function DashboardOverviewPage() {
     null,
   );
   const [detailsLoading, setDetailsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"basic" | "lessons">("basic");
+  const [activeTab, setActiveTab] = useState<"basic" | "lessons" | "final_quiz">("basic");
+  const [courseQuizzes, setCourseQuizzes] = useState<any[]>([]);
+  const [quizModalOpen, setQuizModalOpen] = useState(false);
+  const [quizModalLessonId, setQuizModalLessonId] = useState<string | null>(null);
+  const [quizModalLessonTitle, setQuizModalLessonTitle] = useState("");
+  const [quizModalIsFinal, setQuizModalIsFinal] = useState(false);
+  const [quizModalIsStandalone, setQuizModalIsStandalone] = useState(false);
+  const [quizModalLessonOrderIndex, setQuizModalLessonOrderIndex] = useState<number | undefined>(undefined);
+
 
   // Create Course Modal states
   const [modalOpen, setModalOpen] = useState(false);
@@ -224,6 +236,18 @@ export default function DashboardOverviewPage() {
         setEditDesc(data.description || "");
         setEditObjectives(data.learning_objectives || "");
         setEditOutroContent(data.outro_content || "");
+
+        // Load quizzes for this course
+        try {
+          const qRes = await api.get(`/courses/${courseId}/quizzes/manage`);
+          if (qRes.success && Array.isArray(qRes.data)) {
+            setCourseQuizzes(qRes.data);
+          } else {
+            setCourseQuizzes([]);
+          }
+        } catch (e) {
+          console.error("Error loading course quizzes", e);
+        }
       }
     } catch (err: any) {
       showToast(err.message || "Lỗi khi tải chi tiết khóa học", "error");
@@ -231,6 +255,7 @@ export default function DashboardOverviewPage() {
       setDetailsLoading(false);
     }
   };
+
 
   const handleSelectCourse = (courseId: string) => {
     setSelectedCourseId(courseId);
@@ -600,7 +625,24 @@ export default function DashboardOverviewPage() {
                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
                 )}
               </button>
+              <button
+                onClick={() => setActiveTab("final_quiz")}
+                className={`pb-3 text-sm font-bold transition-all relative cursor-pointer flex items-center gap-1.5 ${
+                  activeTab === "final_quiz"
+                    ? "text-primary"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                <span>Quiz cuối khóa</span>
+                {courseQuizzes.some((q) => q.is_final) && (
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" title="Đã cấu hình" />
+                )}
+                {activeTab === "final_quiz" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
+                )}
+              </button>
             </div>
+
 
             {/* Basic Info Tab */}
             {activeTab === "basic" && (
@@ -757,13 +799,30 @@ export default function DashboardOverviewPage() {
                   <h3 className="text-sm font-extrabold text-on-surface">
                     Đề cương bài học
                   </h3>
-                  <button
-                    onClick={handleOpenAddLesson}
-                    className="bg-primary text-white px-4 py-2.5 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
-                  >
-                    <Plus size={16} weight="bold" />
-                    Thêm bài học
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setQuizModalLessonId(null);
+                        setQuizModalLessonTitle("");
+                        setQuizModalIsFinal(false);
+                        setQuizModalIsStandalone(true);
+                        setQuizModalLessonOrderIndex((courseDetails?.syllabus.length || 0) + 1);
+                        setQuizModalOpen(true);
+                      }}
+                      className="bg-purple-600 text-white px-4 py-2.5 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
+                      title="Thêm bài kiểm tra trắc nghiệm độc lập vào đề cương"
+                    >
+                      <Question size={16} weight="bold" />
+                      Thêm bài Quiz
+                    </button>
+                    <button
+                      onClick={handleOpenAddLesson}
+                      className="bg-primary text-white px-4 py-2.5 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
+                    >
+                      <Plus size={16} weight="bold" />
+                      Thêm bài học
+                    </button>
+                  </div>
                 </div>
 
                 {!courseDetails || courseDetails.syllabus.length === 0 ? (
@@ -776,59 +835,202 @@ export default function DashboardOverviewPage() {
                   </div>
                 ) : (
                   <div className="divide-y divide-outline-variant/10">
-                    {courseDetails.syllabus.map((lesson, index) => (
-                      <div
-                        key={lesson.id}
-                        draggable={isDraggingAllowed && !isReordering}
-                        onDragStart={(e) => handleDragStart(e, index)}
-                        onDragOver={(e) => handleDragOver(e, index)}
-                        onDrop={(e) => handleDrop(e, index)}
-                        onDragEnd={handleDragEnd}
-                        className={`flex justify-between items-center py-4 first:pt-0 last:pb-0 group transition-all select-none ${
-                          draggedIndex === index
-                            ? "opacity-40 bg-primary/5 rounded-2xl px-2"
-                            : ""
-                        }`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div
-                            onMouseEnter={() => setIsDraggingAllowed(true)}
-                            onMouseLeave={() => setIsDraggingAllowed(false)}
-                            className="flex items-center gap-2 cursor-grab active:cursor-grabbing p-1 hover:bg-primary/5 rounded-2xl transition-all"
-                            title="Kéo thả để sắp xếp"
-                          >
-                            <DotsSixVertical size={18} weight="bold" className="text-on-surface-variant/35 group-hover:text-primary transition-colors" />
-                            <div className="h-8 w-8 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black text-xs">
-                              {lesson.order_index}
+                    {courseDetails.syllabus.map((lesson, index) => {
+                      const isQuizLesson = lesson.content_type === "QUIZ";
+                      const lQuiz = courseQuizzes.find((q) => q.lesson_id === lesson.id);
+
+                      return (
+                        <div
+                          key={lesson.id}
+                          draggable={isDraggingAllowed && !isReordering}
+                          onDragStart={(e) => handleDragStart(e, index)}
+                          onDragOver={(e) => handleDragOver(e, index)}
+                          onDrop={(e) => handleDrop(e, index)}
+                          onDragEnd={handleDragEnd}
+                          className={`flex justify-between items-center py-4 first:pt-0 last:pb-0 group transition-all select-none ${
+                            draggedIndex === index
+                              ? "opacity-40 bg-primary/5 rounded-2xl px-2"
+                              : ""
+                          }`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div
+                              onMouseEnter={() => setIsDraggingAllowed(true)}
+                              onMouseLeave={() => setIsDraggingAllowed(false)}
+                              className="flex items-center gap-2 cursor-grab active:cursor-grabbing p-1 hover:bg-primary/5 rounded-2xl transition-all"
+                              title="Kéo thả để sắp xếp"
+                            >
+                              <DotsSixVertical size={18} weight="bold" className="text-on-surface-variant/35 group-hover:text-primary transition-colors" />
+                              <div className={`h-8 w-8 rounded-2xl flex items-center justify-center font-black text-xs ${
+                                isQuizLesson ? "bg-purple-100 text-purple-700" : "bg-primary/10 text-primary"
+                              }`}>
+                                {lesson.order_index}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className={`text-xs font-bold transition-colors ${
+                                  isQuizLesson ? "text-purple-700 group-hover:text-purple-800" : "text-on-surface group-hover:text-primary"
+                                }`}>
+                                  {lesson.title}
+                                </h4>
+                                {isQuizLesson && (
+                                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-purple-100 text-purple-700">
+                                    Quiz
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-on-surface-variant font-light mt-0.5">
+                                {isQuizLesson
+                                  ? `${lQuiz ? `${lQuiz.total_questions} câu hỏi • Điểm đạt: ${lQuiz.passing_score}%` : "Bài kiểm tra trắc nghiệm"}`
+                                  : `Thời lượng: ${lesson.duration_minutes || "--"} phút`}
+                              </p>
                             </div>
                           </div>
-                          <div>
-                            <h4 className="text-xs font-bold text-on-surface group-hover:text-primary transition-colors">
-                              {lesson.title}
-                            </h4>
-                            <p className="text-[10px] text-on-surface-variant font-light mt-0.5">
-                              Thời lượng: {lesson.duration_minutes || "--"} phút
+                          <div className="flex items-center gap-2">
+                            {isQuizLesson ? (
+                              <button
+                                onClick={() => {
+                                  setQuizModalLessonId(lesson.id);
+                                  setQuizModalLessonTitle(lesson.title);
+                                  setQuizModalIsFinal(false);
+                                  setQuizModalIsStandalone(true);
+                                  setQuizModalLessonOrderIndex(lesson.order_index);
+                                  setQuizModalOpen(true);
+                                }}
+                                className="h-8 px-3 rounded-full bg-purple-100 text-purple-700 hover:bg-purple-200 text-[11px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                                title="Soạn câu hỏi Quiz"
+                              >
+                                <Question size={14} weight="bold" />
+                                <span>Soạn Quiz {lQuiz ? `(${lQuiz.total_questions})` : ""}</span>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleOpenEditLesson(lesson.id)}
+                                className="h-8 w-8 rounded-full hover:bg-surface-container flex items-center justify-center text-primary transition-colors cursor-pointer"
+                                title="Sửa bài giảng"
+                              >
+                                <PencilSimple size={18} weight="bold" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteLesson(lesson.id)}
+                              className="h-8 w-8 rounded-full hover:bg-red-50 flex items-center justify-center text-red-500 transition-colors cursor-pointer"
+                              title={isQuizLesson ? "Xóa bài Quiz" : "Xóa bài giảng"}
+                            >
+                              <Trash size={18} weight="bold" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Final Quiz Tab */}
+            {activeTab === "final_quiz" && (
+              <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl border border-white/60 shadow-sm space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <h3 className="text-sm font-extrabold text-on-surface">
+                      Bài kiểm tra đánh giá cuối khóa (Final Exam)
+                    </h3>
+                    <p className="text-xs text-on-surface-variant font-light mt-0.5">
+                      Học viên cần vượt qua bài kiểm tra này sau khi hoàn thành tất cả bài học để nhận chứng nhận tốt nghiệp.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setQuizModalLessonId(null);
+                      setQuizModalLessonTitle("");
+                      setQuizModalIsFinal(true);
+                      setQuizModalOpen(true);
+                    }}
+                    className="bg-primary text-white px-5 py-2.5 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 hover:opacity-90 transition-opacity shadow-sm cursor-pointer shrink-0"
+                  >
+                    <Question size={16} weight="bold" />
+                    <span>
+                      {courseQuizzes.some((q) => q.is_final)
+                        ? "Chỉnh sửa Quiz cuối khóa"
+                        : "Thiết lập Quiz cuối khóa"}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Final quiz summary info or empty state */}
+                {courseQuizzes.find((q) => q.is_final) ? (
+                  (() => {
+                    const fq = courseQuizzes.find((q) => q.is_final);
+                    return (
+                      <div className="p-6 rounded-2xl bg-surface-container-lowest border border-outline-variant/30 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                              <ShieldCheck size={24} weight="duotone" />
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-sm text-on-surface">
+                                {fq.title}
+                              </h4>
+                              <p className="text-xs text-on-surface-variant font-medium">
+                                Tổng cộng {fq.total_questions} câu hỏi trắc nghiệm
+                              </p>
+                            </div>
+                          </div>
+                          <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
+                            Đang hoạt động
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-xs">
+                          <div className="p-3 rounded-xl bg-white border border-outline-variant/20">
+                            <span className="text-on-surface-variant text-[11px]">
+                              Điểm đạt yêu cầu:
+                            </span>
+                            <p className="font-bold text-primary text-sm mt-0.5">
+                              {fq.passing_score}%
+                            </p>
+                          </div>
+                          <div className="p-3 rounded-xl bg-white border border-outline-variant/20">
+                            <span className="text-on-surface-variant text-[11px]">
+                              Xem giải thích:
+                            </span>
+                            <p className="font-bold text-on-surface text-sm mt-0.5">
+                              {fq.show_correct_answers ? "Cho phép" : "Ẩn đáp án"}
+                            </p>
+                          </div>
+                          <div className="p-3 rounded-xl bg-white border border-outline-variant/20">
+                            <span className="text-on-surface-variant text-[11px]">
+                              Lượt thử tối đa:
+                            </span>
+                            <p className="font-bold text-on-surface text-sm mt-0.5">
+                              {fq.max_attempts} lần
+                            </p>
+                          </div>
+                          <div className="p-3 rounded-xl bg-white border border-outline-variant/20">
+                            <span className="text-on-surface-variant text-[11px]">
+                              Thời gian chờ:
+                            </span>
+                            <p className="font-bold text-on-surface text-sm mt-0.5">
+                              {fq.cooldown_minutes} phút
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleOpenEditLesson(lesson.id)}
-                            className="h-8 w-8 rounded-full hover:bg-surface-container flex items-center justify-center text-primary transition-colors cursor-pointer"
-                            title="Sửa bài giảng"
-                          >
-                            <PencilSimple size={18} weight="bold" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteLesson(lesson.id)}
-                            className="h-8 w-8 rounded-full hover:bg-red-50 flex items-center justify-center text-red-500 transition-colors cursor-pointer"
-                            title="Xóa bài giảng"
-                          >
-                            <Trash size={18} weight="bold" />
-                          </button>
-                        </div>
                       </div>
-                    ))}
+                    );
+                  })()
+                ) : (
+                  <div className="text-center py-12 rounded-2xl border border-dashed border-outline-variant/40 space-y-3">
+                    <ShieldCheck
+                      size={48}
+                      weight="duotone"
+                      className="mx-auto text-on-surface-variant/30"
+                    />
+                    <p className="text-xs text-on-surface-variant font-light max-w-sm mx-auto">
+                      Khóa học hiện tại chưa có Quiz cuối khóa. Học viên hoàn thành 100% bài học sẽ nhận chứng chỉ trực tiếp. Bấm nút trên để thiết lập bài kiểm tra tổng kết.
+                    </p>
                   </div>
                 )}
               </div>
@@ -973,6 +1175,22 @@ export default function DashboardOverviewPage() {
             </div>
           </div>
         )}
+
+        {/* Quiz Create/Edit Modal */}
+        <QuizEditorModal
+          isOpen={quizModalOpen}
+          onClose={() => setQuizModalOpen(false)}
+          courseId={selectedCourseId}
+          lessonId={quizModalLessonId}
+          lessonTitle={quizModalLessonTitle}
+          isFinalQuiz={quizModalIsFinal}
+          isStandaloneQuiz={quizModalIsStandalone}
+          existingLessonCount={courseDetails?.syllabus.length || 0}
+          lessonOrderIndex={quizModalLessonOrderIndex}
+          onQuizSaved={() => {
+            fetchCourseDetails(selectedCourseId);
+          }}
+        />
       </div>
     );
   }
@@ -1381,6 +1599,29 @@ export default function DashboardOverviewPage() {
           </div>
         </div>
       )}
+
+      {/* Quiz Editor Modal */}
+      {selectedCourseId && (
+
+        <QuizEditorModal
+          isOpen={quizModalOpen}
+          onClose={() => setQuizModalOpen(false)}
+          courseId={selectedCourseId}
+          lessonId={quizModalLessonId}
+          lessonTitle={quizModalLessonTitle}
+          isFinalQuiz={quizModalIsFinal}
+          onQuizSaved={() => {
+            if (selectedCourseId) {
+              api.get(`/courses/${selectedCourseId}/quizzes/manage`).then((res) => {
+                if (res.success && Array.isArray(res.data)) {
+                  setCourseQuizzes(res.data);
+                }
+              });
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
+

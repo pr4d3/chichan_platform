@@ -12,44 +12,44 @@ export function ThreeStepJourney() {
   const steps = [
     {
       step: "01",
-      title: "Khám Phá Kiến Thức Y Khoa",
+      title: "Khám Phá Kiến Thức",
       description:
-        "Tiếp cận hệ thống bài giảng khoa học, phân tầng chuẩn theo từng độ tuổi, giải thích tự nhiên về cơ thể và tâm sinh lý dậy thì.",
+        "Tìm hiểu kiến thức qua hệ thống bài giảng online từ giáo viên, giải thích khoa học, tự nhiên về cơ thể và tâm sinh lý theo định hướng của nhà trường.",
       illustration: (
         <MedicalKnowledgeIllustration className="w-full h-40 my-2 group-hover:scale-105 transition-transform duration-300 drop-shadow-xs" />
       ),
       highlights: [
-        "Chuẩn y văn Bộ Y tế đối chiếu",
-        "Hình ảnh minh họa khoa học, trong sáng",
-        "Giải thích cơ thể tự nhiên, không né tránh",
+        "Bài giảng online chuẩn hóa từ giáo viên",
+        "Nội dung phù hợp định hướng nhà trường",
+        "Kiến thức khoa học, trực quan, dễ tiếp thu",
       ],
     },
     {
       step: "02",
-      title: "Rèn Luyện Phản Xạ Cùng AI",
+      title: "Củng Cố & Rèn Luyện Cùng AI",
       description:
-        "Nhập vai tương tác trong các tình huống thực tế: ranh giới an toàn, phòng chống quấy rối mạng và tự bảo vệ mà không gặp bất kỳ rủi ro nào.",
+        "Nhập vai tương tác với các tình huống giả định: ranh giới an toàn, phòng chống quấy rối mạng và tự bảo vệ mà không gặp bất kỳ rủi ro nào.",
       illustration: (
         <AiSimulationIllustration className="w-full h-40 my-2 group-hover:scale-105 transition-transform duration-300 drop-shadow-xs" />
       ),
       highlights: [
-        "Mô phỏng 4+ nhân vật đời thực",
-        "Phản hồi cảm xúc tương tác tức thì",
-        "Chấm điểm an toàn & nhận diện nguy cơ",
+        "Tình huống ranh giới an toàn & phòng quấy rối",
+        "Phản xạ thực tế với trí tuệ nhân tạo",
+        "Rèn luyện kỹ năng tự bảo vệ bản thân",
       ],
     },
     {
       step: "03",
-      title: "Đánh Giá & Đồng Hành Bền Vững",
+      title: "Đồng Hành & Chia Sẻ",
       description:
-        "Nhận báo cáo thấu cảm, củng cố sự tự tin cho học sinh và gợi mở chủ đề đối thoại cởi mở, không khoảng cách cho các bậc phụ huynh.",
+        "Tiếp nhận các thắc mắc, phản hồi của HS và PH. Gợi mở chủ đề đối thoại cởi mở, gần gũi cho các bậc phụ huynh, học sinh và nhà trường.",
       illustration: (
         <AssessmentGrowthIllustration className="w-full h-40 my-2 group-hover:scale-105 transition-transform duration-300 drop-shadow-xs" />
       ),
       highlights: [
-        "Báo cáo phân tích mức độ thấu hiểu",
-        "Cấp chứng nhận hoàn thành lộ trình",
-        "Diễn đàn hỏi đáp ẩn danh 100%",
+        "Tiếp nhận thắc mắc, phản hồi của HS & PH",
+        "Gợi mở đối thoại cởi mở, không khoảng cách",
+        "Gắn kết Nhà trường - Gia đình - Học sinh",
       ],
     },
   ];
@@ -66,8 +66,7 @@ export function ThreeStepJourney() {
             Phương Pháp Học Tập &amp; Thực Hành Toàn Diện
           </h2>
           <p className="text-sm md:text-base text-on-surface-variant font-light leading-relaxed">
-            Quy trình 3 bước khép kín giúp người học chuyển hóa kiến thức y khoa
-            thành kỹ năng phản xạ bảo vệ bản thân vững vàng trong cuộc sống
+            Mô hình 3 bước giúp học sinh tiếp thu bài giảng từ giáo viên, rèn luyện kỹ năng phản xạ cùng AI và gắn kết đối thoại cởi mở cùng phụ huynh và nhà trường.
           </p>
         </div>
 

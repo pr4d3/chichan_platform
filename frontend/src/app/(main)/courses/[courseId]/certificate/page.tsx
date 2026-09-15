@@ -3,15 +3,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import Link from "next/link";
 import { BRAND_CONFIG } from "@/config/branding";
 import {
   Certificate,
-  ArrowLeft,
   DownloadSimple,
-  ArrowRight,
   GraduationCap,
-  SealCheck,
   ClipboardText,
   ArrowSquareOut,
 } from "@phosphor-icons/react";
@@ -187,41 +183,24 @@ export default function CourseCertificatePage() {
       </div>
 
       {/* Action Bar (Top) */}
-      <div className="w-full max-w-4xl flex flex-wrap items-center justify-between gap-4 mb-6 z-10 print:hidden">
-        <Link
-          href={`/courses/${courseId}/learn`}
-          className="inline-flex items-center gap-2 text-xs font-bold text-on-surface-variant hover:text-primary transition-colors bg-white/70 backdrop-blur-md px-4 py-2 rounded-full border border-white/60 shadow-xs"
+      <div className="w-full max-w-4xl flex items-center justify-end mb-6 z-10 print:hidden">
+        <button
+          onClick={handleDownloadPdf}
+          disabled={downloading}
+          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-primary text-white text-xs font-bold shadow-sm hover:shadow-md hover:opacity-95 transition-all cursor-pointer disabled:opacity-50"
         >
-          <ArrowLeft size={16} weight="bold" />
-          Quay lại khóa học
-        </Link>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleDownloadPdf}
-            disabled={downloading}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-white text-xs font-bold shadow-sm hover:shadow-md hover:opacity-95 transition-all cursor-pointer disabled:opacity-50"
-          >
-            {downloading ? (
-              <>
-                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Đang tạo file PDF...</span>
-              </>
-            ) : (
-              <>
-                <DownloadSimple size={18} weight="bold" />
-                <span>Tải Chứng Chỉ (PDF)</span>
-              </>
-            )}
-          </button>
-          <Link
-            href="/courses"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/80 border border-white/60 text-on-surface text-xs font-bold shadow-xs hover:bg-white transition-all"
-          >
-            <span>Khám phá khóa khác</span>
-            <ArrowRight size={16} weight="bold" />
-          </Link>
-        </div>
+          {downloading ? (
+            <>
+              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span>Đang tạo file PDF...</span>
+            </>
+          ) : (
+            <>
+              <DownloadSimple size={18} weight="bold" />
+              <span>Tải Chứng Chỉ (PDF)</span>
+            </>
+          )}
+        </button>
       </div>
 
       {/* CERTIFICATE CANVAS CARD */}

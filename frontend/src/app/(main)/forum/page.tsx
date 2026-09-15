@@ -307,7 +307,7 @@ export default function ForumPage() {
                     <div className="flex items-center gap-2.5"> 
                         <div>
                             <h1 className="text-base sm:text-lg font-bold tracking-tight text-on-surface flex items-center gap-2">
-                                Diễn đàn Trao đổi
+                                Góc Trò Chuyện
                             </h1>
                         </div>
                     </div>
@@ -319,7 +319,7 @@ export default function ForumPage() {
                             type="text"
                             value={search}
                             onChange={handleSearchChange}
-                            placeholder="Tìm kiếm bài viết..."
+                            placeholder="Tìm kiếm trong Góc trò chuyện..."
                             className="w-full pl-9 pr-8 py-1.5 text-xs bg-white border border-outline-variant/30 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/50 text-on-surface shadow-xs"
                         />
                         {search && (

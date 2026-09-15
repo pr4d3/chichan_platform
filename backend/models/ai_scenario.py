@@ -12,3 +12,8 @@ class AIScenario(Base):
     initial_score = Column(Integer, nullable=False, default=50)
     target_audience = Column(String(20), nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
+    description = Column(String, nullable=True)
+    guide_script = Column(String, nullable=True)
+    first_message_sender = Column(String(20), nullable=False, default="USER")
+    opening_message = Column(String, nullable=True)
+    gender_info = Column(String(50), nullable=True)

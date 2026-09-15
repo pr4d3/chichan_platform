@@ -1,7 +1,7 @@
 import re
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
-from repositories import course_repository, user_repository
+from repositories import course_repository, user_repository, quiz_repository
 from models.course import Course
 from models.lesson import Lesson
 from models.course_enrollment import CourseEnrollment
@@ -55,13 +55,20 @@ async def get_course_intro(db: AsyncSession, course_id: UUID, current_user = Non
         if enrollment:
             is_enrolled = True
             
+    quizzes = await quiz_repository.get_all_quizzes_by_course(db, course_id)
+    lesson_quiz_map = {q.lesson_id: q for q in quizzes if q.lesson_id is not None}
+
     syllabus = []
     for lesson in course.lessons:
+        l_quiz = lesson_quiz_map.get(lesson.id)
         syllabus.append({
             "id": lesson.id,
             "order_index": lesson.order_index,
             "title": lesson.title,
-            "duration_minutes": lesson.duration_minutes
+            "content_type": lesson.content_type,
+            "duration_minutes": lesson.duration_minutes,
+            "has_quiz": l_quiz is not None or lesson.content_type == "QUIZ",
+            "quiz_id": l_quiz.id if l_quiz else None
         })
         
     return {
@@ -117,11 +124,26 @@ async def get_course_learning_room(db: AsyncSession, user_id: UUID, course_id: U
     
     progress_pct = (completed_lessons / total_lessons * 100) if total_lessons > 0 else 0
     
+    quizzes = await quiz_repository.get_all_quizzes_by_course(db, course_id)
+    lesson_quiz_map = {q.lesson_id: q for q in quizzes if q.lesson_id is not None}
+    final_quiz = next((q for q in quizzes if q.lesson_id is None), None)
+
+    is_final_quiz_passed = False
+    if final_quiz:
+        final_subs = await quiz_repository.get_user_submissions(db, user_id, final_quiz.id)
+        is_final_quiz_passed = any(s.passed for s in final_subs)
+
     lessons_data = []
     for lesson in course.lessons:
         prog = await course_repository.get_lesson_progress(db, user_id, lesson.id)
         is_completed = prog.is_completed if prog else False
-        
+
+        l_quiz = lesson_quiz_map.get(lesson.id)
+        is_quiz_passed = False
+        if l_quiz:
+            l_subs = await quiz_repository.get_user_submissions(db, user_id, l_quiz.id)
+            is_quiz_passed = any(s.passed for s in l_subs)
+
         lessons_data.append({
             "lesson_id": lesson.id,
             "order_index": lesson.order_index,
@@ -129,15 +151,22 @@ async def get_course_learning_room(db: AsyncSession, user_id: UUID, course_id: U
             "content_type": lesson.content_type,
             "video_url": lesson.video_url,
             "content_body": lesson.content_body,
-            "is_completed": is_completed
+            "is_completed": is_completed,
+            "has_quiz": l_quiz is not None,
+            "quiz_id": l_quiz.id if l_quiz else None,
+            "is_quiz_passed": is_quiz_passed
         })
-        
+
     return {
         "course_id": course.id,
         "course_title": course.title,
         "progress_percentage": round(progress_pct, 2),
-        "lessons": lessons_data
+        "lessons": lessons_data,
+        "has_final_quiz": final_quiz is not None,
+        "final_quiz_id": final_quiz.id if final_quiz else None,
+        "is_final_quiz_passed": is_final_quiz_passed
     }
+
 
 async def get_course_outro(db: AsyncSession, user_id: UUID, course_id: UUID):
     enrollment = await course_repository.get_enrollment(db, user_id, course_id)
