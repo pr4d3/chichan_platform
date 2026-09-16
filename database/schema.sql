@@ -68,6 +68,7 @@ CREATE TABLE courses (
     description TEXT,
     thumbnail_url VARCHAR(500),
     target_audience VARCHAR(20) NOT NULL DEFAULT 'BOTH',
+    learning_objectives TEXT,
     outro_content TEXT,
     is_published BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -129,6 +130,9 @@ CREATE TABLE forum_posts (
     author_id UUID NOT NULL REFERENCES users(id),
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
+    is_anonymous BOOLEAN NOT NULL DEFAULT FALSE,
+    views_count INTEGER NOT NULL DEFAULT 0,
+    likes_count INTEGER NOT NULL DEFAULT 0,
     status VARCHAR(20) NOT NULL DEFAULT 'PUBLISHED',
     moderated_by UUID REFERENCES users(id),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -142,10 +146,23 @@ CREATE TABLE forum_comments (
     author_id UUID NOT NULL REFERENCES users(id),
     parent_comment_id UUID REFERENCES forum_comments(id),
     content TEXT NOT NULL,
+    is_anonymous BOOLEAN NOT NULL DEFAULT FALSE,
     status VARCHAR(20) NOT NULL DEFAULT 'PUBLISHED',
     moderated_by UUID REFERENCES users(id),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Bảng Forum Post Likes (bổ sung 2026-09: bảng đã tồn tại trên Supabase từ trước
+-- nhưng schema.sql trước đây thiếu — đồng bộ qua database/apply_schema_sync.py).
+-- Chủ ý dùng gen_random_uuid() (khác style uuid_generate_v4() ở các bảng trên)
+-- để khớp y hệt định nghĩa đang chạy trên live; hàm thuộc lõi PostgreSQL 13+.
+CREATE TABLE IF NOT EXISTS forum_post_likes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    post_id UUID NOT NULL REFERENCES forum_posts(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (post_id, user_id)
 );
 
 -- ==========================================
@@ -188,7 +205,13 @@ CREATE TABLE IF NOT EXISTS ai_scenarios (
     npc_avatar_url VARCHAR(500),
     initial_score INTEGER NOT NULL DEFAULT 50,
     target_audience VARCHAR(20) NOT NULL,
-    is_active BOOLEAN NOT NULL DEFAULT true
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    -- Mở rộng 2026-09: mô tả kịch bản + tin nhắn mở đầu (đồng bộ models/ai_scenario.py)
+    description TEXT,
+    guide_script TEXT,
+    first_message_sender VARCHAR(20) NOT NULL DEFAULT 'USER',
+    opening_message TEXT,
+    gender_info VARCHAR(50)
 );
 
 -- Bảng AI Sessions (Lưu phiên chơi của người dùng)
@@ -301,5 +324,20 @@ CREATE INDEX IF NOT EXISTS idx_quizzes_course_lesson ON quizzes(course_id, lesso
 CREATE INDEX IF NOT EXISTS idx_quiz_questions_quiz_order ON quiz_questions(quiz_id, order_index);
 CREATE INDEX IF NOT EXISTS idx_quiz_options_question_order ON quiz_question_options(question_id, order_index);
 CREATE INDEX IF NOT EXISTS idx_quiz_submissions_user_quiz ON quiz_submissions(user_id, quiz_id, submitted_at DESC);
+
+-- ==========================================
+-- 6. INDEXES TỐI ƯU TRUY VẤN
+-- ==========================================
+-- Thêm 2026-09: tối ưu truy vấn (xem apply_indexes.py)
+CREATE INDEX IF NOT EXISTS idx_forum_comments_post_status ON forum_comments(post_id, status, created_at);
+CREATE INDEX IF NOT EXISTS idx_forum_comments_parent ON forum_comments(parent_comment_id);
+CREATE INDEX IF NOT EXISTS idx_forum_posts_status_created ON forum_posts(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_forum_posts_category_status_created ON forum_posts(category_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_course_enrollments_course ON course_enrollments(course_id, status);
+CREATE INDEX IF NOT EXISTS idx_lessons_course_order ON lessons(course_id, order_index);
+CREATE INDEX IF NOT EXISTS idx_courses_instructor ON courses(instructor_id);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role_id);
+CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_expires_at ON user_sessions(expires_at);
 
 
