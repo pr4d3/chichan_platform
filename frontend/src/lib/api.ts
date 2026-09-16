@@ -1,6 +1,5 @@
 import { getCookie, setCookie, deleteCookie } from 'cookies-next';
-
-const BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "https://sex-education-api.onrender.com/api/v1").trim();
+import { getApiBaseUrl } from './runtime-config';
 
 const FIELD_LABELS: Record<string, string> = {
     category_id: 'Chủ đề',
@@ -147,6 +146,8 @@ export const api = {
 
         let response;
         try {
+            // Base URL được giải quyết lúc runtime (xem runtime-config.ts), không lúc build.
+            const BASE_URL = await getApiBaseUrl();
             response = await fetch(`${BASE_URL}${endpoint}`, fetchOptions);
         } catch (networkError: any) {
             throw new Error('Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại mạng.');

@@ -29,7 +29,7 @@ async def register_user(db: AsyncSession, user_data: UserRegister):
     if existing_user:
         raise HTTPException(status_code=400, detail="Email or Username already exists.")
 
-    hashed_password = security.get_password_hash(user_data.password)
+    hashed_password = await security.get_password_hash_async(user_data.password)
     
     new_user = User(
         role_id=role.id,
@@ -54,7 +54,7 @@ async def authenticate_user(db: AsyncSession, login_data: UserLogin, user_agent:
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials.")
     
-    if not security.verify_password(login_data.password, user.password_hash):
+    if not await security.verify_password_async(login_data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials.")
         
     if user.status == "BANNED":

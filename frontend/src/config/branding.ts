@@ -34,7 +34,3 @@ export const BRAND_CONFIG = {
   copyright: `© ${new Date().getFullYear()} ChiChan - Đề tài NCKH THPT Giồng Ông Tố. Đồng hành cùng HS, PH và Nhà trường.`,
 };
 
-// Export biến tiện lợi nhanh
-export const BRAND_NAME = BRAND_CONFIG.name;
-export const BRAND_FULL_NAME = BRAND_CONFIG.fullName;
-

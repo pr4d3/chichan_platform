@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
@@ -19,7 +20,21 @@ import {
   Question,
   ShieldCheck,
 } from "@phosphor-icons/react";
-import { QuizEditorModal } from "@/components/quiz/QuizEditorModal";
+import {
+  Button,
+  EyebrowLabel,
+  Modal,
+  SkeletonBlock,
+  Spinner,
+  StatTile,
+} from "@/components/ui";
+
+// Modal quiz nặng (731 dòng) — chỉ mở khi bấm soạn quiz, tải lazy như QuizPlayer
+const QuizEditorModal = dynamic(
+  () =>
+    import("@/features/quiz/QuizEditorModal").then((m) => m.QuizEditorModal),
+  { ssr: false },
+);
 
 interface ManagedCourse {
   course_id: string;
@@ -120,76 +135,23 @@ export default function DashboardOverviewPage() {
   const [isReordering, setIsReordering] = useState(false);
   const [isDraggingAllowed, setIsDraggingAllowed] = useState(false);
 
-  const editDescRef = useRef<HTMLTextAreaElement>(null);
-  const editObjectivesRef = useRef<HTMLTextAreaElement>(null);
-  const editOutroRef = useRef<HTMLTextAreaElement>(null);
-  const lessonBodyRef = useRef<HTMLTextAreaElement>(null);
-  const cDescRef = useRef<HTMLTextAreaElement>(null);
-  const cObjectivesRef = useRef<HTMLTextAreaElement>(null);
-  const cOutroRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (editDescRef.current) {
-      editDescRef.current.style.height = "auto";
-      if (editDesc) {
-        editDescRef.current.style.height = `${editDescRef.current.scrollHeight}px`;
+  // Tự giãn textarea theo nội dung — thay 7 useEffect auto-grow (mỗi keystroke đều
+  // forced-reflow qua effect): onInput chỉnh thẳng height trên event target, không state/effect.
+  // ref callback (useCallback) chạy lúc mount sau khi populate để giãn đúng nội dung tải về.
+  const growOnMount = useCallback(
+    (el: HTMLTextAreaElement | null) => {
+      if (el) {
+        el.style.height = "auto";
+        el.style.height = `${el.scrollHeight}px`;
       }
-    }
-  }, [editDesc]);
-
-  useEffect(() => {
-    if (editObjectivesRef.current) {
-      editObjectivesRef.current.style.height = "auto";
-      if (editObjectives) {
-        editObjectivesRef.current.style.height = `${editObjectivesRef.current.scrollHeight}px`;
-      }
-    }
-  }, [editObjectives]);
-
-  useEffect(() => {
-    if (editOutroRef.current) {
-      editOutroRef.current.style.height = "auto";
-      if (editOutroContent) {
-        editOutroRef.current.style.height = `${editOutroRef.current.scrollHeight}px`;
-      }
-    }
-  }, [editOutroContent]);
-
-  useEffect(() => {
-    if (lessonBodyRef.current) {
-      lessonBodyRef.current.style.height = "auto";
-      if (lessonContentBody) {
-        lessonBodyRef.current.style.height = `${lessonBodyRef.current.scrollHeight}px`;
-      }
-    }
-  }, [lessonContentBody]);
-
-  useEffect(() => {
-    if (cDescRef.current) {
-      cDescRef.current.style.height = "auto";
-      if (newDesc) {
-        cDescRef.current.style.height = `${cDescRef.current.scrollHeight}px`;
-      }
-    }
-  }, [newDesc]);
-
-  useEffect(() => {
-    if (cObjectivesRef.current) {
-      cObjectivesRef.current.style.height = "auto";
-      if (newObjectives) {
-        cObjectivesRef.current.style.height = `${cObjectivesRef.current.scrollHeight}px`;
-      }
-    }
-  }, [newObjectives]);
-
-  useEffect(() => {
-    if (cOutroRef.current) {
-      cOutroRef.current.style.height = "auto";
-      if (newOutroContent) {
-        cOutroRef.current.style.height = `${cOutroRef.current.scrollHeight}px`;
-      }
-    }
-  }, [newOutroContent]);
+    },
+    [],
+  );
+  const autoGrow = (e: React.FormEvent<HTMLTextAreaElement>) => {
+    const el = e.currentTarget;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  };
 
   useEffect(() => {
     fetchStats();
@@ -223,9 +185,17 @@ export default function DashboardOverviewPage() {
   const fetchCourseDetails = async (courseId: string) => {
     setDetailsLoading(true);
     try {
-      const res = await api.get(`/courses/${courseId}/intro`);
-      if (res.success) {
-        const data: CourseDetails = res.data;
+      // Chạy song song intro + quiz (trước đây await tuần tự); lỗi quiz chỉ log,
+      // không chặn chi tiết khóa học như hành vi cũ
+      const [introRes, quizRes] = await Promise.all([
+        api.get(`/courses/${courseId}/intro`),
+        api.get(`/courses/${courseId}/quizzes/manage`).catch((e) => {
+          console.error("Error loading course quizzes", e);
+          return null;
+        }),
+      ]);
+      if (introRes.success) {
+        const data: CourseDetails = introRes.data;
         setCourseDetails(data);
 
         // Populate edit fields
@@ -237,17 +207,9 @@ export default function DashboardOverviewPage() {
         setEditObjectives(data.learning_objectives || "");
         setEditOutroContent(data.outro_content || "");
 
-        // Load quizzes for this course
-        try {
-          const qRes = await api.get(`/courses/${courseId}/quizzes/manage`);
-          if (qRes.success && Array.isArray(qRes.data)) {
-            setCourseQuizzes(qRes.data);
-          } else {
-            setCourseQuizzes([]);
-          }
-        } catch (e) {
-          console.error("Error loading course quizzes", e);
-        }
+        setCourseQuizzes(
+          quizRes?.success && Array.isArray(quizRes.data) ? quizRes.data : [],
+        );
       }
     } catch (err: any) {
       showToast(err.message || "Lỗi khi tải chi tiết khóa học", "error");
@@ -593,7 +555,7 @@ export default function DashboardOverviewPage() {
 
         {detailsLoading ? (
           <div className="h-60 flex items-center justify-center">
-            <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            <Spinner size="lg" />
           </div>
         ) : (
           <div className="space-y-6">
@@ -726,12 +688,13 @@ export default function DashboardOverviewPage() {
                       Mô tả chi tiết đề cương
                     </label>
                     <textarea
-                      ref={editDescRef}
+                      ref={growOnMount}
                       id="editDesc"
                       rows={5}
                       className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all resize-none overflow-hidden"
                       value={editDesc}
                       onChange={(e) => setEditDesc(e.target.value)}
+                      onInput={autoGrow}
                     />
                   </div>
 
@@ -743,13 +706,14 @@ export default function DashboardOverviewPage() {
                       Mục tiêu học tập (mỗi mục tiêu 1 dòng)
                     </label>
                     <textarea
-                      ref={editObjectivesRef}
+                      ref={growOnMount}
                       id="editObjectives"
                       rows={4}
                       className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all resize-none overflow-hidden"
                       placeholder={"- Tiếp cận các kiến thức giáo dục giới tính chuẩn y khoa\n- Rèn luyện kỹ năng tự bảo vệ bản thân và phòng chống xâm hại\n- Nắm vững kiến thức sinh lý và tâm lý theo độ tuổi"}
                       value={editObjectives}
                       onChange={(e) => setEditObjectives(e.target.value)}
+                      onInput={autoGrow}
                     />
                   </div>
 
@@ -761,13 +725,14 @@ export default function DashboardOverviewPage() {
                       Lời chúc mừng hoàn thành
                     </label>
                     <textarea
-                      ref={editOutroRef}
+                      ref={growOnMount}
                       id="editOutro"
                       rows={3}
                       className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all resize-none overflow-hidden"
                       placeholder="Nội dung sẽ hiện khi học viên tốt nghiệp khóa học (Lời nhắn nhủ, chúc mừng, hướng dẫn khảo sát...)"
                       value={editOutroContent}
                       onChange={(e) => setEditOutroContent(e.target.value)}
+                      onInput={autoGrow}
                     />
                   </div>
 
@@ -780,13 +745,14 @@ export default function DashboardOverviewPage() {
                       Xóa khóa học này
                     </button>
 
-                    <button
+                    <Button
                       type="submit"
                       disabled={submitting}
-                      className="w-full sm:w-auto px-8 h-11 rounded-full bg-primary text-white text-xs font-bold shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50"
+                      size="lg"
+                      className="w-full sm:w-auto"
                     >
                       {submitting ? "Đang lưu..." : "Lưu thay đổi"}
-                    </button>
+                    </Button>
                   </div>
                 </form>
               </div>
@@ -1039,142 +1005,148 @@ export default function DashboardOverviewPage() {
         )}
 
         {/* Lesson Create/Edit Modal */}
-        {lessonModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
-            <div className="w-full max-w-lg rounded-3xl border border-white/60 bg-white/95 p-8 shadow-lg relative max-h-[90vh] overflow-y-auto">
-              <button
-                onClick={() => setLessonModalOpen(false)}
-                className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface cursor-pointer"
+        <Modal
+          open={lessonModalOpen}
+          onClose={() => setLessonModalOpen(false)}
+          size="lg"
+          dismissible={false}
+          backdropClassName="bg-black/30"
+          panelClassName="border border-white/60 p-8"
+        >
+          <button
+            onClick={() => setLessonModalOpen(false)}
+            className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface cursor-pointer"
+          >
+            <X size={20} weight="bold" />
+          </button>
+
+          <h3 className="text-base font-extrabold text-on-surface mb-6">
+            {selectedLessonId ? "Cập nhật bài học" : "Thêm bài học mới"}
+          </h3>
+
+          <form onSubmit={handleSaveLesson} className="space-y-4">
+            <div className="flex flex-col gap-1.5">
+              <label
+                className="text-xs font-semibold text-on-surface ml-1"
+                htmlFor="lTitle"
               >
-                <X size={20} weight="bold" />
-              </button>
-
-              <h3 className="text-base font-extrabold text-on-surface mb-6">
-                {selectedLessonId ? "Cập nhật bài học" : "Thêm bài học mới"}
-              </h3>
-
-              <form onSubmit={handleSaveLesson} className="space-y-4">
-                <div className="flex flex-col gap-1.5">
-                  <label
-                    className="text-xs font-semibold text-on-surface ml-1"
-                    htmlFor="lTitle"
-                  >
-                    Tiêu đề bài học
-                  </label>
-                  <input
-                    id="lTitle"
-                    type="text"
-                    required
-                    className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
-                    placeholder="Ví dụ: Cấu trúc cơ quan sinh dục"
-                    value={lessonTitle}
-                    onChange={(e) => setLessonTitle(e.target.value)}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs font-semibold text-on-surface ml-1"
-                      htmlFor="lType"
-                    >
-                      Loại bài học
-                    </label>
-                    <select
-                      id="lType"
-                      className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
-                      value={lessonContentType}
-                      onChange={(e) =>
-                        setLessonContentType(e.target.value as any)
-                      }
-                    >
-                      <option value="HYBRID">Hỗn hợp</option>
-                      <option value="VIDEO">Video</option>
-                      <option value="TEXT">Văn bản thuần</option>
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs font-semibold text-on-surface ml-1"
-                      htmlFor="lDuration"
-                    >
-                      Thời lượng (Phút)
-                    </label>
-                    <input
-                      id="lDuration"
-                      type="number"
-                      min="1"
-                      placeholder="Phút..."
-                      className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
-                      value={lessonDuration}
-                      onChange={(e) =>
-                        setLessonDuration(
-                          e.target.value === "" ? "" : Number(e.target.value),
-                        )
-                      }
-                    />
-                  </div>
-                </div>
-
-                {lessonContentType !== "TEXT" && (
-                  <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs font-semibold text-on-surface ml-1"
-                      htmlFor="lVideo"
-                    >
-                      Đường dẫn Video
-                    </label>
-                    <input
-                      id="lVideo"
-                      type="text"
-                      placeholder="Dán link youtube hoặc video"
-                      className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
-                      value={lessonVideoUrl}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        const cleaned = extractVideoIdentifier(val);
-                        if (cleaned && cleaned !== val && val.includes("http")) {
-                          setLessonVideoUrl(cleaned);
-                        } else {
-                          setLessonVideoUrl(val);
-                        }
-                      }}
-                    />
-                  </div>
-                )}
-
-                {lessonContentType !== "VIDEO" && (
-                  <div className="flex flex-col gap-1.5">
-                    <label
-                      className="text-xs font-semibold text-on-surface ml-1"
-                      htmlFor="lBody"
-                    >
-                      Nội dung bài viết giảng dạy
-                    </label>
-                    <textarea
-                      ref={lessonBodyRef}
-                      id="lBody"
-                      rows={6}
-                      placeholder="Nhập nội dung bài học bằng văn bản/định dạng văn bản..."
-                      className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all resize-none overflow-hidden"
-                      value={lessonContentBody}
-                      onChange={(e) => setLessonContentBody(e.target.value)}
-                    />
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={lessonSubmitting}
-                  className="w-full flex h-11 items-center justify-center rounded-full bg-primary text-xs font-bold text-white shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50 mt-2"
-                >
-                  {lessonSubmitting ? "Đang lưu..." : "Lưu bài giảng"}
-                </button>
-              </form>
+                Tiêu đề bài học
+              </label>
+              <input
+                id="lTitle"
+                type="text"
+                required
+                className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                placeholder="Ví dụ: Cấu trúc cơ quan sinh dục"
+                value={lessonTitle}
+                onChange={(e) => setLessonTitle(e.target.value)}
+              />
             </div>
-          </div>
-        )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label
+                  className="text-xs font-semibold text-on-surface ml-1"
+                  htmlFor="lType"
+                >
+                  Loại bài học
+                </label>
+                <select
+                  id="lType"
+                  className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                  value={lessonContentType}
+                  onChange={(e) =>
+                    setLessonContentType(e.target.value as any)
+                  }
+                >
+                  <option value="HYBRID">Hỗn hợp</option>
+                  <option value="VIDEO">Video</option>
+                  <option value="TEXT">Văn bản thuần</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label
+                  className="text-xs font-semibold text-on-surface ml-1"
+                  htmlFor="lDuration"
+                >
+                  Thời lượng (Phút)
+                </label>
+                <input
+                  id="lDuration"
+                  type="number"
+                  min="1"
+                  placeholder="Phút..."
+                  className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                  value={lessonDuration}
+                  onChange={(e) =>
+                    setLessonDuration(
+                      e.target.value === "" ? "" : Number(e.target.value),
+                    )
+                  }
+                />
+              </div>
+            </div>
+
+            {lessonContentType !== "TEXT" && (
+              <div className="flex flex-col gap-1.5">
+                <label
+                  className="text-xs font-semibold text-on-surface ml-1"
+                  htmlFor="lVideo"
+                >
+                  Đường dẫn Video
+                </label>
+                <input
+                  id="lVideo"
+                  type="text"
+                  placeholder="Dán link youtube hoặc video"
+                  className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                  value={lessonVideoUrl}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const cleaned = extractVideoIdentifier(val);
+                    if (cleaned && cleaned !== val && val.includes("http")) {
+                      setLessonVideoUrl(cleaned);
+                    } else {
+                      setLessonVideoUrl(val);
+                    }
+                  }}
+                />
+              </div>
+            )}
+
+            {lessonContentType !== "VIDEO" && (
+              <div className="flex flex-col gap-1.5">
+                <label
+                  className="text-xs font-semibold text-on-surface ml-1"
+                  htmlFor="lBody"
+                >
+                  Nội dung bài viết giảng dạy
+                </label>
+                <textarea
+                  ref={growOnMount}
+                  id="lBody"
+                  rows={6}
+                  placeholder="Nhập nội dung bài học bằng văn bản/định dạng văn bản..."
+                  className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all resize-none overflow-hidden"
+                  value={lessonContentBody}
+                  onChange={(e) => setLessonContentBody(e.target.value)}
+                  onInput={autoGrow}
+                />
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              disabled={lessonSubmitting}
+              full
+              size="lg"
+              className="mt-2"
+            >
+              {lessonSubmitting ? "Đang lưu..." : "Lưu bài giảng"}
+            </Button>
+          </form>
+        </Modal>
 
         {/* Quiz Create/Edit Modal */}
         <QuizEditorModal
@@ -1209,96 +1181,53 @@ export default function DashboardOverviewPage() {
           </p>
         </div>
 
-        <button
+        <Button
           onClick={() => setModalOpen(true)}
-          className="bg-primary text-white px-6 py-3 rounded-full text-xs font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
+          icon={<Plus size={18} weight="bold" />}
         >
-          <Plus size={18} weight="bold" />
           Tạo khóa học mới
-        </button>
+        </Button>
       </div>
 
       {/* Metrics Row */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl text-center border border-white/60 shadow-sm space-y-2">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <BookOpen size={20} weight="duotone" />
-          </div>
-          <div className="text-xl font-extrabold text-on-surface">
-            {loading || !stats ? (
-              <div className="h-6 w-12 bg-on-surface/10 rounded animate-pulse mx-auto my-0.5" />
-            ) : (
-              stats.total_courses || 0
-            )}
-          </div>
-          <span className="text-[9px] text-on-surface-variant uppercase tracking-wider block font-bold">
-            Khóa học
-          </span>
-        </div>
-
-        <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl text-center border border-white/60 shadow-sm space-y-2">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <UsersThree size={20} weight="duotone" />
-          </div>
-          <div className="text-xl font-extrabold text-on-surface">
-            {loading || !stats ? (
-              <div className="h-6 w-12 bg-on-surface/10 rounded animate-pulse mx-auto my-0.5" />
-            ) : (
-              stats.total_students_enrolled || 0
-            )}
-          </div>
-          <span className="text-[9px] text-on-surface-variant uppercase tracking-wider block font-bold">
-            Học viên
-          </span>
-        </div>
-
-        <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl text-center border border-white/60 shadow-sm space-y-2">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-secondary-container/10 text-secondary">
-            <Certificate size={20} weight="duotone" />
-          </div>
-          <div className="text-xl font-extrabold text-on-surface">
-            {loading || !stats ? (
-              <div className="h-6 w-12 bg-on-surface/10 rounded animate-pulse mx-auto my-0.5" />
-            ) : (
-              stats.total_completed_students || 0
-            )}
-          </div>
-          <span className="text-[9px] text-on-surface-variant uppercase tracking-wider block font-bold">
-            Tốt nghiệp
-          </span>
-        </div>
-
-        <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl text-center border border-white/60 shadow-sm space-y-2">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-tertiary-container/10 text-tertiary">
-            <Percent size={20} weight="bold" />
-          </div>
-          <div className="text-xl font-extrabold text-on-surface">
-            {loading || !stats ? (
-              <div className="h-6 w-12 bg-on-surface/10 rounded animate-pulse mx-auto my-0.5" />
-            ) : (
-              `${stats.average_completion_rate || 0}%`
-            )}
-          </div>
-          <span className="text-[9px] text-on-surface-variant uppercase tracking-wider block font-bold">
-            Hoàn thành TB
-          </span>
-        </div>
-
-        <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl text-center border border-white/60 shadow-sm space-y-2">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <Article size={20} weight="duotone" />
-          </div>
-          <div className="text-xl font-extrabold text-on-surface">
-            {loading || !stats ? (
-              <div className="h-6 w-12 bg-on-surface/10 rounded animate-pulse mx-auto my-0.5" />
-            ) : (
-              stats.total_lessons_published || 0
-            )}
-          </div>
-          <span className="text-[9px] text-on-surface-variant uppercase tracking-wider block font-bold">
-            Bài giảng
-          </span>
-        </div>
+        <StatTile
+          icon={<BookOpen size={20} weight="duotone" />}
+          label="Khóa học"
+          value={loading || !stats ? undefined : stats.total_courses || 0}
+        />
+        <StatTile
+          icon={<UsersThree size={20} weight="duotone" />}
+          label="Học viên"
+          value={
+            loading || !stats ? undefined : stats.total_students_enrolled || 0
+          }
+        />
+        <StatTile
+          icon={<Certificate size={20} weight="duotone" />}
+          label="Tốt nghiệp"
+          chipTone="secondary"
+          value={
+            loading || !stats ? undefined : stats.total_completed_students || 0
+          }
+        />
+        <StatTile
+          icon={<Percent size={20} weight="bold" />}
+          label="Hoàn thành TB"
+          chipTone="tertiary"
+          value={
+            loading || !stats
+              ? undefined
+              : `${stats.average_completion_rate || 0}%`
+          }
+        />
+        <StatTile
+          icon={<Article size={20} weight="duotone" />}
+          label="Bài giảng"
+          value={
+            loading || !stats ? undefined : stats.total_lessons_published || 0
+          }
+        />
       </div>
 
       {/* Courses Management Table Wrapper */}
@@ -1311,39 +1240,53 @@ export default function DashboardOverviewPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-outline-variant/30 text-on-surface-variant font-bold uppercase tracking-wider text-[9px]">
-                  <th className="py-4 px-4 bg-white/20">Khóa học</th>
-                  <th className="py-4 px-4 bg-white/20">Đối tượng</th>
-                  <th className="py-4 px-4 bg-white/20">Số bài học</th>
-                  <th className="py-4 px-4 bg-white/20">Lượt học viên</th>
-                  <th className="py-4 px-4 bg-white/20">Đã xong / Đang học</th>
-                  <th className="py-4 px-4 bg-white/20">Trạng thái</th>
-                  <th className="py-4 px-4 bg-white/20">Thao tác</th>
+                <tr className="border-b border-outline-variant/30">
+                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20">
+                    Khóa học
+                  </EyebrowLabel>
+                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20">
+                    Đối tượng
+                  </EyebrowLabel>
+                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20">
+                    Số bài học
+                  </EyebrowLabel>
+                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20">
+                    Lượt học viên
+                  </EyebrowLabel>
+                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20">
+                    Đã xong / Đang học
+                  </EyebrowLabel>
+                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20">
+                    Trạng thái
+                  </EyebrowLabel>
+                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20">
+                    Thao tác
+                  </EyebrowLabel>
                 </tr>
               </thead>
               <tbody>
                 {Array.from({ length: 3 }).map((_, i) => (
                   <tr key={i} className="border-b border-outline-variant/10">
                     <td className="py-4 px-4">
-                      <div className="h-4 w-40 bg-on-surface/10 rounded animate-pulse" />
+                      <SkeletonBlock className="h-4 w-40" />
                     </td>
                     <td className="py-4 px-4">
-                      <div className="h-4 w-20 bg-on-surface/10 rounded animate-pulse" />
+                      <SkeletonBlock className="h-4 w-20" />
                     </td>
                     <td className="py-4 px-4">
-                      <div className="h-4 w-12 bg-on-surface/10 rounded animate-pulse" />
+                      <SkeletonBlock className="h-4 w-12" />
                     </td>
                     <td className="py-4 px-4">
-                      <div className="h-4 w-12 bg-on-surface/10 rounded animate-pulse" />
+                      <SkeletonBlock className="h-4 w-12" />
                     </td>
                     <td className="py-4 px-4">
-                      <div className="h-4 w-24 bg-on-surface/10 rounded animate-pulse" />
+                      <SkeletonBlock className="h-4 w-24" />
                     </td>
                     <td className="py-4 px-4">
-                      <div className="h-6 w-16 bg-on-surface/10 rounded-full animate-pulse" />
+                      <SkeletonBlock rounded="full" className="h-6 w-16" />
                     </td>
                     <td className="py-4 px-4">
-                      <div className="h-8 w-24 bg-on-surface/10 rounded-md animate-pulse" />
+                      <SkeletonBlock className="h-8 w-24" />
                     </td>
                   </tr>
                 ))}
@@ -1358,14 +1301,31 @@ export default function DashboardOverviewPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-outline-variant/30 text-on-surface-variant font-bold uppercase tracking-wider text-[9px]">
-                  <th className="py-4 px-4 bg-white/20">Khóa học</th>
-                  <th className="py-4 px-4 bg-white/20">Đối tượng</th>
-                  <th className="py-4 px-4 bg-white/20">Số bài học</th>
-                  <th className="py-4 px-4 bg-white/20">Lượt học viên</th>
-                  <th className="py-4 px-4 bg-white/20">Đã xong / Đang học</th>
-                  <th className="py-4 px-4 bg-white/20">Trạng thái</th>
-                  <th className="py-4 px-4 bg-white/20 text-right">Thao tác</th>
+                <tr className="border-b border-outline-variant/30">
+                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20">
+                    Khóa học
+                  </EyebrowLabel>
+                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20">
+                    Đối tượng
+                  </EyebrowLabel>
+                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20">
+                    Số bài học
+                  </EyebrowLabel>
+                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20">
+                    Lượt học viên
+                  </EyebrowLabel>
+                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20">
+                    Đã xong / Đang học
+                  </EyebrowLabel>
+                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20">
+                    Trạng thái
+                  </EyebrowLabel>
+                  <EyebrowLabel
+                    as="th"
+                    className="py-4 px-4 bg-white/20 text-right"
+                  >
+                    Thao tác
+                  </EyebrowLabel>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
@@ -1448,179 +1408,159 @@ export default function DashboardOverviewPage() {
       </div>
 
       {/* Create Course Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-3xl border border-white/60 bg-white/95 p-8 shadow-lg relative max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => setModalOpen(false)}
-              className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface cursor-pointer"
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        size="lg"
+        dismissible={false}
+        backdropClassName="bg-black/30"
+        panelClassName="border border-white/60 p-8"
+      >
+        <button
+          onClick={() => setModalOpen(false)}
+          className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface cursor-pointer"
+        >
+          <X size={20} weight="bold" />
+        </button>
+
+        <h3 className="text-base font-extrabold text-on-surface mb-6">
+          Tạo khóa học mới
+        </h3>
+
+        <form onSubmit={handleCreateCourse} className="space-y-5">
+          <div className="flex flex-col gap-1.5">
+            <label
+              className="text-xs font-semibold text-on-surface ml-1"
+              htmlFor="cTitle"
             >
-              <X size={20} weight="bold" />
-            </button>
-
-            <h3 className="text-base font-extrabold text-on-surface mb-6">
-              Tạo khóa học mới
-            </h3>
-
-            <form onSubmit={handleCreateCourse} className="space-y-5">
-              <div className="flex flex-col gap-1.5">
-                <label
-                  className="text-xs font-semibold text-on-surface ml-1"
-                  htmlFor="cTitle"
-                >
-                  Tiêu đề khóa học
-                </label>
-                <input
-                  id="cTitle"
-                  type="text"
-                  required
-                  className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
-                  placeholder="Ví dụ: Giáo dục giới tính tuổi dậy thì"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label
-                  className="text-xs font-semibold text-on-surface ml-1"
-                  htmlFor="cAudience"
-                >
-                  Dành cho
-                </label>
-                <select
-                  id="cAudience"
-                  className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
-                  value={newAudience}
-                  onChange={(e) => setNewAudience(e.target.value as any)}
-                >
-                  <option value="BOTH">Mọi người</option>
-                  <option value="CHILD">Trẻ nhỏ</option>
-                  <option value="PARENT">Phụ huynh</option>
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label
-                  className="text-xs font-semibold text-on-surface ml-1"
-                  htmlFor="cThumb"
-                >
-                  Link ảnh Thumbnail
-                </label>
-                <input
-                  id="cThumb"
-                  type="text"
-                  className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
-                  placeholder="https://image-url.com/thumb.jpg"
-                  value={newThumb}
-                  onChange={(e) => setNewThumb(e.target.value)}
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label
-                  className="text-xs font-semibold text-on-surface ml-1"
-                  htmlFor="cShort"
-                >
-                  Tóm tắt khóa học
-                </label>
-                <input
-                  id="cShort"
-                  type="text"
-                  className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
-                  placeholder="Nội dung chính tóm gọn trong 1 dòng..."
-                  value={newShortDesc}
-                  onChange={(e) => setNewShortDesc(e.target.value)}
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label
-                  className="text-xs font-semibold text-on-surface ml-1"
-                  htmlFor="cDesc"
-                >
-                  Mô tả chi tiết đề cương
-                </label>
-                <textarea
-                  ref={cDescRef}
-                  id="cDesc"
-                  rows={4}
-                  className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all resize-none overflow-hidden"
-                  placeholder="Nhập chi tiết về bài học, mục tiêu..."
-                  value={newDesc}
-                  onChange={(e) => setNewDesc(e.target.value)}
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label
-                  className="text-xs font-semibold text-on-surface ml-1"
-                  htmlFor="cObjectives"
-                >
-                  Mục tiêu học tập (mỗi mục tiêu 1 dòng)
-                </label>
-                <textarea
-                  ref={cObjectivesRef}
-                  id="cObjectives"
-                  rows={3}
-                  className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all resize-none overflow-hidden"
-                  placeholder={"- Tiếp cận các kiến thức giáo dục giới tính chuẩn y khoa\n- Rèn luyện kỹ năng tự bảo vệ bản thân và phòng chống xâm hại"}
-                  value={newObjectives}
-                  onChange={(e) => setNewObjectives(e.target.value)}
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label
-                  className="text-xs font-semibold text-on-surface ml-1"
-                  htmlFor="cOutro"
-                >
-                  Lời chúc mừng hoàn thành
-                </label>
-                <textarea
-                  ref={cOutroRef}
-                  id="cOutro"
-                  rows={3}
-                  className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all resize-none overflow-hidden"
-                  placeholder="Nội dung sẽ hiện khi học viên tốt nghiệp khóa học..."
-                  value={newOutroContent}
-                  onChange={(e) => setNewOutroContent(e.target.value)}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full flex h-11 items-center justify-center rounded-full bg-primary text-xs font-bold text-white shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50"
-              >
-                {submitting ? "Đang tạo..." : "Tạo khóa học (Nháp)"}
-              </button>
-            </form>
+              Tiêu đề khóa học
+            </label>
+            <input
+              id="cTitle"
+              type="text"
+              required
+              className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+              placeholder="Ví dụ: Giáo dục giới tính tuổi dậy thì"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+            />
           </div>
-        </div>
-      )}
 
-      {/* Quiz Editor Modal */}
-      {selectedCourseId && (
+          <div className="flex flex-col gap-1.5">
+            <label
+              className="text-xs font-semibold text-on-surface ml-1"
+              htmlFor="cAudience"
+            >
+              Dành cho
+            </label>
+            <select
+              id="cAudience"
+              className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+              value={newAudience}
+              onChange={(e) => setNewAudience(e.target.value as any)}
+            >
+              <option value="BOTH">Mọi người</option>
+              <option value="CHILD">Trẻ nhỏ</option>
+              <option value="PARENT">Phụ huynh</option>
+            </select>
+          </div>
 
-        <QuizEditorModal
-          isOpen={quizModalOpen}
-          onClose={() => setQuizModalOpen(false)}
-          courseId={selectedCourseId}
-          lessonId={quizModalLessonId}
-          lessonTitle={quizModalLessonTitle}
-          isFinalQuiz={quizModalIsFinal}
-          onQuizSaved={() => {
-            if (selectedCourseId) {
-              api.get(`/courses/${selectedCourseId}/quizzes/manage`).then((res) => {
-                if (res.success && Array.isArray(res.data)) {
-                  setCourseQuizzes(res.data);
-                }
-              });
-            }
-          }}
-        />
-      )}
+          <div className="flex flex-col gap-1.5">
+            <label
+              className="text-xs font-semibold text-on-surface ml-1"
+              htmlFor="cThumb"
+            >
+              Link ảnh Thumbnail
+            </label>
+            <input
+              id="cThumb"
+              type="text"
+              className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+              placeholder="https://image-url.com/thumb.jpg"
+              value={newThumb}
+              onChange={(e) => setNewThumb(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label
+              className="text-xs font-semibold text-on-surface ml-1"
+              htmlFor="cShort"
+            >
+              Tóm tắt khóa học
+            </label>
+            <input
+              id="cShort"
+              type="text"
+              className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+              placeholder="Nội dung chính tóm gọn trong 1 dòng..."
+              value={newShortDesc}
+              onChange={(e) => setNewShortDesc(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label
+              className="text-xs font-semibold text-on-surface ml-1"
+              htmlFor="cDesc"
+            >
+              Mô tả chi tiết đề cương
+            </label>
+            <textarea
+              ref={growOnMount}
+              id="cDesc"
+              rows={4}
+              className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all resize-none overflow-hidden"
+              placeholder="Nhập chi tiết về bài học, mục tiêu..."
+              value={newDesc}
+              onChange={(e) => setNewDesc(e.target.value)}
+              onInput={autoGrow}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label
+              className="text-xs font-semibold text-on-surface ml-1"
+              htmlFor="cObjectives"
+            >
+              Mục tiêu học tập (mỗi mục tiêu 1 dòng)
+            </label>
+            <textarea
+              ref={growOnMount}
+              id="cObjectives"
+              rows={3}
+              className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all resize-none overflow-hidden"
+              placeholder={"- Tiếp cận các kiến thức giáo dục giới tính chuẩn y khoa\n- Rèn luyện kỹ năng tự bảo vệ bản thân và phòng chống xâm hại"}
+              value={newObjectives}
+              onChange={(e) => setNewObjectives(e.target.value)}
+              onInput={autoGrow}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label
+              className="text-xs font-semibold text-on-surface ml-1"
+              htmlFor="cOutro"
+            >
+              Lời chúc mừng hoàn thành
+            </label>
+            <textarea
+              ref={growOnMount}
+              id="cOutro"
+              rows={3}
+              className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all resize-none overflow-hidden"
+              placeholder="Nội dung sẽ hiện khi học viên tốt nghiệp khóa học..."
+              value={newOutroContent}
+              onChange={(e) => setNewOutroContent(e.target.value)}
+              onInput={autoGrow}
+            />
+          </div>
+
+          <Button type="submit" disabled={submitting} full size="lg">
+            {submitting ? "Đang tạo..." : "Tạo khóa học (Nháp)"}
+          </Button>
+        </form>
+      </Modal>
     </div>
   );
 }

@@ -10,7 +10,13 @@ from schemas.admin_schema import (
     AdminUserUpdate,
     AdminUserUpdateResponse
 )
+from schemas.settings_schema import (
+    SiteSettingsListResponse,
+    SiteSettingUpdate,
+    SiteSettingUpdateResponse
+)
 from services import admin_service
+from services import settings_service
 from uuid import UUID
 from typing import Optional
 
@@ -82,5 +88,22 @@ async def update_user_details(
     return AdminUserUpdateResponse(
         success=True,
         message="Cập nhật thông tin người dùng thành công",
+        data=result
+    )
+
+# --- Site settings (chuyển từ general_router về đúng router admin — URL giữ nguyên;
+#     RoleGuard ADMIN kế thừa từ router-level dependencies ở trên) ---
+
+@router.get("/settings", response_model=SiteSettingsListResponse, status_code=status.HTTP_200_OK)
+async def list_settings(db: AsyncSession = Depends(get_db)):
+    settings = await settings_service.get_all_settings_list(db)
+    return SiteSettingsListResponse(success=True, data=settings)
+
+@router.put("/settings/{key_name}", response_model=SiteSettingUpdateResponse, status_code=status.HTTP_200_OK)
+async def update_setting(key_name: str, setting_data: SiteSettingUpdate, db: AsyncSession = Depends(get_db)):
+    result = await settings_service.update_site_setting(db, key_name, setting_data.value_content)
+    return SiteSettingUpdateResponse(
+        success=True,
+        message="Cập nhật cấu hình thành công",
         data=result
     )

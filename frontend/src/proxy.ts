@@ -28,6 +28,10 @@ export default function proxy(request: NextRequest) {
 }
 
 export const config = {
+    // LƯU Ý: đừng bao giờ thêm '/api/:path*' vào matcher — proxy đứng trước route
+    // handlers và nằm trên đường nóng của mọi API call (trong đó có /api/app-config),
+    // nên các thay đổi auth-redirect sau này có thể vô tình chặn việc tải config
+    // lúc khởi động app.
     matcher: [
         '/login',
         '/register',

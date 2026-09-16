@@ -8,14 +8,18 @@ from datetime import datetime, timezone
 
 async def get_user_progress_list(db: AsyncSession, user_id: UUID):
     enrollments = await course_repository.get_user_enrollments(db, user_id)
-    
+
+    # Tránh N+1: đếm số bài học hoàn thành của TẤT CẢ khóa học trong 1 truy vấn GROUP BY
+    course_ids = [enroll.course.id for enroll in enrollments]
+    completed_counts = await course_repository.get_completed_lessons_counts_for_courses(db, user_id, course_ids)
+
     progress_list = []
     for enroll in enrollments:
         course = enroll.course
         total_lessons = len(course.lessons)
-        
-        completed_lessons = await course_repository.get_completed_lessons_count(db, user_id, course.id)
-        
+
+        completed_lessons = completed_counts.get(course.id, 0)
+
         progress_pct = (completed_lessons / total_lessons * 100) if total_lessons > 0 else 0
         
         progress_list.append({

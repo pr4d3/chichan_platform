@@ -31,13 +31,17 @@ async def get_quiz_student_view(
     if not quiz:
         return None
 
+    # Nạp tối đa 50 lượt nộp gần nhất DUY NHẤT một lần, tái sử dụng cho check cooldown
+    # (tránh fetch toàn bộ lịch sử nộp bài 2-4 lần mỗi request)
+    submissions = await quiz_repository.get_user_submissions(db, user_id, quiz.id, limit=50)
     is_locked, remaining_seconds, attempts_left = await quiz_repository.check_user_cooldown(
-        db, user_id, quiz.id, quiz.max_attempts, quiz.cooldown_minutes
+        db, user_id, quiz.id, quiz.max_attempts, quiz.cooldown_minutes, submissions=submissions
     )
 
     best_sub = await quiz_repository.get_user_best_submission(db, user_id, quiz.id)
     best_score = best_sub.score if best_sub else None
-    has_passed = any(s.passed for s in await quiz_repository.get_user_submissions(db, user_id, quiz.id))
+    # Kiểm tra "đã từng đỗ" bằng aggregate phía DB thay vì quét toàn bộ danh sách submissions
+    has_passed = await quiz_repository.has_user_passed_quiz(db, user_id, quiz.id)
 
     student_questions = []
     for q in quiz.questions:
@@ -87,9 +91,10 @@ async def submit_quiz(
     if not quiz:
         raise HTTPException(status_code=404, detail="Bài kiểm tra không tồn tại.")
 
-    # Check anti-spam cooldown lockout
+    # Check anti-spam cooldown lockout (nạp trước danh sách submissions để tái sử dụng bên dưới)
+    submissions = await quiz_repository.get_user_submissions(db, user_id, quiz.id, limit=50)
     is_locked, remaining_seconds, attempts_left = await quiz_repository.check_user_cooldown(
-        db, user_id, quiz.id, quiz.max_attempts, quiz.cooldown_minutes
+        db, user_id, quiz.id, quiz.max_attempts, quiz.cooldown_minutes, submissions=submissions
     )
     if is_locked:
         minutes = max(1, (remaining_seconds + 59) // 60)
@@ -138,9 +143,11 @@ async def submit_quiz(
     )
     await quiz_repository.save_submission(db, submission)
 
-    # Re-check cooldown after this submission
+    # Re-check cooldown after this submission: chèn submission vừa nộp vào đầu danh sách
+    # đã nạp trước đó (mới nhất trước) thay vì fetch lại toàn bộ từ DB
     updated_locked, updated_remaining, updated_attempts = await quiz_repository.check_user_cooldown(
-        db, user_id, quiz.id, quiz.max_attempts, quiz.cooldown_minutes
+        db, user_id, quiz.id, quiz.max_attempts, quiz.cooldown_minutes,
+        submissions=[submission] + submissions
     )
 
     is_lesson_completed = False

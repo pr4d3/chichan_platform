@@ -22,9 +22,10 @@ async def get_home_page_data(db: AsyncSession):
     hero_title = banner_title.value_content if banner_title else "Nền tảng Giáo dục Giới tính Trực tuyến An toàn & Khoa học"
     hero_sub = banner_sub.value_content if banner_sub else "Đồng hành cùng thanh thiếu niên và phụ huynh Việt Nam xây dựng nhận thức đúng đắn."
     
-    courses_parent = await course_repository.get_courses(db, "PARENT")
+    # Giới hạn ngay tại DB (limit) thay vì tải toàn bộ rồi slice trong Python
+    courses_parent = await course_repository.get_courses(db, "PARENT", limit=6)
     parent_list = []
-    for c in courses_parent[:6]:
+    for c in courses_parent:
         parent_list.append({
             "id": str(c.id),
             "title": c.title,
@@ -32,10 +33,10 @@ async def get_home_page_data(db: AsyncSession):
             "instructor_name": c.instructor.full_name if c.instructor else "Unknown",
             "total_lessons": len(c.lessons) if c.lessons else 0
         })
-        
-    courses_child = await course_repository.get_courses(db, "CHILD")
+
+    courses_child = await course_repository.get_courses(db, "CHILD", limit=6)
     child_list = []
-    for c in courses_child[:6]:
+    for c in courses_child:
         child_list.append({
             "id": str(c.id),
             "title": c.title,
@@ -43,11 +44,13 @@ async def get_home_page_data(db: AsyncSession):
             "instructor_name": c.instructor.full_name if c.instructor else "Unknown",
             "total_lessons": len(c.lessons) if c.lessons else 0
         })
-        
-    posts = await forum_repository.get_posts(db, include_hidden_deleted=False)
+
+    posts = await forum_repository.get_posts(db, include_hidden_deleted=False, limit=4)
+    # Đếm bình luận cho cả nhóm bài viết trong 1 truy vấn GROUP BY (tránh N+1 query từng bài)
+    comment_counts = await forum_repository.count_comments_for_posts(db, [p.id for p in posts])
     recent_posts = []
-    for p in posts[:4]:
-        comment_count = await forum_repository.get_post_comment_count(db, p.id, include_hidden_deleted=False)
+    for p in posts:
+        comment_count = comment_counts.get(p.id, 0)
         is_anon = p.is_anonymous
         author_name = "Người dùng ẩn danh" if is_anon else (p.author.full_name if p.author else "Unknown")
         author_avatar = None if is_anon else (p.author.profile.avatar_url if p.author and p.author.profile else None)

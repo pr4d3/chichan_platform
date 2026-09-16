@@ -1,17 +1,17 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
 from core.dependencies import get_current_user, RoleGuard, get_optional_user
 from models.user import User
 from models.role import Role
 from schemas.forum_schema import (
-    CategoryListResponse, PostListResponse, PostDetailResponse, PostCreate, PostCreateResponse,
+    CategoryListResponse, PostListResponse, PostListPaginatedResponse, PostDetailResponse, PostCreate, PostCreateResponse,
     CommentCreate, CommentCreateResponse, PostModerateAction, CommentModerateAction,
     ModerateResponse, LikeToggleResponse
 )
 from services import forum_service
 from uuid import UUID
-from typing import Optional
+from typing import Optional, Union
 
 router = APIRouter(tags=["Forum & Community"])
 
@@ -20,11 +20,29 @@ async def get_categories(db: AsyncSession = Depends(get_db)):
     categories = await forum_service.get_forum_categories(db)
     return CategoryListResponse(success=True, data=categories)
 
-@router.get("/api/v1/forum/posts", response_model=PostListResponse, status_code=status.HTTP_200_OK)
-async def get_posts(category_id: Optional[int] = None, search: Optional[str] = None, current_user: Optional[User] = Depends(get_optional_user), db: AsyncSession = Depends(get_db)):
+@router.get("/api/v1/forum/posts", response_model=Union[PostListPaginatedResponse, PostListResponse], status_code=status.HTTP_200_OK)
+async def get_posts(
+    category_id: Optional[int] = None,
+    search: Optional[str] = None,
+    # Phân trang tùy chọn: không truyền -> trả toàn bộ như cũ (compat với site đang live);
+    # truyền limit (mặc định 20, tối đa 50) hoặc offset -> trả {items, total, limit, offset}
+    limit: Optional[int] = Query(None, ge=1, le=50, description="Số bài viết trên một trang (tối đa 50)"),
+    offset: Optional[int] = Query(None, ge=0, description="Vị trí bắt đầu lấy bài viết"),
+    current_user: Optional[User] = Depends(get_optional_user),
+    db: AsyncSession = Depends(get_db)
+):
     is_admin = current_user and current_user.role and current_user.role.role_code == "ADMIN"
     current_user_id = current_user.id if current_user else None
-    posts = await forum_service.get_forum_feed(db, category_id, search, include_hidden_deleted=is_admin, current_user_id=current_user_id)
+    posts = await forum_service.get_forum_feed(
+        db, category_id, search,
+        include_hidden_deleted=is_admin,
+        current_user_id=current_user_id,
+        limit=limit,
+        offset=offset
+    )
+    if isinstance(posts, dict):
+        # Chế độ phân trang: data = {items, total, limit, offset}
+        return PostListPaginatedResponse(success=True, data=posts)
     return PostListResponse(success=True, data=posts)
 
 @router.get("/api/v1/forum/posts/{post_id}", response_model=PostDetailResponse, status_code=status.HTTP_200_OK)

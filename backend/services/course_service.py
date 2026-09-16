@@ -128,21 +128,19 @@ async def get_course_learning_room(db: AsyncSession, user_id: UUID, course_id: U
     lesson_quiz_map = {q.lesson_id: q for q in quizzes if q.lesson_id is not None}
     final_quiz = next((q for q in quizzes if q.lesson_id is None), None)
 
-    is_final_quiz_passed = False
-    if final_quiz:
-        final_subs = await quiz_repository.get_user_submissions(db, user_id, final_quiz.id)
-        is_final_quiz_passed = any(s.passed for s in final_subs)
+    # Tránh N+1: tiến độ bài học lấy 1 lần cho cả khóa, kết quả quiz lấy 1 lần cho tất cả quiz
+    progress_map = await course_repository.get_lesson_progress_map(db, user_id, course_id)
+    all_quiz_ids = [q.id for q in quizzes]
+    passed_quiz_ids = await quiz_repository.get_passed_quiz_ids(db, user_id, all_quiz_ids) if all_quiz_ids else set()
+
+    is_final_quiz_passed = final_quiz.id in passed_quiz_ids if final_quiz else False
 
     lessons_data = []
     for lesson in course.lessons:
-        prog = await course_repository.get_lesson_progress(db, user_id, lesson.id)
-        is_completed = prog.is_completed if prog else False
+        is_completed = progress_map.get(lesson.id, False)
 
         l_quiz = lesson_quiz_map.get(lesson.id)
-        is_quiz_passed = False
-        if l_quiz:
-            l_subs = await quiz_repository.get_user_submissions(db, user_id, l_quiz.id)
-            is_quiz_passed = any(s.passed for s in l_subs)
+        is_quiz_passed = l_quiz.id in passed_quiz_ids if l_quiz else False
 
         lessons_data.append({
             "lesson_id": lesson.id,
@@ -312,13 +310,10 @@ async def reorder_lessons_in_course(db: AsyncSession, instructor_id: UUID, cours
     course = await course_repository.get_course_by_id(db, course_id)
     if not course:
         raise HTTPException(status_code=404, detail="Khóa học không tồn tại.")
-        
+
     if not is_admin and course.instructor_id != instructor_id:
         raise HTTPException(status_code=403, detail="Bạn không sở hữu khóa học này.")
-        
-    for idx, lesson_id in enumerate(lesson_ids):
-        lesson = await course_repository.get_lesson_by_id(db, lesson_id)
-        if lesson and lesson.course_id == course_id:
-            lesson.order_index = idx + 1
-            await course_repository.update_lesson(db, lesson)
+
+    # 1 executemany UPDATE + 1 commit duy nhất thay vì SELECT/UPDATE/commit cho từng bài học
+    await course_repository.reorder_lessons(db, course_id, lesson_ids)
     return True

@@ -1,6 +1,8 @@
 import json
 import asyncio
-from datetime import datetime
+import logging
+import re
+from datetime import datetime, timezone
 from typing import AsyncGenerator, Optional
 from uuid import UUID
 from fastapi import HTTPException
@@ -12,6 +14,8 @@ from models.ai_session import AISession
 from models.ai_message import AIMessage
 from models.ai_game_evaluation import AIGameEvaluation
 from schemas.roleplay_schema import ScenarioResponse
+
+logger = logging.getLogger(__name__)
 
 # --- Định nghĩa System Prompts tĩnh cho 5 phòng chơi theo chuẩn Persona Docs ---
 SYSTEM_PROMPTS = {
@@ -122,11 +126,8 @@ async def create_new_session(db: AsyncSession, user_id: UUID, scenario_id: int) 
     if not scenario:
         raise HTTPException(status_code=404, detail="Kịch bản không tồn tại")
     
-    # Tìm kiếm phiên chơi ACTIVE cũ của cùng kịch bản này để hủy bỏ (ABANDONED)
-    active_old = await repo.get_active_session_by_user(db, user_id, scenario_id)
-    if active_old:
-        active_old.status = "ABANDONED"
-        await repo.update_session(db, active_old)
+    # Hủy các phiên ACTIVE cũ của cùng kịch bản bằng 1 UPDATE nguyên tử (WHERE status = 'ACTIVE')
+    await repo.abandon_active_sessions(db, user_id, scenario_id)
         
     # Tạo phiên chơi mới
     session = AISession(
@@ -145,11 +146,12 @@ async def create_new_session(db: AsyncSession, user_id: UUID, scenario_id: int) 
             session_id=session.id,
             sender="NPC",
             dialogue=scenario.opening_message,
-            action="*gửi tin nhắn*",
+            action="",
             emotion="neutral",
             score_change=0
         )
         await repo.create_message(db, opening_npc)
+        await db.commit()
         
     return session
 
@@ -161,7 +163,8 @@ async def get_session_detail(db: AsyncSession, session_id: UUID, user_id: UUID) 
     
     # Kiểm tra phân quyền: Người chơi chỉ được xem session của chính mình
     # Quyền xem toàn bộ thuộc về Instructor và Admin (sẽ kiểm duyệt sau ở router)
-    messages = await repo.get_session_messages(db, session_id)
+    # Giới hạn 200 tin nhắn gần nhất để response không phình to theo độ dài phiên chơi
+    messages = await repo.get_session_messages(db, session_id, limit=200)
     
     return {
         "session": {
@@ -216,78 +219,154 @@ async def abandon_active_session(db: AsyncSession, session_id: UUID, user_id: UU
     return await repo.update_session(db, session)
 
 async def get_evaluation(db: AsyncSession, session_id: UUID, user_id: UUID) -> AIGameEvaluation:
-    """Lấy báo cáo đánh giá của một phiên chơi"""
+    """Lấy báo cáo đánh giá của một phiên chơi (hỗ trợ tự tạo bù nếu phiên đã hoàn tất)"""
     eval_record = await repo.get_evaluation_by_session_id(db, session_id)
     if not eval_record:
+        session = await repo.get_session_by_id(db, session_id)
+        if session and session.status in ["WON", "LOST"]:
+            # Tự động tạo bản đánh giá bù đắp (Self-healing backfill)
+            # Chỉ nạp 60 tin nhắn gần nhất làm đầu vào prompt để kích thước không phình theo phiên
+            recent_messages = await repo.get_session_messages(db, session_id, limit=60)
+            messages_history = [{"sender": m.sender, "dialogue": m.dialogue, "action": m.action} for m in recent_messages]
+
+            outcome = "danger_alert" if session.status == "LOST" else "safe_exit"
+            title = session.scenario.title if session.scenario else "Tình huống nhập vai"
+            eval_summary = await gemini.evaluate_session(messages_history, session.current_score, title)
+
+            # total_turns vẫn tính trên TỔNG số tin nhắn thật của phiên
+            total_messages = await repo.count_session_messages(db, session_id)
+            total_turns = max(1, total_messages // 2)
+            try:
+                now = datetime.now(timezone.utc)
+                created = session.created_at or now
+                if created.tzinfo is None:
+                    created = created.replace(tzinfo=timezone.utc)
+                duration = max(0, int((now - created).total_seconds()))
+            except Exception:
+                duration = 0
+                
+            eval_record = AIGameEvaluation(
+                session_id=session_id,
+                user_id=session.user_id,
+                scenario_id=session.scenario_id,
+                final_score=session.current_score,
+                result_outcome=outcome,
+                total_turns=total_turns,
+                duration_seconds=duration,
+                ai_feedback_summary=eval_summary
+            )
+            eval_record = await repo.create_evaluation(db, eval_record)
+            return eval_record
+
         raise HTTPException(status_code=404, detail="Báo cáo đánh giá chưa được tạo hoặc phiên chơi chưa kết thúc")
     return eval_record
 
 # --- Async Helper để cập nhật tóm tắt nền ---
+# Giới hạn số task tóm tắt chạy đồng thời để nền không dội bom Gemini + DB
+_summary_task_semaphore = asyncio.Semaphore(4)
+# Giữ reference của các task nền đang chạy để không bị GC giữa chừng
+_summary_tasks: set = set()
+
 async def run_async_summary_update(db_factory, session_id: UUID, history_messages: list):
-    """Tiến trình nền tóm tắt hội thoại cũ và lưu vào DB"""
-    try:
-        summary = await gemini.summarize_session(history_messages)
-        if summary:
-            # Tạo session DB mới do chạy nền
-            async with db_factory() as db:
-                session = await repo.get_session_by_id(db, session_id)
-                if session:
-                    session.recent_summary = summary
-                    await repo.update_session(db, session)
-    except Exception as e:
-        print(f"Error in background summary task: {e}")
+    """Tiến trình nền tóm tắt hội thoại cũ và lưu vào DB (tối đa 4 task chạy đồng thời)"""
+    async with _summary_task_semaphore:
+        try:
+            summary = await gemini.summarize_session(history_messages)
+            if summary:
+                # Tạo session DB mới do chạy nền
+                async with db_factory() as db:
+                    session = await repo.get_session_by_id(db, session_id)
+                    if session:
+                        session.recent_summary = summary
+                        await repo.update_session(db, session)
+        except Exception:
+            logger.exception("Lỗi background summary task cho session %s", session_id)
+
+def spawn_summary_task(db_factory, session_id: UUID, history_messages: list) -> None:
+    """Tạo background task tóm tắt, giữ reference và tự hủy khỏi set khi hoàn tất"""
+    task = asyncio.create_task(run_async_summary_update(db_factory, session_id, history_messages))
+    _summary_tasks.add(task)
+    task.add_done_callback(_summary_tasks.discard)
 
 # --- Trình phân tích dòng JSON thời gian thực (JSON Stream Parser) ---
+DIALOGUE_START_RE = re.compile(r'"dialogue"\s*:\s*"')
+# Độ dài đuôi buffer giữ lại khi chưa tìm thấy marker (để regex khớp được marker vắt qua 2 chunk)
+_MARKER_MAX_TAIL = 32
+
 async def parse_dialogue_stream(gemini_generator) -> AsyncGenerator[str, None]:
     """Phân tích cú pháp dòng JSON trả về từ Gemini và trích xuất chữ chạy cho dialogue"""
     buffer = ""
     started = False
+    completed = False
     escaped = False
-    processed_idx = 0
-    start_pattern = '"dialogue": "'
-    
+    # Chỉ quét phần buffer mới (tính offset) thay vì re-scan toàn bộ mỗi chunk
+    scan_from = 0
+
     async for chunk in gemini_generator:
         buffer += chunk
-        
+
+        if completed:
+            continue
+
         if not started:
-            idx = buffer.find(start_pattern)
-            if idx != -1:
+            match = DIALOGUE_START_RE.search(buffer, scan_from)
+            if match:
                 started = True
-                start_pos = idx + len(start_pattern)
-                processed_idx = start_pos
-                
-                # Yield ký tự đầu tiên nếu có sẵn trong buffer
-                for i in range(start_pos, len(buffer)):
-                    char = buffer[i]
-                    if escaped:
-                        yield char
-                        escaped = False
-                    elif char == '\\':
-                        escaped = True
-                    elif char == '"':
-                        started = False
-                        break
-                    else:
-                        yield char
-                processed_idx = len(buffer)
-        else:
-            # Đang stream dialogue, xuất tiếp các ký tự mới
-            for i in range(processed_idx, len(buffer)):
-                char = buffer[i]
-                if escaped:
-                    yield char
-                    escaped = False
-                elif char == '\\':
-                    escaped = True
-                elif char == '"':
-                    started = False
-                    break
-                else:
-                    yield char
-            processed_idx = len(buffer)
-            
+                scan_from = match.end()
+            else:
+                # Giữ lại một đoạn đuôi đủ dài để marker vắt qua ranh giới chunk vẫn khớp được
+                scan_from = max(0, len(buffer) - _MARKER_MAX_TAIL)
+                continue
+
+        # Gom ký tự của chunk thành chuỗi rồi yield 1 lần (thay vì yield từng ký tự)
+        pieces: list[str] = []
+        for i in range(scan_from, len(buffer)):
+            char = buffer[i]
+            if escaped:
+                pieces.append(char)
+                escaped = False
+            elif char == '\\':
+                escaped = True
+            elif char == '"':
+                completed = True
+                break
+            else:
+                pieces.append(char)
+        if pieces:
+            yield "".join(pieces)
+        if not completed:
+            scan_from = len(buffer)
+
     # Trả về toàn bộ text buffer để bên ngoài thực hiện parse full JSON
     yield f"__FULL_RESPONSE__:{buffer}"
+
+# --- Hardening SSE: heartbeat chống proxy/CDN ngắt kết nối khi im lặng quá lâu ---
+async def add_sse_heartbeat(generator: AsyncGenerator[str, None], interval: float = 15.0) -> AsyncGenerator[str, None]:
+    """Bọc generator SSE: phát ': ping' (comment SSE) mỗi ~15s khi đang chờ event tiếp theo.
+
+    Dùng asyncio.wait trên task của gen.__anext__() — task nguồn KHÔNG bị hủy khi timeout,
+    chỉ được hủy sạch khi client ngắt kết nối hoặc stream kết thúc."""
+    next_event = asyncio.ensure_future(generator.__anext__())
+    try:
+        while True:
+            done, _ = await asyncio.wait({next_event}, timeout=interval)
+            if done:
+                try:
+                    item = next_event.result()
+                except StopAsyncIteration:
+                    return
+                yield item
+                next_event = asyncio.ensure_future(generator.__anext__())
+            else:
+                # Chưa có event nào trong khoảng interval -> phát comment ping cho client
+                yield ": ping\n\n"
+    finally:
+        # Hủy task đang chờ một cách sạch sẽ khi generator bị đóng/ngắt
+        next_event.cancel()
+        try:
+            await next_event
+        except (asyncio.CancelledError, StopAsyncIteration, Exception):
+            pass
 
 # --- Phân hệ SSE Stream Logic chính ---
 async def chat_sse_stream(
@@ -339,7 +418,8 @@ async def chat_sse_stream(
         context_chunks = [r["content_chunk"] for r in rag_results if r["distance"] < 0.65]
         
         # 3. Lấy lịch sử hội thoại gần nhất (Sliding Window 6 tin nhắn gần nhất)
-        messages_all = await repo.get_session_messages(db, session_id)
+        # Chỉ nạp 40 tin nhắn mới nhất (đủ cho sliding window), tránh nạp toàn bộ lịch sử dài
+        messages_all = await repo.get_session_messages(db, session_id, limit=40)
         
         # Lấy tối đa 6 tin nhắn trước đó (không tính tin nhắn USER vừa lưu để tránh lặp)
         # Nhưng để gửi đi cho LLM, ta lấy history gồm tin nhắn user hiện tại và 5-6 tin trước
@@ -402,11 +482,10 @@ async def chat_sse_stream(
         if not session:
             return
             
-        # Cập nhật điểm số
-        old_score = session.current_score
-        new_score = old_score + score_change
-        new_score = max(0, min(100, new_score)) # Clip 0 - 100
-        
+        # Cập nhật điểm số NGUYÊN TỬ trong SQL (cộng dồn + clip 0..100) và lấy giá trị mới về
+        # tránh lost update khi 2 lượt chat nhanh liên tiếp trên cùng một phiên
+        new_score = await repo.update_session_score_atomic(db, session_id, score_change)
+        # Đồng bộ giá trị mới vào ORM state để commit phía dưới không ghi đè bằng giá trị cũ
         session.current_score = new_score
         session.current_emotion = emotion
         
@@ -456,16 +535,23 @@ async def chat_sse_stream(
         # 6. Nếu game kết thúc, tạo báo cáo đánh giá (Evaluation)
         eval_summary = None
         if game_finished:
-            # Lấy tất cả tin nhắn để gửi đi đánh giá
-            all_messages = await repo.get_session_messages(db, session_id)
-            messages_history = [{"sender": m.sender, "dialogue": m.dialogue, "action": m.action} for m in all_messages]
-            
+            # Chỉ nạp 60 tin nhắn gần nhất làm đầu vào prompt đánh giá
+            recent_messages = await repo.get_session_messages(db, session_id, limit=60)
+            messages_history = [{"sender": m.sender, "dialogue": m.dialogue, "action": m.action} for m in recent_messages]
+
             # Gọi Gemini đánh giá phản xạ người chơi
             eval_summary = await gemini.evaluate_session(messages_history, new_score, scenario.title)
-            
-            # Tính toán chỉ số phụ
-            total_turns = len(all_messages) // 2
-            duration = int((datetime.now() - session.created_at).total_seconds())
+
+            # Tính toán chỉ số phụ (total_turns tính trên TỔNG số tin nhắn thật của phiên)
+            total_turns = (await repo.count_session_messages(db, session_id)) // 2
+            try:
+                now = datetime.now(timezone.utc)
+                created = session.created_at or now
+                if created.tzinfo is None:
+                    created = created.replace(tzinfo=timezone.utc)
+                duration = max(0, int((now - created).total_seconds()))
+            except Exception:
+                duration = 0
             
             eval_record = AIGameEvaluation(
                 session_id=session_id,
@@ -480,21 +566,27 @@ async def chat_sse_stream(
             await repo.create_evaluation(db, eval_record)
             
         # 7. Khởi động background task tóm tắt nếu số tin nhắn lớn (VD: > 6 tin nhắn)
-        all_messages_count = len(messages_all) + 2 # cộng thêm tin nhắn user vừa gửi và npc vừa nhận
+        # Đếm tổng số tin nhắn bằng COUNT thay vì dựa vào danh sách đã giới hạn nạp về.
+        # COUNT chạy SAU khi cả tin nhắn user lẫn NPC đã commit nên không cần cộng thêm gì nữa.
+        all_messages_count = await repo.count_session_messages(db, session_id)
         if all_messages_count >= 6 and not game_finished:
-            all_messages = await repo.get_session_messages(db, session_id)
-            history_summary = [{"sender": m.sender, "dialogue": m.dialogue} for m in all_messages]
-            asyncio.create_task(run_async_summary_update(db_factory, session_id, history_summary))
+            # Chỉ nạp 60 tin nhắn gần nhất cho prompt tóm tắt
+            recent_for_summary = await repo.get_session_messages(db, session_id, limit=60)
+            history_summary = [{"sender": m.sender, "dialogue": m.dialogue} for m in recent_for_summary]
+            # Giữ reference task nền trong module-level set (tự discard khi xong) + giới hạn đồng thời
+            spawn_summary_task(db_factory, session_id, history_summary)
             
-        # 8. Phát đi sự kiện 'complete' cuối cùng chứa đầy đủ trạng thái mới nhất
+        # 8. Phát đi sự kiện 'turn_complete' & 'complete' cuối cùng chứa đầy đủ trạng thái mới nhất
         complete_payload = {
             "dialogue": dialogue,
             "action": action,
             "emotion": emotion,
+            "current_emotion": emotion,
             "score_change": score_change,
             "current_score": new_score,
             "status": session.status,
             "trigger_event": trigger_event,
             "ai_feedback_summary": eval_summary
         }
+        yield "event: turn_complete\ndata: " + json.dumps(complete_payload) + "\n\n"
         yield "event: complete\ndata: " + json.dumps(complete_payload) + "\n\n"

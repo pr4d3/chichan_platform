@@ -46,18 +46,6 @@ class SessionResponse(BaseModel):
     class Config:
         from_attributes = True
 
-class MessageResponse(BaseModel):
-    id: UUID
-    sender: str
-    dialogue: str
-    action: Optional[str] = None
-    emotion: Optional[str] = None
-    score_change: int
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
 class SessionDetailResponse(BaseModel):
     success: bool
     data: dict
@@ -79,8 +67,3 @@ class EvaluationResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-class StandardResponse(BaseModel):
-    success: bool
-    message: str
-    data: Optional[dict] = None

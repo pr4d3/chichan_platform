@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any, Union
 from jose import jwt
+import asyncio
 import bcrypt
 from core.config import settings
 import uuid
@@ -15,6 +16,13 @@ def get_password_hash(password: str) -> str:
     salt = bcrypt.gensalt()
     hashed_bytes = bcrypt.hashpw(password_bytes, salt)
     return hashed_bytes.decode('utf-8')
+
+# bcrypt tốn 100-300ms CPU thuần: chạy trong worker thread để không chặn event loop
+async def verify_password_async(plain_password: str, hashed_password: str) -> bool:
+    return await asyncio.to_thread(verify_password, plain_password, hashed_password)
+
+async def get_password_hash_async(password: str) -> str:
+    return await asyncio.to_thread(get_password_hash, password)
 
 def create_access_token(subject: Union[str, Any], role_code: str) -> str:
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
