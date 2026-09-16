@@ -25,17 +25,29 @@
 
 ## 3. DANH SÁCH BIẾN MÔI TRƯỜNG CẦN CẤU HÌNH (RENDER ENVIRONMENT VARIABLES)
 
-Cấu hình các biến sau tại tab **Environment** trên Dashboard của Render:
+Cấu hình các biến sau tại tab **Environment** trên Dashboard của Render. Tất cả biến đều
+được đọc lúc **runtime** (lúc khởi động process uvicorn) — build chỉ `pip install`, không
+nhúng giá trị nào.
 
 | Tên biến (Key)                | Mục đích                                             | Ví dụ giá trị                                                                                 |
 | :---------------------------- | :--------------------------------------------------- | :-------------------------------------------------------------------------------------------- |
-| `PYTHON_VERSION`              | Chỉ định phiên bản Python                            | `3.11.8`                                                                                      |
-| `ENVIRONMENT`                 | Chế độ môi trường                                    | `production`                                                                                  |
-| `DATABASE_URL`                | Chuỗi kết nối Supabase (Transaction Pooler)          | `postgresql://postgres.xxx:[PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres` |
-| `JWT_SECRET_KEY`              | Khóa bí mật ký mã hóa JWT Token                      | `chuoi_bi_mat_ngau_nhien_64_ky_tu_cuc_kho_doan`                                               |
-| `JWT_ALGORITHM`               | Thuật toán ký JWT                                    | `HS256`                                                                                       |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Thời hạn của Access Token                            | `60`                                                                                          |
-| `ALLOWED_ORIGINS`             | Danh sách tên miền Frontend được phép gọi API (CORS) | `*` (Giai đoạn test) hoặc domain Vercel sau này                                               |
+| `DATABASE_URL`                | Chuỗi kết nối Supabase (Transaction Pooler) — **bắt buộc dùng scheme `postgresql+asyncpg://`** (driver async); kèm `?statement_cache_size=0` không cần thiết vì code đã đặt sẵn trong `core/database.py` | `postgresql+asyncpg://postgres.xxx:[PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres` |
+| `SECRET_KEY`                  | Khóa bí mật ký JWT (tên chuẩn trong code). **`JWT_SECRET_KEY` (tên cũ trong tài liệu này) vẫn được chấp nhận như alias** | `chuoi_bi_mat_ngau_nhien_64_ky_tu_cuc_kho_doan`                                               |
+| `ALGORITHM`                   | Thuật toán ký JWT (mặc định `HS256`)                 | `HS256`                                                                                       |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Thời hạn của Access Token (phút, mặc định 60)        | `60`                                                                                          |
+| `REFRESH_TOKEN_EXPIRE_DAYS`   | Thời hạn của Refresh Token / phiên đăng nhập (ngày, mặc định 30) | `30`                                                                              |
+| `ALLOWED_ORIGINS`             | Danh sách domain Frontend được phép gọi API (CORS), phân tách bởi dấu phẩy; `*` = cho tất cả (tắt credentials) | domain Vercel production                        |
+| `AI_API_KEY`                  | API key Google Gemini (bắt buộc cho roleplay AI)     | `AIza...`                                                                                     |
+| `GEMINI_MODEL`                | Model Gemini cho chat/eval (mặc định `gemini-flash-lite-latest`) | `gemini-flash-lite-latest`                                                        |
+| `ECHO`                        | Bật SQL logging của SQLAlchemy (mặc định `false`)    | `false`                                                                                       |
+
+Các biến **không còn hiệu lực** (code không bao giờ đọc): `JWT_ALGORITHM` (tên chuẩn là
+`ALGORITHM`), `ENVIRONMENT`, `PYTHON_VERSION` (chỉ ý nghĩa với native Python runtime của
+Render, không tác dụng khi build bằng Dockerfile `python:3.12-slim`).
+
+> ⚠️ Khi khởi động, backend tự kiểm tra cấu hình (`validate_settings()` trong
+> `core/config.py`) và log mức **CRITICAL/WARNING** nếu `SECRET_KEY` còn mặc định,
+> `DATABASE_URL` sai scheme, thiếu `AI_API_KEY`, hoặc `ALLOWED_ORIGINS='*'`.
 
 ---
 

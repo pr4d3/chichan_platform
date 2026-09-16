@@ -21,12 +21,26 @@
 
 ## 2. DANH SÁCH BIẾN MÔI TRƯỜNG CẦN THIẾT (VERCEL ENVIRONMENT VARIABLES)
 
-Cấu hình các biến sau tại phần **Settings $\rightarrow$ Environment Variables** trên Vercel:
+> **Refactor runtime-config:** Frontend **không còn phụ thuộc env lúc build**. Client không nhúng
+> bất kỳ URL nào vào bundle; base URL được resolve lúc chạy qua endpoint `/api/app-config`
+> (đọc `process.env` phía server theo từng request). Không dùng biến có tiền tố `NEXT_PUBLIC_*`
+> cho URL API — Next.js inline giá trị đó vào bundle NGAY LÚC BUILD (kể cả server chunk, đã kiểm
+> chứng thực nghiệm trên Next 16 + Turbopack), và script `scripts/check-frontend.mjs` sẽ fail build
+> nếu có tái diễn.
 
-| Tên biến (Key)             | Mục đích                              | Ví dụ giá trị                                   |
-| :------------------------- | :------------------------------------ | :---------------------------------------------- |
-| `NEXT_PUBLIC_API_BASE_URL` | Đường dẫn gốc API Backend trên Render | `https://sex-education-api.onrender.com/api/v1` |
-| `NEXT_PUBLIC_SITE_URL`     | Tên miền chính thức của Frontend      | `https://sex-education.vercel.app`              |
+Cấu hình biến sau tại phần **Settings → Environment Variables** trên Vercel:
+
+| Môi trường (Scope)   | Tên biến (Key)   | Mục đích                              | Ví dụ giá trị                                   |
+| :------------------- | :--------------- | :------------------------------------ | :---------------------------------------------- |
+| Production           | `API_BASE_URL`   | Đường dẫn gốc API Backend trên Render | `https://sex-education-api.onrender.com/api/v1` |
+| Preview              | `API_BASE_URL`   | Có thể trỏ sang backend staging khác nhau theo từng preview | URL backend tương ứng     |
+| Development (local)  | *(không cần)*    | `npm run dev` tự dùng `http://127.0.0.1:8000/api/v1` khi thiếu biến | — |
+
+Lưu ý:
+
+- `NEXT_PUBLIC_SITE_URL` đã bị xóa khỏi docs — code không bao giờ đọc biến này.
+- Thay đổi `API_BASE_URL` có hiệu lực ở **lần deploy tiếp theo** (env của Function được
+  snapshot theo từng deployment), không áp dụng cho deployment cũ.
 
 ---
 
@@ -50,7 +64,7 @@ Cấu hình các biến sau tại phần **Settings $\rightarrow$ Environment Va
    - Tại mục **Root Directory**, bấm nút **Edit** và chọn thư mục `frontend` (theo cấu trúc thư mục của bạn).
    - **Framework Preset:** Vercel sẽ tự động nhận diện là `Next.js`.
 4. **Bước 4: Nhập Biến môi trường (Environment Variables)**
-   - Thêm biến `NEXT_PUBLIC_API_BASE_URL` với giá trị là đường dẫn API Render của bạn.
+   - Thêm biến `API_BASE_URL` (không tiền tố `NEXT_PUBLIC_`) với giá trị là đường dẫn API Render của bạn, scope **Production + Preview**.
 5. **Bước 5: Bấm Deploy**
    - Vercel sẽ tự động build ứng dụng Next.js và phát hành đường dẫn chính thức dạng: `https://[ten-du-an].vercel.app`.
 
@@ -93,22 +107,23 @@ chichan/
 │ │ ├── feat4_course.md
 │ │ ├── feat5_forum.md
 │ │ └── feat6_general_page.md
-│ ├── phase2_backend/ # 6 File API Specs (Layered Architecture) + Deploy Render
+│ ├── phase2_backend/ # 6 File API Specs (Layered Architecture)
 │ │ ├── feat1_auth.md
 │ │ ├── feat2_user.md
 │ │ ├── feat3_dashboard.md
 │ │ ├── feat4_course.md
 │ │ ├── feat5_forum.md
-│ │ ├── feat6_general_page.md
-│ │ └── deployment_render.md
-│ └── phase3_frontend/ # 6 File UI/UX Specs (Next.js + Tailwind + Shadcn) + Deploy Vercel
+│ │ └── feat6_general_page.md
+│ ├── phase3_frontend/ # 6 File UI/UX Specs (Next.js + Tailwind + Shadcn)
 │ ├── feat1_auth.md
 │ ├── feat2_user.md
 │ ├── feat3_dashboard.md
 │ ├── feat4_course.md
 │ ├── feat5_forum.md
-│ ├── feat6_general_page.md
-│ └── deployment_vercel.md
+│ └── feat6_general_page.md
+│ └── deployment/ # Hướng dẫn deploy backend (Render) + frontend (Vercel)
+│   ├── render.md
+│   └── vercel.md
 ├── backend/ # Nơi bạn thực thi code Backend
 └── frontend/ # Nơi bạn thực thi code Frontend
 

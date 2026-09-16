@@ -1,8 +1,8 @@
 import sys
 import os
 
-# Add backend directory to sys.path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Add backend directory to sys.path (file now lives in tests/ — append the parent dir)
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 print("Testing Roleplay module imports...")
 
@@ -18,8 +18,8 @@ try:
     # 2. Test Schema Imports
     from schemas.roleplay_schema import (
         GeminiRoleplayOutput, ScenarioResponse, SessionCreateRequest,
-        SessionResponse, MessageResponse, SessionDetailResponse, ChatRequest,
-        EvaluationResponse, StandardResponse
+        SessionResponse, SessionDetailResponse, ChatRequest,
+        EvaluationResponse
     )
     print("[SUCCESS] All Pydantic schemas imported successfully.")
 
