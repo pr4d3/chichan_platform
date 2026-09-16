@@ -6,31 +6,35 @@ import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { useToast } from "@/context/ToastContext";
 import {
+  Badge,
+  Card,
+  EyebrowLabel,
+  FormRow,
+  Modal,
+  Spinner,
+} from "@/components/ui";
+import {
   Users,
   UserCheck,
-  UserX,
-  ShieldAlert,
-  Search,
+  // Phosphor không có UserX — UserMinus là tương đương gần nhất cho tài khoản bị vô hiệu hóa
+  UserMinus,
+  ShieldWarning,
+  MagnifyingGlass,
   X,
-  Filter,
-  Edit,
+  PencilSimple,
   Power,
-  RefreshCw,
-  KeyRound,
-  ChevronLeft,
-  ChevronRight,
-  Shield,
+  ArrowClockwise,
+  Key,
+  CaretLeft,
+  CaretRight,
+  ShieldCheck,
   GraduationCap,
-  Sparkles,
   Phone,
-  Mail,
-  Calendar,
-  CheckCircle2,
-  AlertTriangle,
-  HeartHandshake,
+  CheckCircle,
+  Warning,
+  HandHeart,
   BookOpen,
-  Baby,
-} from "lucide-react";
+} from "@phosphor-icons/react";
 
 interface RoleItem {
   id: number;
@@ -91,10 +95,10 @@ export default function AdminUsersPage() {
   const limit = 10;
 
   // Filter and search states
+  // search chỉ nhận giá trị ĐÃ debounce từ UserSearchBox để keystroke không re-render cả trang
   const [search, setSearch] = useState("");
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
-  const searchTimer = useRef<any>(null);
 
   // Edit User Modal state
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
@@ -178,21 +182,21 @@ export default function AdminUsersPage() {
     }
   }, [authLoading, user, page, selectedRole, selectedStatus, router]);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setSearch(val);
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => {
+  // Nhận giá trị đã debounce (400ms) từ ô tìm kiếm con, quay về trang 1 và tải lại danh sách
+  const handleSearchDebounced = useCallback(
+    (val: string) => {
+      setSearch(val);
       setPage(1);
       fetchUsers(1, val, selectedRole, selectedStatus);
-    }, 400);
-  };
+    },
+    [fetchUsers, selectedRole, selectedStatus],
+  );
 
-  const handleClearSearch = () => {
+  const handleClearSearch = useCallback(() => {
     setSearch("");
     setPage(1);
     fetchUsers(1, "", selectedRole, selectedStatus);
-  };
+  }, [fetchUsers, selectedRole, selectedStatus]);
 
   // Open Edit Modal
   const openEditModal = (targetUser: UserItem) => {
@@ -287,7 +291,7 @@ export default function AdminUsersPage() {
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <RefreshCw className="w-8 h-8 text-primary animate-spin" />
+        <Spinner size="md" />
       </div>
     );
   }
@@ -295,7 +299,11 @@ export default function AdminUsersPage() {
   if (!user || user.role !== "ADMIN") {
     return (
       <div className="p-8 text-center bg-white rounded-2xl border border-outline-variant/30 space-y-3 max-w-md mx-auto mt-12">
-        <ShieldAlert className="w-10 h-10 text-red-500 mx-auto" />
+        <ShieldWarning
+          size={40}
+          weight="duotone"
+          className="text-red-500 mx-auto"
+        />
         <h2 className="text-base font-bold text-on-surface">
           Không có quyền truy cập
         </h2>
@@ -325,8 +333,10 @@ export default function AdminUsersPage() {
           className="inline-flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-surface-container border border-outline-variant/30 rounded-xl text-xs font-bold text-on-surface transition-all shadow-xs self-start sm:self-auto cursor-pointer"
           title="Tải lại danh sách"
         >
-          <RefreshCw
-            className={`w-3.5 h-3.5 ${loading ? "animate-spin text-primary" : ""}`}
+          <ArrowClockwise
+            size={14}
+            weight="bold"
+            className={loading ? "animate-spin text-primary" : ""}
           />
           <span>Làm mới</span>
         </button>
@@ -335,11 +345,11 @@ export default function AdminUsersPage() {
       {/* Overview Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Users */}
-        <div className="bg-white p-5 rounded-2xl border border-outline-variant/30 shadow-xs space-y-2">
+        <Card className="space-y-2">
           <div className="flex items-center justify-between text-on-surface-variant">
             <span className="text-xs font-semibold">Tổng tài khoản</span>
             <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-              <Users className="w-4 h-4" />
+              <Users size={16} weight="duotone" />
             </div>
           </div>
           <div className="text-2xl font-extrabold text-on-surface">
@@ -348,14 +358,14 @@ export default function AdminUsersPage() {
           <div className="text-[11px] text-on-surface-variant/70">
             Bao gồm tất cả vai trò trong hệ thống
           </div>
-        </div>
+        </Card>
 
         {/* Active Users */}
-        <div className="bg-white p-5 rounded-2xl border border-outline-variant/30 shadow-xs space-y-2">
+        <Card className="space-y-2">
           <div className="flex items-center justify-between text-on-surface-variant">
             <span className="text-xs font-semibold">Đang hoạt động</span>
             <div className="w-8 h-8 rounded-xl bg-green-500/10 flex items-center justify-center text-green-600">
-              <UserCheck className="w-4 h-4" />
+              <UserCheck size={16} weight="duotone" />
             </div>
           </div>
           <div className="text-2xl font-extrabold text-green-600">
@@ -364,16 +374,16 @@ export default function AdminUsersPage() {
           <div className="text-[11px] text-green-600/70 font-medium">
             Có thể đăng nhập và học tập
           </div>
-        </div>
+        </Card>
 
         {/* Inactive Users */}
-        <div className="bg-white p-5 rounded-2xl border border-outline-variant/30 shadow-xs space-y-2">
+        <Card className="space-y-2">
           <div className="flex items-center justify-between text-on-surface-variant">
             <span className="text-xs font-semibold">
               Đã vô hiệu hóa (Inactive)
             </span>
             <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
-              <UserX className="w-4 h-4" />
+              <UserMinus size={16} weight="duotone" />
             </div>
           </div>
           <div className="text-2xl font-extrabold text-red-500">
@@ -382,14 +392,14 @@ export default function AdminUsersPage() {
           <div className="text-[11px] text-red-500/70 font-medium">
             Bị khóa quyền truy cập hệ thống
           </div>
-        </div>
+        </Card>
 
         {/* Roles Distribution */}
-        <div className="bg-white p-5 rounded-2xl border border-outline-variant/30 shadow-xs space-y-2">
+        <Card className="space-y-2">
           <div className="flex items-center justify-between text-on-surface-variant">
             <span className="text-xs font-semibold">Phân loại vai trò</span>
             <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600">
-              <Shield className="w-4 h-4" />
+              <ShieldCheck size={16} weight="duotone" />
             </div>
           </div>
           <div className="text-xs space-y-1.5 font-semibold text-on-surface">
@@ -407,7 +417,7 @@ export default function AdminUsersPage() {
               title="Lọc theo Quản trị viên"
             >
               <span className="text-on-surface-variant flex items-center gap-1.5">
-                <Shield className="w-3 h-3 text-red-500" />
+                <ShieldCheck size={12} weight="bold" className="text-red-500" />
                 Quản trị viên:
               </span>
               <span className="text-red-500 font-bold">
@@ -430,7 +440,7 @@ export default function AdminUsersPage() {
               title="Lọc theo Chuyên gia"
             >
               <span className="text-on-surface-variant flex items-center gap-1.5">
-                <GraduationCap className="w-3 h-3 text-primary" />
+                <GraduationCap size={12} weight="bold" className="text-primary" />
                 Chuyên gia:
               </span>
               <span className="text-primary font-bold">
@@ -453,7 +463,7 @@ export default function AdminUsersPage() {
               title="Lọc theo Phụ huynh"
             >
               <span className="text-on-surface-variant flex items-center gap-1.5">
-                <HeartHandshake className="w-3 h-3 text-amber-600" />
+                <HandHeart size={12} weight="bold" className="text-amber-600" />
                 Phụ huynh:
               </span>
               <span className="text-amber-600 font-bold">
@@ -476,7 +486,7 @@ export default function AdminUsersPage() {
               title="Lọc theo Học sinh"
             >
               <span className="text-on-surface-variant flex items-center gap-1.5">
-                <BookOpen className="w-3 h-3 text-emerald-600" />
+                <BookOpen size={12} weight="bold" className="text-emerald-600" />
                 Học sinh:
               </span>
               <span className="text-emerald-600 font-bold">
@@ -484,30 +494,19 @@ export default function AdminUsersPage() {
               </span>
             </button>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* Filters & Search Control Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-outline-variant/30 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
-        {/* Search */}
-        <div className="relative w-full md:max-w-md">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/60" />
-          <input
-            type="text"
-            value={search}
-            onChange={handleSearchChange}
-            placeholder="Tìm theo họ tên, email, tên đăng nhập..."
-            className="w-full pl-9 pr-9 py-2 text-xs bg-surface-container-lowest border border-outline-variant/30 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-on-surface transition-all placeholder:text-on-surface-variant/50"
-          />
-          {search && (
-            <button
-              onClick={handleClearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+      <Card
+        p="4"
+        className="flex flex-col md:flex-row items-center justify-between gap-3"
+      >
+        {/* Search — state gõ phím nằm ở component con, chỉ giá trị debounce được đẩy lên */}
+        <UserSearchBox
+          onDebouncedChange={handleSearchDebounced}
+          onClear={handleClearSearch}
+        />
 
         {/* Filter Dropdowns */}
         <div className="flex items-center gap-2.5 w-full md:w-auto">
@@ -541,20 +540,36 @@ export default function AdminUsersPage() {
             <option value="INACTIVE">Vô hiệu hóa</option>
           </select>
         </div>
-      </div>
+      </Card>
 
       {/* Users Data Table */}
-      <div className="bg-white rounded-2xl border border-outline-variant/30 shadow-xs overflow-hidden">
+      <Card p="none" className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-outline-variant/20 bg-surface-container-lowest/50 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
-                <th className="py-3.5 px-4 sm:px-6">Người dùng</th>
-                <th className="py-3.5 px-4">Email & Liên hệ</th>
-                <th className="py-3.5 px-4">Vai trò</th>
-                <th className="py-3.5 px-4">Trạng thái</th>
-                <th className="py-3.5 px-4">Ngày tham gia</th>
-                <th className="py-3.5 px-4 sm:px-6 text-right">Thao tác</th>
+              <tr className="border-b border-outline-variant/20 bg-surface-container-lowest/50">
+                <EyebrowLabel as="th" size="11" className="py-3.5 px-4 sm:px-6">
+                  Người dùng
+                </EyebrowLabel>
+                <EyebrowLabel as="th" size="11" className="py-3.5 px-4">
+                  Email & Liên hệ
+                </EyebrowLabel>
+                <EyebrowLabel as="th" size="11" className="py-3.5 px-4">
+                  Vai trò
+                </EyebrowLabel>
+                <EyebrowLabel as="th" size="11" className="py-3.5 px-4">
+                  Trạng thái
+                </EyebrowLabel>
+                <EyebrowLabel as="th" size="11" className="py-3.5 px-4">
+                  Ngày tham gia
+                </EyebrowLabel>
+                <EyebrowLabel
+                  as="th"
+                  size="11"
+                  className="py-3.5 px-4 sm:px-6 text-right"
+                >
+                  Thao tác
+                </EyebrowLabel>
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant/15 text-xs">
@@ -594,7 +609,11 @@ export default function AdminUsersPage() {
                     colSpan={6}
                     className="py-16 text-center text-on-surface-variant"
                   >
-                    <UserX className="w-8 h-8 text-on-surface-variant/40 mx-auto mb-2" />
+                    <UserMinus
+                      size={32}
+                      weight="duotone"
+                      className="text-on-surface-variant/40 mx-auto mb-2"
+                    />
                     <p className="font-bold text-sm text-on-surface">
                       Không tìm thấy người dùng nào
                     </p>
@@ -628,6 +647,7 @@ export default function AdminUsersPage() {
                             <img
                               src={item.avatar_url}
                               alt={item.full_name}
+                              loading="lazy"
                               className="w-9 h-9 rounded-full object-cover border border-outline-variant/30 shadow-xs"
                             />
                           ) : (
@@ -670,7 +690,11 @@ export default function AdminUsersPage() {
                           </span>
                           {item.phone_number ? (
                             <span className="text-[11px] text-on-surface-variant/70 flex items-center gap-1">
-                              <Phone className="w-3 h-3 text-on-surface-variant/50" />
+                              <Phone
+                                size={12}
+                                weight="bold"
+                                className="text-on-surface-variant/50"
+                              />
                               {item.phone_number}
                             </span>
                           ) : (
@@ -697,13 +721,29 @@ export default function AdminUsersPage() {
                           }`}
                         >
                           {isAdminRole ? (
-                            <Shield className="w-3 h-3 text-red-500" />
+                            <ShieldCheck
+                              size={12}
+                              weight="bold"
+                              className="text-red-500"
+                            />
                           ) : isInstructor ? (
-                            <GraduationCap className="w-3 h-3 text-primary" />
+                            <GraduationCap
+                              size={12}
+                              weight="bold"
+                              className="text-primary"
+                            />
                           ) : isParent ? (
-                            <HeartHandshake className="w-3 h-3 text-amber-600" />
+                            <HandHeart
+                              size={12}
+                              weight="bold"
+                              className="text-amber-600"
+                            />
                           ) : isStudent ? (
-                            <BookOpen className="w-3 h-3 text-emerald-600" />
+                            <BookOpen
+                              size={12}
+                              weight="bold"
+                              className="text-emerald-600"
+                            />
                           ) : null}
                           {isParent
                             ? "Phụ huynh"
@@ -715,18 +755,20 @@ export default function AdminUsersPage() {
 
                       {/* Status */}
                       <td className="py-3.5 px-4">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                        <Badge
+                          tone={
                             isActive
                               ? "bg-green-500/10 text-green-600 border border-green-500/20"
                               : "bg-red-500/10 text-red-500 border border-red-500/20"
-                          }`}
+                          }
+                          icon={
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
+                            />
+                          }
                         >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
-                          />
                           {isActive ? "Hoạt động" : "Vô hiệu hóa"}
-                        </span>
+                        </Badge>
                       </td>
 
                       {/* Created At */}
@@ -754,7 +796,7 @@ export default function AdminUsersPage() {
                                   : "Kích hoạt lại tài khoản (Active)"
                             }
                           >
-                            <Power className="w-3.5 h-3.5" />
+                            <Power size={14} weight="bold" />
                           </button>
 
                           {/* Edit User Details */}
@@ -763,7 +805,7 @@ export default function AdminUsersPage() {
                             className="p-1.5 rounded-lg bg-surface-container-low hover:bg-primary/10 hover:text-primary text-on-surface-variant border border-outline-variant/30 transition-all cursor-pointer"
                             title="Chỉnh sửa thông tin"
                           >
-                            <Edit className="w-3.5 h-3.5" />
+                            <PencilSimple size={14} weight="bold" />
                           </button>
                         </div>
                       </td>
@@ -791,7 +833,7 @@ export default function AdminUsersPage() {
               className="p-1.5 rounded-lg border border-outline-variant/30 hover:bg-surface-container disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
               title="Trang trước"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <CaretLeft size={16} weight="bold" />
             </button>
 
             <span className="px-3 py-1 font-bold text-on-surface bg-surface-container-low rounded-lg border border-outline-variant/20">
@@ -804,21 +846,27 @@ export default function AdminUsersPage() {
               className="p-1.5 rounded-lg border border-outline-variant/30 hover:bg-surface-container disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
               title="Trang kế tiếp"
             >
-              <ChevronRight className="w-4 h-4" />
+              <CaretRight size={16} weight="bold" />
             </button>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* EDIT USER MODAL */}
       {editingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white w-full max-w-xl rounded-2xl border border-outline-variant/30 shadow-2xl overflow-hidden animate-scale-up max-h-[90vh] flex flex-col">
+        <Modal
+          open
+          onClose={() => setEditingUser(null)}
+          size="xl"
+          dismissible={false}
+          backdropClassName="bg-black/40 backdrop-blur-xs"
+          panelClassName="border border-outline-variant/30 flex flex-col"
+        >
             {/* Modal Header */}
-            <div className="p-5 border-b border-outline-variant/20 flex items-center justify-between bg-surface-container-lowest">
+            <div className="p-5 border-b border-outline-variant/20 flex items-center justify-between bg-surface-container-lowest shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold">
-                  <Edit className="w-4 h-4" />
+                  <PencilSimple size={16} weight="bold" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-on-surface">
@@ -834,7 +882,7 @@ export default function AdminUsersPage() {
                 onClick={() => setEditingUser(null)}
                 className="p-1.5 rounded-lg hover:bg-surface-container text-on-surface-variant cursor-pointer transition-colors"
               >
-                <X className="w-4 h-4" />
+                <X size={16} weight="bold" />
               </button>
             </div>
 
@@ -845,10 +893,7 @@ export default function AdminUsersPage() {
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Full Name */}
-                <div className="space-y-1">
-                  <label className="font-bold text-on-surface block">
-                    Họ và tên <span className="text-red-500">*</span>
-                  </label>
+                <FormRow label="Họ và tên" required>
                   <input
                     type="text"
                     required
@@ -858,14 +903,10 @@ export default function AdminUsersPage() {
                     }
                     className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant/30 rounded-xl focus:outline-none focus:border-primary text-on-surface"
                   />
-                </div>
+                </FormRow>
 
                 {/* Username */}
-                <div className="space-y-1">
-                  <label className="font-bold text-on-surface block">
-                    Tên đăng nhập (Username){" "}
-                    <span className="text-red-500">*</span>
-                  </label>
+                <FormRow label="Tên đăng nhập (Username)" required>
                   <input
                     type="text"
                     required
@@ -875,13 +916,10 @@ export default function AdminUsersPage() {
                     }
                     className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant/30 rounded-xl focus:outline-none focus:border-primary text-on-surface"
                   />
-                </div>
+                </FormRow>
 
                 {/* Email */}
-                <div className="space-y-1">
-                  <label className="font-bold text-on-surface block">
-                    Địa chỉ Email <span className="text-red-500">*</span>
-                  </label>
+                <FormRow label="Địa chỉ Email" required>
                   <input
                     type="email"
                     required
@@ -891,13 +929,10 @@ export default function AdminUsersPage() {
                     }
                     className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant/30 rounded-xl focus:outline-none focus:border-primary text-on-surface"
                   />
-                </div>
+                </FormRow>
 
                 {/* Role */}
-                <div className="space-y-1">
-                  <label className="font-bold text-on-surface block">
-                    Vai trò / Phân quyền <span className="text-red-500">*</span>
-                  </label>
+                <FormRow label="Vai trò / Phân quyền" required>
                   <select
                     value={editForm.role_id}
                     onChange={(e) =>
@@ -926,13 +961,10 @@ export default function AdminUsersPage() {
                       );
                     })}
                   </select>
-                </div>
+                </FormRow>
 
                 {/* Status */}
-                <div className="space-y-1">
-                  <label className="font-bold text-on-surface block">
-                    Trạng thái tài khoản
-                  </label>
+                <FormRow label="Trạng thái tài khoản">
                   <select
                     value={editForm.status}
                     onChange={(e) =>
@@ -946,13 +978,10 @@ export default function AdminUsersPage() {
                     <option value="ACTIVE">Hoạt động (ACTIVE)</option>
                     <option value="INACTIVE">Vô hiệu hóa (INACTIVE)</option>
                   </select>
-                </div>
+                </FormRow>
 
                 {/* Phone */}
-                <div className="space-y-1">
-                  <label className="font-bold text-on-surface block">
-                    Số điện thoại
-                  </label>
+                <FormRow label="Số điện thoại">
                   <input
                     type="text"
                     value={editForm.phone_number}
@@ -962,13 +991,10 @@ export default function AdminUsersPage() {
                     placeholder="09xx..."
                     className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant/30 rounded-xl focus:outline-none focus:border-primary text-on-surface"
                   />
-                </div>
+                </FormRow>
 
                 {/* Gender */}
-                <div className="space-y-1">
-                  <label className="font-bold text-on-surface block">
-                    Giới tính
-                  </label>
+                <FormRow label="Giới tính">
                   <select
                     value={editForm.gender}
                     onChange={(e) =>
@@ -981,13 +1007,10 @@ export default function AdminUsersPage() {
                     <option value="FEMALE">Nữ</option>
                     <option value="OTHER">Khác</option>
                   </select>
-                </div>
+                </FormRow>
 
                 {/* Date of Birth */}
-                <div className="space-y-1">
-                  <label className="font-bold text-on-surface block">
-                    Ngày sinh
-                  </label>
+                <FormRow label="Ngày sinh">
                   <input
                     type="date"
                     value={editForm.date_of_birth}
@@ -999,14 +1022,11 @@ export default function AdminUsersPage() {
                     }
                     className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant/30 rounded-xl focus:outline-none focus:border-primary text-on-surface font-medium cursor-pointer"
                   />
-                </div>
+                </FormRow>
               </div>
 
               {/* Bio */}
-              <div className="space-y-1">
-                <label className="font-bold text-on-surface block">
-                  Tiểu sử / Ghi chú
-                </label>
+              <FormRow label="Tiểu sử / Ghi chú">
                 <textarea
                   rows={2}
                   value={editForm.bio}
@@ -1016,12 +1036,12 @@ export default function AdminUsersPage() {
                   placeholder="Thông tin giới thiệu ngắn về người dùng..."
                   className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant/30 rounded-xl focus:outline-none focus:border-primary text-on-surface resize-none"
                 />
-              </div>
+              </FormRow>
 
               {/* Reset Password */}
               <div className="p-3.5 bg-amber-500/5 rounded-xl border border-amber-500/20 space-y-1.5">
                 <div className="flex items-center gap-1.5 font-bold text-amber-700">
-                  <KeyRound className="w-3.5 h-3.5" />
+                  <Key size={14} weight="bold" />
                   <span>Đặt lại mật khẩu mới (Tùy chọn)</span>
                 </div>
                 <p className="text-[11px] text-amber-700/80">
@@ -1054,26 +1074,32 @@ export default function AdminUsersPage() {
                 >
                   {savingEdit ? (
                     <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <Spinner size="sm" tone="white" />
                       <span>Đang lưu...</span>
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <CheckCircle size={14} weight="bold" />
                       <span>Lưu thay đổi</span>
                     </>
                   )}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* CONFIRM STATUS TOGGLE MODAL */}
       {statusTogglingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white w-full max-w-sm rounded-2xl border border-outline-variant/30 shadow-2xl p-6 space-y-4 animate-scale-up text-center">
+        <Modal
+          open
+          onClose={() => setStatusTogglingUser(null)}
+          size="sm"
+          dismissible={false}
+          showClose={false}
+          backdropClassName="bg-black/40 backdrop-blur-xs"
+          panelClassName="p-6 space-y-4 text-center border border-outline-variant/30"
+        >
             <div
               className={`w-12 h-12 rounded-2xl mx-auto flex items-center justify-center ${
                 statusTogglingUser.status === "ACTIVE"
@@ -1081,7 +1107,7 @@ export default function AdminUsersPage() {
                   : "bg-green-500/10 text-green-600"
               }`}
             >
-              <AlertTriangle className="w-6 h-6" />
+              <Warning size={24} weight="duotone" />
             </div>
 
             <div>
@@ -1122,15 +1148,65 @@ export default function AdminUsersPage() {
                 }`}
               >
                 {togglingStatus ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <Spinner size="sm" tone="white" />
                 ) : (
                   "Xác nhận"
                 )}
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );
 }
+
+// Ô tìm kiếm tách riêng: giữ state gõ phím tại đây để mỗi keystroke chỉ re-render input này,
+// giá trị đã debounce (400ms) mới được đẩy lên trang cha qua onDebouncedChange
+const UserSearchBox = React.memo(function UserSearchBox({
+  onDebouncedChange,
+  onClear,
+}: {
+  onDebouncedChange: (value: string) => void;
+  onClear: () => void;
+}) {
+  const [value, setValue] = useState("");
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setValue(val);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => onDebouncedChange(val), 400);
+  };
+
+  const handleClear = () => {
+    setValue("");
+    if (timer.current) clearTimeout(timer.current);
+    onClear();
+  };
+
+  return (
+    <div className="relative w-full md:max-w-md">
+      <MagnifyingGlass
+        size={16}
+        weight="bold"
+        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/60"
+      />
+      <input
+        type="text"
+        value={value}
+        onChange={handleChange}
+        placeholder="Tìm theo họ tên, email, tên đăng nhập..."
+        className="w-full pl-9 pr-9 py-2 text-xs bg-surface-container-lowest border border-outline-variant/30 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-on-surface transition-all placeholder:text-on-surface-variant/50"
+      />
+      {value && (
+        <button
+          onClick={handleClear}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface cursor-pointer"
+        >
+          <X size={16} weight="bold" />
+        </button>
+      )}
+    </div>
+  );
+});

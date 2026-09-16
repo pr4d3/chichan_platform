@@ -6,7 +6,7 @@ from core.dependencies import get_current_user, RoleGuard
 from models.user import User
 from schemas.roleplay_schema import (
     ScenarioResponse, SessionResponse, SessionCreateRequest, ChatRequest,
-    SessionDetailResponse, EvaluationResponse, StandardResponse
+    SessionDetailResponse, EvaluationResponse
 )
 import services.roleplay_service as service
 from uuid import UUID
@@ -66,7 +66,15 @@ async def chat_stream(
         user_id=current_user.id,
         message_text=request.message
     )
-    return StreamingResponse(generator, media_type="text/event-stream")
+    # Bọc heartbeat: phát ': ping' mỗi ~15s khi im lặng để proxy/CDN không ngắt stream
+    generator = service.add_sse_heartbeat(generator)
+    # Header chống buffer/idle-timeout của proxy (Render/CDN)
+    headers = {
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+        "Connection": "keep-alive",
+    }
+    return StreamingResponse(generator, media_type="text/event-stream", headers=headers)
 
 @router.post("/sessions/{session_id}/abandon", response_model=SessionResponse, status_code=status.HTTP_200_OK)
 async def abandon_session(

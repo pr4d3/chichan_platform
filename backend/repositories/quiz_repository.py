@@ -41,14 +41,44 @@ async def save_submission(db: AsyncSession, submission: QuizSubmission) -> QuizS
     await db.refresh(submission)
     return submission
 
-async def get_user_submissions(db: AsyncSession, user_id: UUID, quiz_id: UUID) -> List[QuizSubmission]:
+async def get_user_submissions(db: AsyncSession, user_id: UUID, quiz_id: UUID, limit: int = None) -> List[QuizSubmission]:
     stmt = (
         select(QuizSubmission)
         .where(and_(QuizSubmission.user_id == user_id, QuizSubmission.quiz_id == quiz_id))
         .order_by(QuizSubmission.submitted_at.desc())
     )
+    # Giới hạn số dòng nạp về (None = không giới hạn, giữ hành vi cũ)
+    if limit:
+        stmt = stmt.limit(limit)
     result = await db.execute(stmt)
     return list(result.scalars().all())
+
+async def has_user_passed_quiz(db: AsyncSession, user_id: UUID, quiz_id: UUID) -> bool:
+    """Kiểm tra đã từng đỗ quiz chưa bằng aggregate bool_or phía DB (không nạp toàn bộ lịch sử nộp bài)"""
+    stmt = select(func.bool_or(QuizSubmission.passed)).where(
+        and_(QuizSubmission.user_id == user_id, QuizSubmission.quiz_id == quiz_id)
+    )
+    result = await db.execute(stmt)
+    return bool(result.scalar())
+
+async def get_passed_quiz_ids(db: AsyncSession, user_id: UUID, quiz_ids: List[UUID]) -> set:
+    """Trả về tập các quiz_id mà user đã từng đỗ — 1 truy vấn GROUP BY cho nhiều quiz
+    (thay vòng lặp nạp toàn bộ submissions của từng quiz)."""
+    if not quiz_ids:
+        return set()
+    stmt = (
+        select(QuizSubmission.quiz_id)
+        .where(
+            and_(
+                QuizSubmission.user_id == user_id,
+                QuizSubmission.quiz_id.in_(quiz_ids),
+                QuizSubmission.passed == True
+            )
+        )
+        .group_by(QuizSubmission.quiz_id)
+    )
+    result = await db.execute(stmt)
+    return set(result.scalars().all())
 
 async def get_user_best_submission(db: AsyncSession, user_id: UUID, quiz_id: UUID) -> Optional[QuizSubmission]:
     stmt = (
@@ -64,13 +94,17 @@ async def check_user_cooldown(
     user_id: UUID,
     quiz_id: UUID,
     max_attempts: int = 3,
-    cooldown_minutes: int = 15
+    cooldown_minutes: int = 15,
+    submissions: Optional[List[QuizSubmission]] = None
 ) -> Tuple[bool, int, int]:
     """
     Coursera-style anti-spam retry check:
     Returns (is_locked, remaining_cooldown_seconds, attempts_left)
     """
-    submissions = await get_user_submissions(db, user_id, quiz_id)
+    # Cho phép truyền sẵn danh sách submissions (mới nhất trước) để tái sử dụng,
+    # tránh phải fetch lại từ DB nhiều lần trong cùng một request.
+    if submissions is None:
+        submissions = await get_user_submissions(db, user_id, quiz_id, limit=50)
     if not submissions:
         return False, 0, max_attempts
 

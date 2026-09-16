@@ -9,25 +9,11 @@ from sqlalchemy.ext.asyncio import create_async_engine
 backend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backend")
 sys.path.append(backend_dir)
 
-# Đọc file .env bằng tay để lấy DATABASE_URL và AI_API_KEY
-def load_env_vars():
-    env_path = os.path.join(backend_dir, ".env")
-    db_url = None
-    api_key = None
-    if os.path.exists(env_path):
-        with open(env_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line.startswith("DATABASE_URL="):
-                    db_url = line.split("=", 1)[1].strip()
-                elif line.startswith("AI_API_KEY="):
-                    api_key = line.split("=", 1)[1].strip()
-    return db_url, api_key
+# Dùng chung nguồn cấu hình duy nhất với app (core.config) thay vì parse .env bằng tay
+from core.config import settings
 
-DATABASE_URL, AI_API_KEY = load_env_vars()
-
-if not DATABASE_URL:
-    DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/postgres")
+DATABASE_URL = settings.DATABASE_URL
+AI_API_KEY = settings.AI_API_KEY
 
 print(f"DATABASE_URL found: {DATABASE_URL[:40]}...")
 if AI_API_KEY:

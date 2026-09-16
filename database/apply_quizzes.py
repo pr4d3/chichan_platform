@@ -7,20 +7,10 @@ from sqlalchemy.ext.asyncio import create_async_engine
 backend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backend")
 sys.path.append(backend_dir)
 
-def load_env_vars():
-    env_path = os.path.join(backend_dir, ".env")
-    db_url = None
-    if os.path.exists(env_path):
-        with open(env_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line.startswith("DATABASE_URL="):
-                    db_url = line.split("=", 1)[1].strip()
-    return db_url
+# Dùng chung nguồn cấu hình duy nhất với app (core.config) thay vì parse .env bằng tay
+from core.config import settings
 
-DATABASE_URL = load_env_vars()
-if not DATABASE_URL:
-    DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/postgres")
+DATABASE_URL = settings.DATABASE_URL
 
 print(f"Connecting to database: {DATABASE_URL[:35]}...")
 

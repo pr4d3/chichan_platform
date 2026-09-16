@@ -18,5 +18,5 @@ COPY --chown=user . $HOME/app
 # Expose default Hugging Face Spaces port
 EXPOSE 7860
 
-# Start Uvicorn on port 7860
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
+# Start Uvicorn — tôn trọng $PORT của platform (Render) nếu có, mặc định 7860
+CMD ["sh", "-c", "python -m uvicorn main:app --host 0.0.0.0 --port ${PORT:-7860}"]

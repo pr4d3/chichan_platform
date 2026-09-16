@@ -1,6 +1,13 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, {
+    createContext,
+    useContext,
+    useState,
+    useEffect,
+    useCallback,
+    useMemo,
+} from 'react';
 import { api } from '@/lib/api';
 
 interface User {
@@ -41,7 +48,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loadUser();
     }, []);
 
-    const login = async (credentials: any) => {
+    // Các hàm bọc useCallback để tham chiếu ổn định, tránh consumer re-render vô ích
+    const login = useCallback(async (credentials: any) => {
         setLoading(true);
         try {
             const res = await api.post('/auth/login', credentials);
@@ -58,9 +66,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    const register = async (details: any) => {
+    const register = useCallback(async (details: any) => {
         setLoading(true);
         try {
             const res = await api.post('/auth/register', details);
@@ -70,9 +78,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    const logout = async () => {
+    const logout = useCallback(async () => {
         setLoading(true);
         try {
             const refresh = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
@@ -87,18 +95,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setLoading(false);
             window.location.href = '/login';
         }
-    };
+    }, []);
 
-    const updateUserLocal = (updatedUser: Partial<User>) => {
+    const updateUserLocal = useCallback((updatedUser: Partial<User>) => {
         if (user) {
             const newUserData = { ...user, ...updatedUser };
             setUser(newUserData);
             localStorage.setItem('user_info', JSON.stringify(newUserData));
         }
-    };
+    }, [user]);
+
+    // value được memo lại: consumer chỉ re-render khi user/loading thực sự đổi
+    const value = useMemo(
+        () => ({ user, loading, login, register, logout, updateUserLocal }),
+        [user, loading, login, register, logout, updateUserLocal],
+    );
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, register, logout, updateUserLocal }}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );

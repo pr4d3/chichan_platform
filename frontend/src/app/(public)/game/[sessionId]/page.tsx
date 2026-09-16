@@ -1,0 +1,1036 @@
+"use client";
+
+import React, { useEffect, useState, useRef, useMemo } from "react";
+import dynamic from "next/dynamic";
+import { useParams, useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { api } from "@/lib/api";
+import { getApiBaseUrl } from "@/lib/runtime-config";
+import { Badge, Button, EmptyState, Modal, PageLoader } from "@/components/ui";
+import {
+  ArrowLeft,
+  Trophy,
+  PlayCircle,
+  PaperPlaneTilt,
+  Brain,
+  ArrowCounterClockwise,
+  WarningCircle,
+  Target,
+  ShieldWarning,
+  Lightbulb,
+  Lightning,
+} from "@phosphor-icons/react";
+
+// Chỉ render trong modal nên nạp lazily (không nằm trong bundle chính của trang game)
+const GuideScriptViewer = dynamic(
+  () => import("@/components/roleplay/GuideScriptViewer"),
+  { ssr: false },
+);
+
+// Pill amber "Bí Kíp" dùng chung công thức giữa 2 trang game (trước đây lặp byte-identical)
+const GUIDE_PILL_TONE = "text-amber-800 bg-amber-500/15 border border-amber-300/60";
+
+interface Message {
+  id?: string;
+  clientId?: string;
+  sender: "USER" | "NPC";
+  dialogue: string;
+  action?: string;
+  emotion?: string;
+  score_change?: number;
+}
+
+interface Session {
+  id: string;
+  scenario_id: number;
+  current_score: number;
+  current_emotion: string;
+  status: "ACTIVE" | "WON" | "LOST" | "ABANDONED";
+  created_at: string;
+}
+
+interface Scenario {
+  id: number;
+  room_code: string;
+  title: string;
+  npc_name: string;
+  npc_avatar_url: string;
+  initial_score: number;
+  target_audience: string;
+  description?: string;
+  guide_script?: string;
+  first_message_sender?: string;
+  opening_message?: string;
+  gender_info?: string;
+}
+
+interface EmotionConfig {
+  emoji: string;
+  label: string;
+  badgeClass: string;
+  ringClass: string;
+}
+
+const emotionConfigMap: Record<string, EmotionConfig> = {
+  neutral: {
+    emoji: "😐",
+    label: "Bình tĩnh",
+    badgeClass: "bg-slate-100 text-slate-700 border-slate-200",
+    ringClass: "ring-slate-300",
+  },
+  suspicious: {
+    emoji: "🤨",
+    label: "Nghi ngờ / Thăm dò",
+    badgeClass: "bg-amber-100 text-amber-800 border-amber-300",
+    ringClass: "ring-amber-400 shadow-amber-200/60 shadow-lg",
+  },
+  anxious: {
+    emoji: "😰",
+    label: "Lo âu / Khép kín",
+    badgeClass: "bg-orange-100 text-orange-800 border-orange-300",
+    ringClass: "ring-orange-400 shadow-orange-200/60 shadow-lg",
+  },
+  friendly: {
+    emoji: "😊",
+    label: "Thân thiện / Mở lòng",
+    badgeClass: "bg-emerald-100 text-emerald-800 border-emerald-300",
+    ringClass: "ring-emerald-400 shadow-emerald-200/60 shadow-lg",
+  },
+  angry: {
+    emoji: "😡",
+    label: "Gắt gỏng / Đe dọa",
+    badgeClass: "bg-rose-100 text-rose-800 border-rose-300",
+    ringClass: "ring-rose-500 shadow-rose-200/80 shadow-lg animate-pulse",
+  },
+  touched: {
+    emoji: "🥹",
+    label: "Cảm động / Nhẹ nhõm",
+    badgeClass: "bg-teal-100 text-teal-800 border-teal-300",
+    ringClass: "ring-teal-400 shadow-teal-200/60 shadow-lg",
+  },
+};
+
+const scoreLabelMap: Record<string, string> = {
+  ROOM_STRANGER: "Điểm An Toàn",
+  ROOM_SEXTORTION: "Điểm Bản Lĩnh",
+  ROOM_DOCTOR: "Điểm Cởi Mở",
+  ROOM_TEEN_CHILD: "Điểm Tin Tưởng",
+  ROOM_BULLYING: "Điểm Đồng Cảm",
+};
+
+// Quick Response / Suggestion Pills for learners
+const quickSuggestionsMap: Record<string, string[]> = {
+  ROOM_STRANGER: [
+    "Tại sao bạn lại biết trường và tên của mình vậy?",
+    "Mình không chia sẻ ảnh cá nhân cho người mới quen qua mạng đâu nhé.",
+    "Mình không đi gặp người lạ qua mạng một mình được đâu bạn ạ.",
+  ],
+  ROOM_SEXTORTION: [
+    "Em tuyệt đối không chuyển tiền hay làm theo bất kỳ yêu cầu nào!",
+    "Tôi đã chụp màn hình toàn bộ tin nhắn để gửi đến cơ quan công an!",
+    "Em sẽ nói ngay cho bố mẹ và thầy cô biết chuyện này để cùng xử lý.",
+  ],
+  ROOM_DOCTOR: [
+    "Dạ thưa bác sĩ, gần đây cơ thể em có những thay đổi dậy thì khiến em rất lo lắng...",
+    "Bác sĩ cho em hỏi cách chăm sóc và vệ sinh cơ thể đúng cách mỗi ngày ạ?",
+    "Dạ con cảm ơn bác sĩ đã giải thích rất dễ hiểu và khoa học ạ!",
+  ],
+  ROOM_TEEN_CHILD: [
+    "Bố/mẹ thấy dạo này con có vẻ nhiều tâm sự, bố/mẹ chỉ muốn lắng nghe và chia sẻ cùng con thôi.",
+    "Hồi bằng tuổi con, bố/mẹ cũng từng có những rung động đầu đời bối rối như thế đấy.",
+    "Bố/mẹ luôn tôn trọng quyền riêng tư của con, có điều gì băn khoăn cứ chia sẻ cùng bố/mẹ nhé.",
+  ],
+  ROOM_BULLYING: [
+    "Cậu đừng khóc nữa, cơ thể cậu phát triển hoàn toàn tự nhiên và cậu không có lỗi gì cả!",
+    "Nhóm bạn trêu chọc như vậy là hành vi bắt nạt sai trái, chúng mình cùng đi báo cô chủ nhiệm nhé.",
+    "Tớ luôn tin tưởng và đồng hành cùng cậu, cậu không phải chịu đựng một mình đâu!",
+  ],
+};
+
+interface MessageListProps {
+  messages: Message[];
+  streamingText: string;
+  thinking: boolean;
+  thinkingStatus: string;
+  npcName?: string;
+  npcAvatarUrl?: string;
+  scoreLabel: string;
+  firstMessageSender?: string;
+  endRef: React.RefObject<HTMLDivElement | null>;
+}
+
+// Log tin nhắn chat: tách khỏi trang + memo để cả trang không phải re-render theo
+// từng token SSE / trạng thái thinking (chỉ khối này re-render khi prop của nó đổi)
+const MessageList = React.memo(function MessageList({
+  messages,
+  streamingText,
+  thinking,
+  thinkingStatus,
+  npcName,
+  npcAvatarUrl,
+  scoreLabel,
+  firstMessageSender,
+  endRef,
+}: MessageListProps) {
+  return (
+    <div className="flex-grow p-4 sm:p-6 overflow-y-auto space-y-4">
+      {messages.length === 0 && (
+        <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-3 p-4">
+          <PlayCircle size={48} weight="duotone" className="text-primary animate-pulse" />
+          <h3 className="font-black text-on-surface text-sm sm:text-base">
+            {firstMessageSender === "USER"
+              ? "Lượt mở đầu thuộc về bạn!"
+              : "Đang bắt đầu tình huống"}
+          </h3>
+          <p className="text-xs text-on-surface-variant font-normal leading-relaxed">
+            {firstMessageSender === "USER"
+              ? `Theo kịch bản, bạn là người chủ động mở lời với ${npcName}. Bạn có thể chọn gợi ý bên dưới hoặc tự do gõ phản xạ của mình!`
+              : `Hãy đọc kỹ lời nhắn của ${npcName} bên dưới để có hướng xử lý khôn ngoan nhất.`}
+          </p>
+        </div>
+      )}
+
+      {messages.map((m) => (
+        <div
+          key={m.id ?? m.clientId}
+          className={`flex gap-3 items-end ${
+            m.sender === "USER" ? "justify-end" : "justify-start"
+          }`}
+        >
+          {/* NPC Avatar beside message */}
+          {m.sender === "NPC" && (
+            <img
+              src={
+                npcAvatarUrl ||
+                "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"
+              }
+              alt={npcName}
+              onError={(e) => {
+                e.currentTarget.src = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100";
+              }}
+              className="w-8 h-8 rounded-full object-cover border border-white shadow-xs flex-shrink-0 mb-1"
+            />
+          )}
+
+          <div className={`flex flex-col ${m.sender === "USER" ? "items-end" : "items-start"} max-w-[85%] sm:max-w-[78%]`}>
+            <div className="text-[10px] text-on-surface-variant/80 mb-1 px-1 font-semibold">
+              {m.sender === "USER" ? "Bạn" : npcName}
+            </div>
+
+            <div
+              className={`rounded-3xl p-4 text-sm leading-relaxed shadow-xs ${
+                m.sender === "USER"
+                  ? "bg-gradient-to-r from-teal-700 to-primary text-white rounded-br-xs shadow-md"
+                  : "bg-surface-container-low text-on-surface rounded-bl-xs border border-outline-variant/30 shadow-xs"
+              }`}
+            >
+              <p className="font-normal whitespace-pre-line">{m.dialogue}</p>
+            </div>
+
+            {/* Score Delta Badge */}
+            {m.sender === "NPC" && m.score_change !== 0 && (
+              <span
+                className={`text-[10px] font-extrabold mt-1 px-2.5 py-0.5 rounded-full ${
+                  m.score_change! > 0
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    : "bg-rose-50 text-rose-700 border border-rose-200"
+                }`}
+              >
+                {m.score_change! > 0 ? `+${m.score_change}` : m.score_change}{" "}
+                {scoreLabel}
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {/* Live Streaming NPC Bubble */}
+      {streamingText && (
+        <div className="flex gap-3 items-end justify-start">
+          <img
+            src={
+              npcAvatarUrl ||
+              "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"
+            }
+            alt={npcName}
+            className="w-8 h-8 rounded-full object-cover border border-white shadow-xs flex-shrink-0 mb-1"
+          />
+          <div className="flex flex-col items-start max-w-[85%] sm:max-w-[78%]">
+            <div className="text-[10px] text-on-surface-variant/80 mb-1 px-1 font-semibold">
+              {npcName} (Đang gõ...)
+            </div>
+            <div className="rounded-3xl rounded-bl-xs p-4 text-sm leading-relaxed bg-surface-container-low text-on-surface border border-primary/50 shadow-md">
+              <p className="font-medium">
+                {streamingText}
+                <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse" />
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Thinking / Analyzing Indicator */}
+      {thinking && (
+        <div className="flex gap-3 items-end justify-start">
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+            <Brain size={18} weight="duotone" />
+          </div>
+          <div className="bg-surface-container-low text-on-surface rounded-2xl rounded-bl-xs px-4 py-3 border border-outline-variant/30 flex items-center gap-2.5 shadow-xs">
+            <div className="flex gap-1">
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:0.2s]" />
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:0.4s]" />
+            </div>
+            <span className="text-xs text-primary font-bold italic">
+              {thinkingStatus}
+            </span>
+          </div>
+        </div>
+      )}
+
+      <div ref={endRef} />
+    </div>
+  );
+});
+
+interface ChatInputProps {
+  roomCode?: string;
+  disabled: boolean;
+  ended: boolean;
+  onSend: (text: string) => void;
+}
+
+// Khung nhập chat: uncontrolled (đọc value qua ref lúc submit) để từng keystroke
+// không làm re-render trang; quick pills điền thẳng vào ô nhập qua ref
+const ChatInput = React.memo(function ChatInput({
+  roomCode,
+  disabled,
+  ended,
+  onSend,
+}: ChatInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [hasText, setHasText] = useState(false);
+  const quickPills = roomCode ? quickSuggestionsMap[roomCode] || [] : [];
+
+  const submit = () => {
+    const text = inputRef.current?.value ?? "";
+    if (!text.trim() || disabled) return;
+    onSend(text);
+    if (inputRef.current) inputRef.current.value = "";
+    setHasText(false);
+  };
+
+  return (
+    <>
+      {/* Quick Response Pills Area */}
+      {!ended && quickPills.length > 0 && (
+        <div className="px-4 py-2 bg-surface-container-lowest border-t border-outline-variant/20 flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant flex items-center gap-1">
+            <Lightbulb size={13} weight="fill" className="text-amber-500" />
+            Gợi ý phản xạ:
+          </span>
+          {quickPills.map((pill, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => {
+                if (inputRef.current) inputRef.current.value = pill;
+                setHasText(true);
+              }}
+              className="text-[11px] font-medium text-on-surface bg-white hover:bg-primary/10 hover:text-primary hover:border-primary/40 border border-outline-variant/30 px-3 py-1 rounded-full transition-all cursor-pointer text-left truncate max-w-[280px] shadow-2xs"
+              title="Nhấn để điền nhanh"
+            >
+              {pill}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Input Form */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+        className="p-3 sm:p-4 bg-surface-container-low/70 border-t border-outline-variant/30 flex items-center gap-3"
+      >
+        <input
+          type="text"
+          ref={inputRef}
+          onChange={(e) => setHasText(e.target.value.trim().length > 0)}
+          disabled={disabled || ended}
+          placeholder={
+            ended
+              ? "Phiên chơi đã kết thúc. Vui lòng xem đánh giá hoặc chơi lại."
+              : "Nhập phản xạ hoặc cách xử lý của bạn..."
+          }
+          className="flex-grow bg-white border border-outline-variant/40 rounded-full px-5 py-3 text-xs sm:text-sm focus:outline-none focus:border-primary focus:ring-3 focus:ring-primary/15 transition-all text-on-surface disabled:bg-surface-container disabled:text-on-surface-variant/50 shadow-inner"
+        />
+        <button
+          disabled={!hasText || disabled || ended}
+          type="submit"
+          className="w-11 h-11 flex-shrink-0 bg-primary hover:bg-primary/90 disabled:opacity-40 text-white rounded-full flex items-center justify-center transition-all cursor-pointer disabled:cursor-not-allowed shadow-md hover:shadow-lg shadow-primary/25"
+        >
+          <PaperPlaneTilt size={20} weight="fill" />
+        </button>
+      </form>
+    </>
+  );
+});
+
+export default function GamePlayPage() {
+  const { user } = useAuth();
+  const params = useParams();
+  const router = useRouter();
+  const sessionId = params.sessionId as string;
+
+  const [session, setSession] = useState<Session | null>(null);
+  const [scenario, setScenario] = useState<Scenario | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Chat state
+  const [thinking, setThinking] = useState(false);
+  const [thinkingStatus, setThinkingStatus] = useState("");
+  const [streamingText, setStreamingText] = useState("");
+  const [scoreChangeFlash, setScoreChangeFlash] = useState<{
+    value: number;
+    key: number;
+  } | null>(null);
+
+  // End Game State
+  const [showEvalModal, setShowEvalModal] = useState(false);
+  const [evaluation, setEvaluation] = useState<any>(null);
+  const [loadingEval, setLoadingEval] = useState(false);
+  const [showGuideModal, setShowGuideModal] = useState(false);
+
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll chat (throttle 1 lần/frame để không cuộn liên tục theo từng token stream)
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [messages, streamingText, thinking]);
+
+  // Load session & history
+  const loadSessionData = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get(`/roleplay/sessions/${sessionId}`);
+      setSession(res.data.session);
+      setScenario(res.data.scenario);
+      setMessages(res.data.messages || []);
+
+      // Nếu session đã kết thúc, tự động nạp kết quả đánh giá
+      if (
+        res.data.session.status === "WON" ||
+        res.data.session.status === "LOST"
+      ) {
+        fetchEvaluation();
+      }
+    } catch (err: any) {
+      setError(err.message || "Không thể tải phiên chơi này");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!sessionId) return;
+    loadSessionData();
+  }, [sessionId]);
+
+  const fetchEvaluation = async () => {
+    try {
+      setLoadingEval(true);
+      const res = await api.get(`/roleplay/evaluations/${sessionId}`);
+      setEvaluation(res);
+      setShowEvalModal(true);
+      if (res.result_outcome === "THẮNG CUỘC" || res.final_score >= 70) {
+        // Nạp canvas-confetti lazily ngay trước khi bắn (tránh nằm trong bundle chính)
+        const confetti = (await import("canvas-confetti")).default;
+        confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+      }
+    } catch (err: any) {
+      console.warn("Chưa có báo cáo đánh giá hoặc đang được tổng hợp:", err?.message);
+    } finally {
+      setLoadingEval(false);
+    }
+  };
+
+  const handleSendMessage = async (messageToSend: string) => {
+    if (!messageToSend.trim() || thinking || streamingText) return;
+
+    // Thêm tin nhắn của User vào UI ngay lập tức (clientId để key danh sách ổn định)
+    setMessages((prev) => [
+      ...prev,
+      { sender: "USER", dialogue: messageToSend, clientId: crypto.randomUUID() },
+    ]);
+    setThinking(true);
+    setThinkingStatus("AI đang phân tích phản xạ...");
+    setStreamingText("");
+
+    try {
+      const token = api.getToken();
+      // Base URL giải quyết lúc runtime — luồng SSE giữ nguyên đường đi trực tiếp
+      // browser → Render, không qua Vercel Function (tránh bị cắt/buffer stream).
+      const BASE_URL = await getApiBaseUrl();
+
+      const response = await fetch(
+        `${BASE_URL}/roleplay/sessions/${sessionId}/chat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ message: messageToSend }),
+        },
+      );
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || "Có lỗi xảy ra khi truyền tin");
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader)
+        throw new Error("Không thể khởi động luồng truyền dữ liệu stream");
+
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split("\n\n");
+        buffer = events.pop() || ""; // Giữ lại phần chưa hoàn chỉnh nếu có
+
+        for (const rawEvent of events) {
+          if (!rawEvent.trim()) continue;
+
+          const lines = rawEvent.split("\n");
+          let eventName = "message";
+          let dataText = "";
+
+          for (const line of lines) {
+            if (line.startsWith("event: ")) {
+              eventName = line.replace("event: ", "").trim();
+            } else if (line.startsWith("data: ")) {
+              dataText = line.replace("data: ", "").trim();
+            }
+          }
+
+          if (eventName === "thinking") {
+            try {
+              const data = JSON.parse(dataText);
+              setThinkingStatus(data.status || "AI đang phân tích ngữ cảnh...");
+            } catch (e) {}
+          } else if (eventName === "delta") {
+            setThinking(false);
+            try {
+              const data = JSON.parse(dataText);
+              if (data.dialogue_chunk) {
+                setStreamingText((prev) => prev + data.dialogue_chunk);
+              }
+            } catch (e) {}
+          } else if (eventName === "turn_complete" || eventName === "complete") {
+            setThinking(false);
+            try {
+              const data = JSON.parse(dataText);
+              const emotion = data.current_emotion || data.emotion || "neutral";
+
+              // Cập nhật session điểm & biểu cảm
+              setSession((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      current_score: data.current_score,
+                      current_emotion: emotion,
+                      status: data.status,
+                    }
+                  : null,
+              );
+
+              // Bắn hiệu ứng flash điểm số
+              if (data.score_change !== 0) {
+                setScoreChangeFlash({
+                  value: data.score_change,
+                  key: Date.now(),
+                });
+                setTimeout(() => setScoreChangeFlash(null), 3000);
+              }
+
+              // Chuyển streaming text thành tin nhắn NPC hoàn chỉnh
+              setMessages((prev) => [
+                ...prev,
+                {
+                  sender: "NPC",
+                  dialogue: data.dialogue,
+                  action: data.action,
+                  emotion: emotion,
+                  score_change: data.score_change,
+                  clientId: crypto.randomUUID(),
+                },
+              ]);
+
+              setStreamingText("");
+
+              // Kiểm tra nếu màn chơi kết thúc
+              if (data.status === "WON" || data.status === "LOST") {
+                setTimeout(() => {
+                  fetchEvaluation();
+                }, 1200);
+              }
+            } catch (e) {}
+          } else if (eventName === "error") {
+            try {
+              const data = JSON.parse(dataText);
+              setError(data.detail || "Có lỗi từ AI Engine");
+            } catch (e) {}
+            setThinking(false);
+          }
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || "Lỗi kết nối phòng chat");
+    } finally {
+      setThinking(false);
+    }
+  };
+
+  const handleAbandon = async () => {
+    if (
+      !window.confirm(
+        "Bạn có chắc chắn muốn thoát phòng chơi này? Điểm số hiện tại của bạn sẽ không được ghi nhận tối ưu.",
+      )
+    )
+      return;
+    try {
+      await api.post(`/roleplay/sessions/${sessionId}/abandon`, {});
+      router.push("/game");
+    } catch (err: any) {
+      alert(err.message || "Có lỗi xảy ra khi thoát phòng");
+    }
+  };
+
+  // Dynamic status text and color for safety gauge
+  const score = session?.current_score ?? 50;
+  const scoreTheme = useMemo(() => {
+    if (score < 30) {
+      return {
+        barColor: "from-rose-500 to-red-600",
+        textColor: "text-rose-600",
+        badgeBg: "bg-rose-50 border-rose-200 text-rose-700",
+        statusText: "Mức Nguy Hiểm! Cần cảnh giác cao độ",
+      };
+    }
+    if (score < 70) {
+      return {
+        barColor: "from-amber-400 to-orange-500",
+        textColor: "text-amber-700",
+        badgeBg: "bg-amber-50 border-amber-200 text-amber-800",
+        statusText: "Đang Thăm Dò / Cần giữ vững ranh giới",
+      };
+    }
+    return {
+      barColor: "from-teal-400 to-emerald-500",
+      textColor: "text-emerald-700",
+      badgeBg: "bg-emerald-50 border-emerald-200 text-emerald-800",
+      statusText: "An Toàn & Bảo Vệ Ranh Giới Tốt",
+    };
+  }, [score]);
+
+  const scoreLabel = scenario ? scoreLabelMap[scenario.room_code] || "Điểm An Toàn" : "Điểm An Toàn";
+  const currentEmotion = session?.current_emotion || "neutral";
+  const emotionConfig = emotionConfigMap[currentEmotion] || emotionConfigMap.neutral;
+  const isSessionEnded = session?.status === "WON" || session?.status === "LOST" || session?.status === "ABANDONED";
+
+  if (loading) {
+    return (
+      <PageLoader
+        minHeight="calc"
+        className="py-20"
+        label="Đang chuẩn bị buồng mô phỏng tình huống..."
+      />
+    );
+  }
+
+  // Lỗi tải phiên: hiển thị màn lỗi thay vì render phòng chơi rỗng (giữ nguyên hành vi bản cũ)
+  if (error && !session) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
+        <EmptyState
+          icon={<WarningCircle size={40} weight="duotone" />}
+          title="Đã xảy ra lỗi"
+          body={error}
+          tone="error"
+          action={{
+            label: "Trở về Góc giải trí",
+            onClick: () => router.push("/game"),
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-[calc(100vh-4rem)] w-full flex flex-col bg-gradient-to-br from-surface via-surface-container-low/30 to-surface-container-high/20">
+      {/* Top HUD Bar */}
+      <header className="w-full bg-white/90 backdrop-blur-xl border-b border-outline-variant/30 sticky top-16 z-30 px-4 sm:px-8 py-3 flex items-center justify-between shadow-xs">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            onClick={() => router.push("/game")}
+            className="w-9 h-9 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant transition-colors cursor-pointer flex-shrink-0"
+            title="Quay lại danh sách"
+          >
+            <ArrowLeft size={18} weight="bold" />
+          </button>
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm sm:text-base font-black text-on-surface truncate">
+                {scenario?.title}
+              </h1>
+              {session?.status === "ACTIVE" && (
+                <span className="hidden sm:inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
+                  Đang diễn ra
+                </span>
+              )}
+              {session?.status === "WON" && (
+                <Badge tone="bg-teal-50 text-teal-800 border border-teal-200">
+                  🏆 Thắng cuộc
+                </Badge>
+              )}
+              {session?.status === "LOST" && (
+                <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-800 border border-rose-200 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                  ⚠️ Chưa an toàn
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-on-surface-variant font-medium truncate">
+              Nhân vật đối thoại: <strong className="text-primary">{scenario?.npc_name}</strong>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {scenario?.guide_script && (
+            <button
+              type="button"
+              onClick={() => setShowGuideModal(true)}
+              className="text-xs font-black text-amber-800 bg-amber-100 hover:bg-amber-200 border border-amber-300/80 px-3.5 py-2 rounded-full flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+            >
+              <Lightning size={16} weight="fill" className="text-amber-600" />
+              <span className="hidden md:inline">Bí kíp 3s</span>
+            </button>
+          )}
+
+          {!isSessionEnded ? (
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleAbandon}
+              className="cursor-pointer shadow-xs"
+            >
+              Thoát chơi
+            </Button>
+          ) : (
+            <button
+              onClick={() => setShowEvalModal(true)}
+              className="bg-primary hover:bg-primary/90 text-white text-xs font-black px-4 py-2 rounded-full flex items-center gap-1.5 cursor-pointer transition-all shadow-md"
+            >
+              <Trophy size={16} weight="fill" />
+              Xem Đánh giá
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* Main Simulation Workspace Grid */}
+      <div className="flex-grow grid grid-cols-1 lg:grid-cols-12 max-w-7xl w-full mx-auto p-3 sm:p-6 gap-4 sm:gap-6 items-stretch">
+        {/* Left Panel: NPC Cockpit & Dynamic Safety Gauge */}
+        <aside className="lg:col-span-4 flex flex-col gap-4">
+          <div className="bg-white/90 backdrop-blur-xl border border-white/80 rounded-[2rem] p-6 shadow-sm flex flex-col items-center text-center relative overflow-hidden">
+            {/* Score change floating pulse */}
+            {scoreChangeFlash && (
+              <div
+                key={scoreChangeFlash.key}
+                className={`absolute top-4 right-4 text-xs font-black animate-bounce px-3 py-1 rounded-full shadow-md z-10 ${
+                  scoreChangeFlash.value > 0
+                    ? "bg-emerald-500 text-white"
+                    : "bg-rose-500 text-white"
+                }`}
+              >
+                {scoreChangeFlash.value > 0
+                  ? `+${scoreChangeFlash.value}`
+                  : scoreChangeFlash.value}{" "}
+                {scoreLabel}
+              </div>
+            )}
+
+            {/* NPC Avatar with Dynamic Emotion Ring */}
+            <div className="relative mb-4 mt-2">
+              <img
+                src={
+                  scenario?.npc_avatar_url ||
+                  "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200"
+                }
+                alt={scenario?.npc_name}
+                onError={(e) => {
+                  e.currentTarget.src = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200";
+                }}
+                className={`w-28 h-28 sm:w-32 sm:h-32 rounded-3xl object-cover border-4 border-white shadow-lg transition-all duration-500 ring-4 ${emotionConfig.ringClass}`}
+              />
+              <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-3 border-white rounded-full shadow-sm" />
+            </div>
+
+            <h2 className="text-lg font-black text-on-surface">
+              {scenario?.npc_name}
+            </h2>
+            <p className="text-xs text-on-surface-variant font-medium mt-0.5">
+              {scenario?.target_audience === "CHILD" ? "Học sinh" : "Cố vấn chuyên gia"}
+            </p>
+
+            {/* Dynamic Emotion Badge */}
+            <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-xs transition-all duration-300">
+              <span className="text-sm">{emotionConfig.emoji}</span>
+              <span className={emotionConfig.badgeClass.split(" ")[1]}>
+                {emotionConfig.label}
+              </span>
+            </div>
+
+            {/* Dynamic Safety/Openness Gauge */}
+            <div className="w-full mt-6 bg-surface-container-low/90 rounded-2xl p-4 border border-outline-variant/30 text-left space-y-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-extrabold text-on-surface-variant">
+                  {scoreLabel}
+                </span>
+                <span className={`font-black text-base ${scoreTheme.textColor}`}>
+                  {score}/100
+                </span>
+              </div>
+
+              {/* Progress Bar with Color Shift */}
+              <div className="w-full bg-surface-container h-3 rounded-full overflow-hidden p-0.5 border border-outline-variant/20">
+                <div
+                  className={`bg-gradient-to-r ${scoreTheme.barColor} h-full rounded-full transition-all duration-500`}
+                  style={{ width: `${Math.min(100, Math.max(0, score))}%` }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] pt-0.5">
+                <span className={`font-semibold ${scoreTheme.textColor}`}>
+                  {scoreTheme.statusText}
+                </span>
+              </div>
+            </div>
+
+            {/* Core Mission Mini Card */}
+            <div className="w-full mt-4 bg-primary/5 rounded-2xl p-3.5 border border-primary/20 text-left space-y-1">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
+                <Target size={15} weight="bold" />
+                <span>Nhiệm vụ cốt lõi</span>
+              </div>
+              <p className="text-[11px] text-on-surface-variant leading-relaxed line-clamp-3">
+                {scenario?.description || "Bình tĩnh lắng nghe, giữ vững ranh giới bảo mật thông tin và xử lý an toàn."}
+              </p>
+            </div>
+          </div>
+        </aside>
+
+        {/* Right Panel: Chat Simulation Cockpit */}
+        <main className="lg:col-span-8 flex flex-col bg-white/90 backdrop-blur-xl border border-white/80 rounded-[2rem] overflow-hidden shadow-sm h-[600px] sm:h-[660px]">
+          {/* Chat Messages Log */}
+          <MessageList
+            messages={messages}
+            streamingText={streamingText}
+            thinking={thinking}
+            thinkingStatus={thinkingStatus}
+            npcName={scenario?.npc_name}
+            npcAvatarUrl={scenario?.npc_avatar_url}
+            scoreLabel={scoreLabel}
+            firstMessageSender={scenario?.first_message_sender}
+            endRef={chatEndRef}
+          />
+
+          <ChatInput
+            roomCode={scenario?.room_code}
+            disabled={thinking || !!streamingText}
+            ended={isSessionEnded}
+            onSend={handleSendMessage}
+          />
+        </main>
+      </div>
+
+      {/* Evaluation Modal (Thắng/Thua Certificate Screen) */}
+      <Modal
+        open={showEvalModal && !!evaluation}
+        onClose={() => setShowEvalModal(false)}
+        dismissible={false}
+        size="xl"
+        backdropClassName="bg-black/60 backdrop-blur-md"
+        panelClassName="border border-white/80 p-6 sm:p-10 rounded-[2.5rem] space-y-6"
+      >
+        {showEvalModal && evaluation && (
+          <>
+            {/* Outcome Header */}
+            <div className="text-center space-y-2.5">
+              <div
+                className={`w-16 h-16 rounded-3xl flex items-center justify-center mx-auto text-3xl shadow-md ${
+                  session?.status === "WON" || evaluation.final_score >= 70
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-rose-100 text-rose-700"
+                }`}
+              >
+                {session?.status === "WON" || evaluation.final_score >= 70 ? (
+                  <Trophy size={36} weight="fill" />
+                ) : (
+                  <ShieldWarning size={36} weight="fill" />
+                )}
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-on-surface">
+                {session?.status === "WON" || evaluation.final_score >= 70
+                  ? "Hoàn Thành Tình Huống Xuất Sắc!"
+                  : "Màn Chơi Cần Rút Kinh Nghiệm"}
+              </h2>
+              <p className="text-xs text-on-surface-variant font-medium">
+                Kết quả:{" "}
+                <strong className="text-primary font-bold">
+                  {evaluation.result_outcome}
+                </strong>{" "}
+                • Tình huống: {scenario?.title}
+              </p>
+            </div>
+
+            {/* Quantitative Stats */}
+            <div className="grid grid-cols-3 gap-3 bg-surface-container-low/80 rounded-2xl border border-outline-variant/30 p-4">
+              <div className="text-center">
+                <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">
+                  Điểm Phản Xạ
+                </p>
+                <p className="text-xl sm:text-2xl font-black text-primary mt-1">
+                  {evaluation.final_score}/100
+                </p>
+              </div>
+              <div className="text-center border-x border-outline-variant/30">
+                <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">
+                  Số Lượt Chat
+                </p>
+                <p className="text-xl sm:text-2xl font-black text-on-surface mt-1">
+                  {evaluation.total_turns} lượt
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">
+                  Thời Gian
+                </p>
+                <p className="text-xl sm:text-2xl font-black text-on-surface mt-1">
+                  {Math.floor(evaluation.duration_seconds / 60)}m{" "}
+                  {evaluation.duration_seconds % 60}s
+                </p>
+              </div>
+            </div>
+
+            {/* AI Pedagogical Feedback Section */}
+            <div className="bg-primary/5 rounded-2xl border border-primary/20 p-5 space-y-2.5">
+              <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-wider">
+                <Brain size={20} weight="duotone" />
+                <span>Nhận Xét &amp; Phân Tích Sư Phạm Từ AI:</span>
+              </div>
+              <div className="text-xs text-on-surface leading-relaxed whitespace-pre-line font-normal">
+                {evaluation.ai_feedback_summary}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
+              <button
+                onClick={async () => {
+                  setShowEvalModal(false);
+                  if (scenario) {
+                    try {
+                      setLoading(true);
+                      const res = await api.post("/roleplay/sessions", {
+                        scenario_id: scenario.id,
+                      });
+                      router.push(`/game/${res.id}`);
+                      loadSessionData();
+                    } catch (err: any) {
+                      alert(err.message || "Không thể tạo phiên chơi lại");
+                      setLoading(false);
+                    }
+                  }
+                }}
+                className="h-11 px-8 rounded-full bg-primary hover:bg-primary/90 text-white font-black text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md hover:shadow-lg transition-all"
+              >
+                <ArrowCounterClockwise size={18} weight="bold" />
+                Chơi lại tình huống
+              </button>
+              <button
+                onClick={() => {
+                  setShowEvalModal(false);
+                  router.push("/game");
+                }}
+                className="h-11 px-8 rounded-full border border-outline/30 bg-white hover:bg-surface-container text-on-surface font-bold text-xs cursor-pointer transition-all"
+              >
+                Chọn kịch bản khác
+              </button>
+            </div>
+          </>
+        )}
+      </Modal>
+
+      {/* Guide Script In-Game Modal */}
+      <Modal
+        open={showGuideModal && !!scenario?.guide_script}
+        onClose={() => setShowGuideModal(false)}
+        size="xl"
+        panelClassName="border border-white/80 p-6 sm:p-8 rounded-[2.5rem] sm:max-w-4xl lg:max-w-5xl space-y-5"
+      >
+        {showGuideModal && scenario?.guide_script && (
+          <>
+            {/* Modal Header */}
+            <div className="flex items-center gap-3.5 pr-10">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-2xl shadow-inner flex-shrink-0">
+                <Lightning size={26} weight="fill" />
+              </div>
+              <div>
+                <Badge tone={GUIDE_PILL_TONE} uppercase className="font-black!">
+                  ⚡ Bí Kíp Xử Lý &amp; Phản Xạ 3 Giây
+                </Badge>
+                <h3 className="text-xl sm:text-2xl font-black text-on-surface mt-1">
+                  {scenario.title}
+                </h3>
+              </div>
+            </div>
+
+            {/* Rich Visual DO vs DON'T Guide Content */}
+            <GuideScriptViewer
+              roomCode={scenario.room_code}
+              rawScript={scenario.guide_script}
+              npcName={scenario.npc_name}
+            />
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowGuideModal(false)}
+                className="h-11 px-7 rounded-full bg-primary hover:bg-primary/90 text-white font-black text-xs shadow-md transition-all cursor-pointer"
+              >
+                Tiếp tục tình huống
+              </button>
+            </div>
+          </>
+        )}
+      </Modal>
+    </div>
+  );
+}

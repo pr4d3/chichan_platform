@@ -13,7 +13,14 @@ async def get_category_by_id(db: AsyncSession, category_id: int) -> ForumCategor
     result = await db.execute(select(ForumCategory).where(ForumCategory.id == category_id))
     return result.scalars().first()
 
-async def get_posts(db: AsyncSession, category_id: int = None, search: str = None, include_hidden_deleted: bool = False) -> list[ForumPost]:
+async def get_posts(
+    db: AsyncSession,
+    category_id: int = None,
+    search: str = None,
+    include_hidden_deleted: bool = False,
+    limit: int = None,
+    offset: int = None
+) -> list[ForumPost]:
     query = (
         select(ForumPost)
         .options(
@@ -23,15 +30,15 @@ async def get_posts(db: AsyncSession, category_id: int = None, search: str = Non
         )
         .order_by(ForumPost.created_at.desc())
     )
-    
+
     if not include_hidden_deleted:
         query = query.where(ForumPost.status == "PUBLISHED")
     else:
         query = query.where(ForumPost.status != "DELETED")
-        
+
     if category_id:
         query = query.where(ForumPost.category_id == category_id)
-        
+
     if search:
         query = query.where(
             or_(
@@ -39,17 +46,54 @@ async def get_posts(db: AsyncSession, category_id: int = None, search: str = Non
                 ForumPost.content.ilike(f"%{search}%")
             )
         )
-        
+
+    # Phân trang tùy chọn: không truyền limit/offset thì trả toàn bộ (giữ hành vi cũ cho site đang live)
+    if offset:
+        query = query.offset(offset)
+    if limit:
+        query = query.limit(limit)
+
     result = await db.execute(query)
     return result.scalars().all()
 
-async def get_post_comment_count(db: AsyncSession, post_id: UUID, include_hidden_deleted: bool = False) -> int:
-    query = select(func.count(ForumComment.id)).where(
-        ForumComment.post_id == post_id,
-        ForumComment.status != "DELETED"
-    )
+async def count_posts(db: AsyncSession, category_id: int = None, search: str = None, include_hidden_deleted: bool = False) -> int:
+    """Tổng số bài viết khớp bộ lọc feed (dùng cho phân trang, không nạp dữ liệu nặng)"""
+    query = select(func.count(ForumPost.id))
+
+    if not include_hidden_deleted:
+        query = query.where(ForumPost.status == "PUBLISHED")
+    else:
+        query = query.where(ForumPost.status != "DELETED")
+
+    if category_id:
+        query = query.where(ForumPost.category_id == category_id)
+
+    if search:
+        query = query.where(
+            or_(
+                ForumPost.title.ilike(f"%{search}%"),
+                ForumPost.content.ilike(f"%{search}%")
+            )
+        )
+
     result = await db.execute(query)
     return result.scalar() or 0
+
+async def count_comments_for_posts(db: AsyncSession, post_ids: list[UUID]) -> dict[UUID, int]:
+    """Đếm bình luận chưa bị xóa cho NHIỀU bài viết trong 1 truy vấn (GROUP BY) — thay vòng lặp N+1.
+    Loại trừ status = 'DELETED'."""
+    if not post_ids:
+        return {}
+    query = (
+        select(ForumComment.post_id, func.count(ForumComment.id))
+        .where(
+            ForumComment.post_id.in_(post_ids),
+            ForumComment.status != "DELETED"
+        )
+        .group_by(ForumComment.post_id)
+    )
+    result = await db.execute(query)
+    return {post_id: count for post_id, count in result.all()}
 
 async def get_post_by_id(db: AsyncSession, post_id: UUID) -> ForumPost:
     result = await db.execute(
@@ -74,14 +118,22 @@ async def update_post(db: AsyncSession, post: ForumPost) -> ForumPost:
     await db.refresh(post)
     return post
 
-async def increment_post_views(db: AsyncSession, post_id: UUID) -> None:
+async def increment_post_views(db: AsyncSession, post_id: UUID) -> int | None:
+    """Tăng lượt xem bằng 1 UPDATE ... RETURNING duy nhất (không nạp graph bài viết).
+    Trả về None nếu bài viết không tồn tại hoặc đã bị xóa."""
     stmt = (
         update(ForumPost)
-        .where(ForumPost.id == post_id)
+        .where(
+            ForumPost.id == post_id,
+            ForumPost.status != "DELETED"
+        )
         .values(views_count=ForumPost.views_count + 1)
+        .returning(ForumPost.views_count)
     )
-    await db.execute(stmt)
+    result = await db.execute(stmt)
+    views_count = result.scalar_one_or_none()
     await db.commit()
+    return views_count
 
 async def get_user_liked_post_ids(db: AsyncSession, user_id: UUID, post_ids: list[UUID]) -> set[UUID]:
     if not post_ids or not user_id:
@@ -137,7 +189,7 @@ async def toggle_post_like(db: AsyncSession, post_id: UUID, user_id: UUID) -> tu
     return liked, current_likes
 
 # Comments
-async def get_post_comments(db: AsyncSession, post_id: UUID, include_hidden_deleted: bool = False) -> list[ForumComment]:
+async def get_post_comments(db: AsyncSession, post_id: UUID, include_hidden_deleted: bool = False, limit: int = None) -> list[ForumComment]:
     query = (
         select(ForumComment)
         .options(
@@ -151,7 +203,11 @@ async def get_post_comments(db: AsyncSession, post_id: UUID, include_hidden_dele
         query = query.where(ForumComment.status == "PUBLISHED")
     else:
         query = query.where(ForumComment.status != "DELETED")
-        
+
+    # Giới hạn tùy chọn: mặc định None = trả toàn bộ như cũ
+    if limit:
+        query = query.limit(limit)
+
     result = await db.execute(query)
     return result.scalars().all()
 

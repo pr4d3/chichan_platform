@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Union
 from uuid import UUID
 from datetime import datetime
 
@@ -49,3 +49,20 @@ class CourseStudentsProgressData(BaseModel):
 class CourseStudentsProgressResponse(BaseModel):
     success: bool
     data: CourseStudentsProgressData
+
+class StudentsPaginationInfo(BaseModel):
+    # Cấu trúc pagination mirror trang admin users (total, page, limit, total_pages)
+    total: int
+    page: int
+    limit: int
+    total_pages: int
+
+class CourseStudentsPaginatedData(BaseModel):
+    # Shape phân trang mới của GET /instructor/dashboard/courses/{course_id}/students
+    # (chỉ dùng khi client truyền page/limit)
+    students: list[StudentProgressData]
+    pagination: StudentsPaginationInfo
+
+class CourseStudentsPaginatedResponse(BaseModel):
+    success: bool
+    data: CourseStudentsPaginatedData

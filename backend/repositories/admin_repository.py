@@ -12,25 +12,27 @@ async def get_all_roles(db: AsyncSession) -> List[Role]:
     return list(result.scalars().all())
 
 async def get_users_overview_stats(db: AsyncSession) -> Dict[str, int]:
-    # Total count
-    total_res = await db.execute(select(func.count(User.id)))
-    total_users = total_res.scalar() or 0
-
-    # Active count
-    active_res = await db.execute(select(func.count(User.id)).where(User.status == "ACTIVE"))
-    active_users = active_res.scalar() or 0
-
-    # Inactive count
-    inactive_res = await db.execute(select(func.count(User.id)).where(User.status == "INACTIVE"))
-    inactive_users = inactive_res.scalar() or 0
-
-    # Role-based counts
+    # Gom 4 truy vấn COUNT thành 1 truy vấn duy nhất: GROUP BY (role_code, status)
+    # rồi suy ra total / active / inactive / role counts trong Python.
     roles_res = await db.execute(
-        select(Role.role_code, func.count(User.id))
+        select(Role.role_code, User.status, func.count(User.id))
         .outerjoin(User, User.role_id == Role.id)
-        .group_by(Role.role_code)
+        .group_by(Role.role_code, User.status)
     )
-    role_counts = {code: count for code, count in roles_res.all()}
+
+    role_counts: Dict[str, int] = {}
+    total_users = 0
+    active_users = 0
+    inactive_users = 0
+    for code, status, count in roles_res.all():
+        if not count:
+            continue
+        total_users += count
+        role_counts[code] = role_counts.get(code, 0) + count
+        if status == "ACTIVE":
+            active_users += count
+        elif status == "INACTIVE":
+            inactive_users += count
 
     return {
         "total_users": total_users,

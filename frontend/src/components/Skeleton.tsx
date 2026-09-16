@@ -1,9 +1,3 @@
-import React from 'react';
-
-export const Skeleton: React.FC<{ className?: string }> = ({ className = '' }) => {
-    return <div className={`animate-pulse rounded bg-surface-container-high ${className}`} />;
-};
-
 export const CourseCardSkeleton = () => {
     return (
         <div className="bg-white rounded-3xl p-5 border border-outline-variant/20 soft-shadow animate-pulse flex flex-col h-full space-y-4 justify-between">

@@ -1,9 +1,13 @@
 import logging
+import asyncio
+from datetime import datetime, timezone
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from core.database import engine
-from core.config import settings
+from sqlalchemy import delete
+from core.database import engine, AsyncSessionLocal
+from core.config import settings, validate_settings
+from models.session import UserSession
 from routers import auth_router, user_router, course_router, forum_router, dashboard_router, general_router, roleplay_router, admin_router, quiz_router
 
 
@@ -11,13 +15,47 @@ from routers import auth_router, user_router, course_router, forum_router, dashb
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Chu kỳ dọn dẹp user_sessions hết hạn: 6 giờ
+SESSION_CLEANUP_INTERVAL_SECONDS = 6 * 3600
+
+async def expired_sessions_cleanup_loop():
+    """Vòng lặp nền: xóa các user_sessions đã hết hạn (refresh token hết hạn) mỗi 6 giờ
+    để bảng không phình vô hạn."""
+    while True:
+        await asyncio.sleep(SESSION_CLEANUP_INTERVAL_SECONDS)
+        try:
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(
+                    delete(UserSession).where(UserSession.expires_at < datetime.now(timezone.utc))
+                )
+                await db.commit()
+                if result.rowcount:
+                    logger.info(f"Đã dọn dẹp {result.rowcount} phiên đăng nhập (user_sessions) hết hạn.")
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("Lỗi khi dọn dẹp user_sessions hết hạn.")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Logic chạy khi khởi động server
     logger.info("Starting up SexEd Platform Backend API...")
+    # Kiểm tra cấu hình runtime: hiện chỉ WARN để không làm sập deploys hiện có.
+    # TODO(phase-3): sau một chu kỳ deploy sạch (không còn log critical), chuyển các
+    # mục "critical" thành raise RuntimeError để fail-loud ngay khi khởi động.
+    for level, message in validate_settings():
+        getattr(logger, level, logger.warning)(message)
+    # Tác vụ nền dọn dẹp user_sessions hết hạn mỗi 6 giờ
+    cleanup_task = asyncio.create_task(expired_sessions_cleanup_loop())
     yield
     # Logic chạy khi tắt server
     logger.info("Shutting down API...")
+    # Hủy sạch task dọn dẹp trước khi đóng pool kết nối
+    cleanup_task.cancel()
+    try:
+        await cleanup_task
+    except asyncio.CancelledError:
+        logger.info("Đã dừng tác vụ dọn dẹp user_sessions hết hạn.")
     await engine.dispose()
 
 app = FastAPI(
@@ -28,13 +66,15 @@ app = FastAPI(
 )
 
 # Cấu hình CORS
+# Origin production KHÔNG còn hardcode — lấy duy nhất từ biến môi trường
+# ALLOWED_ORIGINS trên Render (đổi domain frontend không phải deploy lại backend).
+# Regex *.vercel.app bên dưới giữ lại để các bản preview Vercel dùng được.
 origins = [
     "http://localhost:3000",
     "http://localhost:3001",
     "http://localhost:5173",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
-    "https://sex-ed-gray.vercel.app",
 ]
 
 allow_all = False

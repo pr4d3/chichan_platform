@@ -2,10 +2,11 @@
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { CheckCircle, XCircle, Warning, Info, X } from "@phosphor-icons/react";
+import { Card } from "@/components/ui";
 
-export type ToastType = 'success' | 'error' | 'warning' | 'info';
+type ToastType = 'success' | 'error' | 'warning' | 'info';
 
-export interface Toast {
+interface Toast {
     id: string;
     message: string;
     type: ToastType;
@@ -65,9 +66,12 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     }
 
                     return (
-                        <div
+                        <Card
                             key={toast.id}
-                            className="pointer-events-auto flex items-center gap-3 bg-white text-on-surface px-5 py-4 rounded-2xl border border-outline-variant/30 shadow-2xl backdrop-blur-md transition-all duration-300 animate-slide-in"
+                            tone="glass"
+                            p="none"
+                            shadow="shadow-2xl"
+                            className="pointer-events-auto flex items-center gap-3 text-on-surface px-5 py-4 transition-all duration-300 animate-slide-in"
                         >
                             <IconComponent size={22} weight="fill" className={`${iconColorClass} shrink-0`} />
                             <div className="flex-grow text-xs font-bold text-on-surface leading-relaxed">
@@ -79,7 +83,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                             >
                                 <X size={16} weight="bold" />
                             </button>
-                        </div>
+                        </Card>
                     );
                 })}
             </div>

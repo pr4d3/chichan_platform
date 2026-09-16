@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { BRAND_CONFIG } from '@/config/branding';
+import { Spinner } from '@/components/ui';
 import {
   ChartLineUp,
   UserGear,
@@ -41,7 +42,7 @@ export default function DashboardLayout({
     if (loading || (!user || (user.role !== 'ADMIN' && user.role !== 'INSTRUCTOR'))) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
-                <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+                <Spinner size="md" />
             </div>
         );
     }

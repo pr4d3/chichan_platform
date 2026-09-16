@@ -1,8 +1,8 @@
-import os
 from typing import List, AsyncGenerator
 from google import genai
 from google.genai import types
 from schemas.roleplay_schema import GeminiRoleplayOutput
+from core.config import settings
 
 # Cache client instance
 _client = None
@@ -13,8 +13,8 @@ def get_client() -> genai.Client:
     if _client is not None:
         return _client
     
-    # Đọc khóa API
-    api_key = os.getenv("AI_API_KEY")
+    # Đọc khóa API từ Settings (nguồn cấu hình duy nhất)
+    api_key = settings.AI_API_KEY
     if not api_key:
         raise ValueError("AI_API_KEY chưa được cấu hình trong file .env!")
     
@@ -44,8 +44,8 @@ async def generate_chat_stream(
 ) -> AsyncGenerator[str, None]:
     """Gọi Gemini API và stream luồng phản hồi dưới dạng JSON"""
     client = get_client()
-    model_name = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
-    
+    model_name = settings.GEMINI_MODEL
+
     # Ráp ngữ cảnh tri thức RAG (nếu có) vào hệ thống
     rag_context = ""
     if context_chunks:
@@ -89,8 +89,8 @@ async def summarize_session(history_messages: List[dict]) -> str:
     """Tạo tóm tắt ngắn gọn (recent_summary) về diễn biến hội thoại cũ"""
     try:
         client = get_client()
-        model_name = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
-        
+        model_name = settings.GEMINI_MODEL
+
         # Tạo chuỗi hội thoại
         chat_log = ""
         for m in history_messages:
@@ -124,8 +124,8 @@ async def evaluate_session(
     """Đánh giá chi tiết phản xạ của người chơi ở cuối màn game để viết báo cáo khoa học"""
     try:
         client = get_client()
-        model_name = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
-        
+        model_name = settings.GEMINI_MODEL
+
         chat_log = ""
         for m in history_messages:
             action_text = f" ({m.get('action')})" if m.get('action') else ""

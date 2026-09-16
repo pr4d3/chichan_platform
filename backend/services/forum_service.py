@@ -42,32 +42,64 @@ async def get_forum_categories(db: AsyncSession):
         for c in categories
     ]
 
-async def get_forum_feed(db: AsyncSession, category_id: int = None, search: str = None, include_hidden_deleted: bool = False, current_user_id: Optional[UUID] = None):
-    posts = await forum_repository.get_posts(db, category_id, search, include_hidden_deleted)
-    
+def _serialize_feed_post(p, comment_count: int, liked_ids: set, current_user_id: Optional[UUID]) -> dict:
+    return {
+        "id": p.id,
+        "category_id": p.category_id,
+        "category_name": p.category.name if p.category else "Unknown",
+        "title": p.title,
+        "short_content": p.content[:150] + "..." if len(p.content) > 150 else p.content,
+        "author": format_author_info(p.author, p.is_anonymous, current_user_id),
+        "comment_count": comment_count,
+        "views_count": p.views_count or 0,
+        "likes_count": p.likes_count or 0,
+        "is_liked": p.id in liked_ids,
+        "is_anonymous": p.is_anonymous,
+        "is_owner": bool(current_user_id and str(p.author_id) == str(current_user_id)),
+        "status": p.status,
+        "created_at": p.created_at
+    }
+
+async def get_forum_feed(
+    db: AsyncSession,
+    category_id: int = None,
+    search: str = None,
+    include_hidden_deleted: bool = False,
+    current_user_id: Optional[UUID] = None,
+    limit: int = None,
+    offset: int = None
+):
+    # COMPAT SHIM cho site đang live: không truyền limit/offset -> trả list bài viết đầy đủ như cũ.
+    # Truyền limit (hoặc offset) -> trả dict phân trang {items, total, limit, offset}.
+    paginated = limit is not None or offset is not None
+    if paginated:
+        # Chế độ phân trang mới (router đã cap limit <= 50)
+        if limit is None:
+            limit = 20
+        if offset is None:
+            offset = 0
+        total = await forum_repository.count_posts(db, category_id, search, include_hidden_deleted)
+        posts = await forum_repository.get_posts(db, category_id, search, include_hidden_deleted, limit=limit, offset=offset)
+    else:
+        posts = await forum_repository.get_posts(db, category_id, search, include_hidden_deleted)
+
     post_ids = [p.id for p in posts]
     liked_ids = await forum_repository.get_user_liked_post_ids(db, current_user_id, post_ids) if current_user_id else set()
-    
+
+    # Đếm bình luận cho cả danh sách bài viết trong 1 truy vấn GROUP BY (tránh N+1 query từng bài)
+    comment_counts = await forum_repository.count_comments_for_posts(db, post_ids)
+
     results = []
     for p in posts:
-        comment_count = await forum_repository.get_post_comment_count(db, p.id, include_hidden_deleted)
-        
-        results.append({
-            "id": p.id,
-            "category_id": p.category_id,
-            "category_name": p.category.name if p.category else "Unknown",
-            "title": p.title,
-            "short_content": p.content[:150] + "..." if len(p.content) > 150 else p.content,
-            "author": format_author_info(p.author, p.is_anonymous, current_user_id),
-            "comment_count": comment_count,
-            "views_count": p.views_count or 0,
-            "likes_count": p.likes_count or 0,
-            "is_liked": p.id in liked_ids,
-            "is_anonymous": p.is_anonymous,
-            "is_owner": bool(current_user_id and str(p.author_id) == str(current_user_id)),
-            "status": p.status,
-            "created_at": p.created_at
-        })
+        results.append(_serialize_feed_post(p, comment_counts.get(p.id, 0), liked_ids, current_user_id))
+
+    if paginated:
+        return {
+            "items": results,
+            "total": total,
+            "limit": limit,
+            "offset": offset
+        }
     return results
 
 def build_comment_tree(comments: list[ForumComment], parent_id: UUID = None, current_user_id: Optional[UUID] = None) -> list[dict]:
@@ -124,14 +156,13 @@ async def get_post_detail_with_comments(db: AsyncSession, post_id: UUID, include
     }
 
 async def record_post_view(db: AsyncSession, post_id: UUID):
-    post = await forum_repository.get_post_by_id(db, post_id)
-    if not post or post.status == "DELETED":
+    # Chỉ 1 UPDATE ... RETURNING duy nhất, không nạp toàn bộ graph bài viết (comments/likes/author)
+    views_count = await forum_repository.increment_post_views(db, post_id)
+    if views_count is None:
         raise HTTPException(status_code=404, detail="Không tìm thấy bài viết.")
-    await forum_repository.increment_post_views(db, post_id)
-    await db.refresh(post)
     return {
         "post_id": post_id,
-        "views_count": post.views_count or 0
+        "views_count": views_count
     }
 
 async def toggle_post_like(db: AsyncSession, user_id: UUID, post_id: UUID):

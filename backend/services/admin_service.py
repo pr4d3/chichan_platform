@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from repositories import admin_repository
 from schemas.admin_schema import AdminUserUpdate, AdminUserListItem
-from core.security import get_password_hash
+from core.security import get_password_hash_async
 from models.profile import UserProfile
 from uuid import UUID
 from typing import Optional, Dict, Any
@@ -152,7 +152,8 @@ async def update_user_details(
     if data.status is not None:
         user.status = data.status
     if data.new_password:
-        user.password_hash = get_password_hash(data.new_password)
+        # Hash bcrypt trong worker thread để không chặn event loop
+        user.password_hash = await get_password_hash_async(data.new_password)
 
     # Update profile info
     profile = user.profile
