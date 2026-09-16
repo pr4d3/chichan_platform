@@ -1,0 +1,9 @@
+# Không đóng gói secret vào image (tránh bake credential vào build)
+.env
+.env.*
+__pycache__
+*.pyc
+.venv
+
+# Smoke scripts kết nối DB thật — không ship vào image production
+tests/
