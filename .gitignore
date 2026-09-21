@@ -35,5 +35,9 @@ next-env.d.ts
 Thumbs.db
 *.pem
 CLAUDE.md
+
 # Ad-hoc debug scripts (untracked theo convention — xem README.md)
 scratch/
+
+# client task
+tasks/
