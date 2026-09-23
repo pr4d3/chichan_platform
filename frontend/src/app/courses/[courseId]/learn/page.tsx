@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { LearnPageSkeleton } from "@/components/Skeleton";
 import { useToast } from "@/context/ToastContext";
 import { Badge, EmptyState, Spinner } from "@/components/ui";
+import { MarkdownRenderer } from "@/components/common/MarkdownRenderer";
 
 // Các khối nặng chỉ render có điều kiện nên tải động (ssr:false) để giảm first-load bundle
 const VideoPlayer = dynamic(
@@ -49,13 +50,14 @@ import {
   Question,
   Lock,
   ShieldCheck,
+  Headphones,
 } from "@phosphor-icons/react";
 
 interface Lesson {
   lesson_id: string;
   order_index: number;
   title: string;
-  content_type: "VIDEO" | "TEXT" | "HYBRID" | "QUIZ";
+  content_type: "VIDEO" | "TEXT" | "HYBRID" | "QUIZ" | "AUDIO" | "NOTEBOOKLM";
   video_url: string | null;
   content_body: string | null;
   is_completed: boolean;
@@ -368,66 +370,74 @@ export default function CourseLearnPage() {
               </div>
             </div>
           ) : currentLesson?.content_type !== "TEXT" && currentLesson?.video_url ? (
-            /* Video Lesson: Cinema / Theater Fit-to-screen (No vertical scrolling!) */
-            <div className="flex flex-col flex-grow h-full overflow-hidden">
-              {/* Compact Video Top Bar */}
-              <div className="px-6 py-2.5 flex items-center justify-between border-b border-outline-variant/15 bg-white/70 shrink-0">
-                <div className="flex items-center gap-2.5 truncate">
-                  <Badge
-                    tone="bg-primary/10 text-primary"
-                    uppercase
-                    icon={<Video size={12} weight="bold" />}
-                  >
-                    Video bài giảng
-                  </Badge>
-                  <h2 className="text-xs sm:text-sm font-bold text-on-surface truncate">
-                    Bài {currentLesson.order_index}: {getCleanLessonTitle(currentLesson.title)}
-                  </h2>
-                </div>
-                {currentLesson.content_body && (
-                  <button
-                    onClick={() => setShowNotes(!showNotes)}
-                    className="text-xs font-bold text-primary hover:opacity-80 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 transition-all cursor-pointer shrink-0 ml-3"
-                  >
-                    <Article size={14} weight="bold" />
-                    <span>{showNotes ? "Ẩn tài liệu" : "Xem tài liệu bài học"}</span>
-                  </button>
-                )}
-              </div>
+            /* Media Lesson: Cinema / Theater Fit-to-screen for Video & Audio/NotebookLM */
+            (() => {
+              const isAudioMedia =
+                currentLesson.content_type === "AUDIO" ||
+                currentLesson.content_type === "NOTEBOOKLM" ||
+                /\.(m4a|mp3|wav|ogg|aac|flac)(\?.*)?$/i.test(currentLesson.video_url || "") ||
+                (currentLesson.video_url || "").includes("notebooklm.google.com");
 
-              {/* Main Theater Stage - perfectly fits within viewport */}
-              <div className="flex-1 min-h-0 flex items-center justify-center p-3 sm:p-5 bg-black/95 relative overflow-hidden">
-                <div className="w-full h-full max-h-[calc(100vh-210px)] aspect-video flex items-center justify-center mx-auto">
-                  <VideoPlayer
-                    key={currentLesson.lesson_id + currentLesson.video_url}
-                    url={currentLesson.video_url}
-                    title={currentLesson.title}
-                    autoPlay={true}
-                  />
-                </div>
+              return (
+                <div className="flex flex-col flex-grow h-full overflow-hidden">
+                  {/* Compact Video Top Bar */}
+                  <div className="px-6 py-2.5 flex items-center justify-between border-b border-outline-variant/15 bg-white/70 shrink-0">
+                    <div className="flex items-center gap-2.5 truncate">
+                      <Badge
+                        tone={isAudioMedia ? "bg-purple-100 text-purple-700" : "bg-primary/10 text-primary"}
+                        uppercase
+                        icon={isAudioMedia ? <Headphones size={12} weight="bold" /> : <Video size={12} weight="bold" />}
+                      >
+                        {isAudioMedia ? "NotebookLM Audio Podcast" : "Video bài giảng"}
+                      </Badge>
+                      <h2 className="text-xs sm:text-sm font-bold text-on-surface truncate">
+                        Bài {currentLesson.order_index}: {getCleanLessonTitle(currentLesson.title)}
+                      </h2>
+                    </div>
+                    {currentLesson.content_body && (
+                      <button
+                        onClick={() => setShowNotes(!showNotes)}
+                        className="text-xs font-bold text-primary hover:opacity-80 flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-primary/10 transition-all cursor-pointer shrink-0 ml-3"
+                      >
+                        <Article size={14} weight="bold" />
+                        <span>{showNotes ? "Ẩn tài liệu" : "Xem tài liệu bài học"}</span>
+                      </button>
+                    )}
+                  </div>
 
-                {/* Collapsible Slide-over overlay if student toggles document notes */}
-                {showNotes && currentLesson.content_body && (
-                  <div className="absolute inset-0 bg-white/95 backdrop-blur-md z-30 p-6 md:p-10 overflow-y-auto animate-fade-in">
-                    <div className="max-w-3xl mx-auto space-y-4">
-                      <div className="flex justify-between items-center pb-4 border-b border-outline-variant/20">
-                        <h3 className="font-bold text-base text-on-surface">Tài liệu & Ghi chú bài giảng</h3>
-                        <button
-                          onClick={() => setShowNotes(false)}
-                          className="px-3.5 py-1 rounded-full bg-surface-container text-xs font-bold text-on-surface hover:bg-surface-container-high cursor-pointer"
-                        >
-                          Đóng tài liệu
-                        </button>
-                      </div>
-                      <div
-                        className="prose max-w-none text-on-surface-variant font-light text-sm md:text-base leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: currentLesson.content_body }}
+                  {/* Main Theater Stage - perfectly fits within viewport */}
+                  <div className="flex-1 min-h-0 flex items-center justify-center p-3 sm:p-5 bg-black/95 relative overflow-hidden">
+                    <div className="w-full h-full max-h-[calc(100vh-210px)] aspect-video flex items-center justify-center mx-auto">
+                      <VideoPlayer
+                        key={currentLesson.lesson_id + currentLesson.video_url}
+                        url={currentLesson.video_url}
+                        title={currentLesson.title}
+                        contentType={currentLesson.content_type}
+                        autoPlay={true}
                       />
                     </div>
+
+                    {/* Collapsible Slide-over overlay if student toggles document notes */}
+                    {showNotes && currentLesson.content_body && (
+                      <div className="absolute inset-0 bg-white z-30 p-6 md:p-10 overflow-y-auto animate-fade-in border border-outline-variant/30">
+                        <div className="max-w-3xl mx-auto space-y-4">
+                          <div className="flex justify-between items-center pb-4 border-b border-outline-variant/20">
+                            <h3 className="font-bold text-base text-on-surface">Tài liệu & Ghi chú bài giảng</h3>
+                            <button
+                              onClick={() => setShowNotes(false)}
+                              className="px-3.5 py-1 rounded-none bg-surface-container text-xs font-bold text-on-surface hover:bg-surface-container-high cursor-pointer"
+                            >
+                              Đóng tài liệu
+                            </button>
+                          </div>
+                          <MarkdownRenderer content={currentLesson.content_body} />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
+              );
+            })()
           ) : (
             /* Article / Reading Lesson */
             <div className="p-6 md:p-10 flex-grow">
@@ -446,12 +456,7 @@ export default function CourseLearnPage() {
                 </h2>
 
                 {currentLesson.content_body ? (
-                  <div
-                    className="prose max-w-none text-on-surface-variant font-light text-sm md:text-base leading-relaxed space-y-4"
-                    dangerouslySetInnerHTML={{
-                      __html: currentLesson.content_body,
-                    }}
-                  />
+                  <MarkdownRenderer content={currentLesson.content_body} />
                 ) : (
                   <div className="prose max-w-none text-on-surface-variant font-light text-sm md:text-base leading-relaxed space-y-4">
                     <p>

@@ -120,14 +120,22 @@ async def list_scenarios(db: AsyncSession):
     """Lấy danh sách các kịch bản game"""
     return await repo.get_active_scenarios(db)
 
+async def get_active_session(db: AsyncSession, user_id: UUID, scenario_id: int) -> Optional[AISession]:
+    """Tìm phiên chơi đang dở dang (status = 'ACTIVE') của user đối với kịch bản cụ thể."""
+    return await repo.get_active_session_by_scenario(db, user_id, scenario_id)
+
+async def delete_session(db: AsyncSession, session_id: UUID, user_id: UUID) -> bool:
+    """Xóa vĩnh viễn phiên chơi nếu đúng chính chủ."""
+    return await repo.delete_session_by_id(db, session_id, user_id)
+
 async def create_new_session(db: AsyncSession, user_id: UUID, scenario_id: int) -> AISession:
-    """Khởi tạo một phiên chơi mới cho người dùng"""
+    """Khởi tạo một phiên chơi mới cho người dùng (tự động xóa sạch session dở dang cũ)"""
     scenario = await repo.get_scenario_by_id(db, scenario_id)
     if not scenario:
         raise HTTPException(status_code=404, detail="Kịch bản không tồn tại")
     
-    # Hủy các phiên ACTIVE cũ của cùng kịch bản bằng 1 UPDATE nguyên tử (WHERE status = 'ACTIVE')
-    await repo.abandon_active_sessions(db, user_id, scenario_id)
+    # Xóa vĩnh viễn các phiên ACTIVE cũ của cùng kịch bản trong database
+    await repo.delete_active_sessions(db, user_id, scenario_id)
         
     # Tạo phiên chơi mới
     session = AISession(
@@ -406,20 +414,24 @@ async def chat_sse_stream(
         # Gửi sự kiện 'thinking' thông báo bắt đầu xử lý RAG & LLM
         yield "event: thinking\ndata: " + json.dumps({"status": "Đang phân tích tri thức và tạo ngữ cảnh phản hồi..."}) + "\n\n"
         
-        # 2. Tạo Vector Embedding cho RAG
-        embedding = await gemini.generate_embedding(message_text)
-        
-        # Tìm các tài liệu liên quan
-        category = ROOM_TO_CATEGORY.get(room_code, "ONLINE_SAFETY")
-        rag_results = await repo.search_similar_knowledge(db, embedding, category, limit=2)
-        
-        # Lọc các đoạn văn bản có khoảng cách cosine tốt (VD: < 0.6)
-        # Vì Supabase pgvector cosine distance: 0 là trùng khít, 1 là trực giao. < 0.55-0.65 là tương đồng tốt.
-        context_chunks = [r["content_chunk"] for r in rag_results if r["distance"] < 0.65]
-        
-        # 3. Lấy lịch sử hội thoại gần nhất (Sliding Window 6 tin nhắn gần nhất)
-        # Chỉ nạp 40 tin nhắn mới nhất (đủ cho sliding window), tránh nạp toàn bộ lịch sử dài
-        messages_all = await repo.get_session_messages(db, session_id, limit=40)
+        # 2. Lấy lịch sử hội thoại gần nhất và sinh Vector Embedding RAG song song để tối ưu tốc độ
+        async def safe_embedding():
+            try:
+                return await asyncio.wait_for(gemini.generate_embedding(message_text), timeout=1.2)
+            except Exception:
+                return [0.0] * 768
+
+        embedding_res, messages_all = await asyncio.gather(
+            safe_embedding(),
+            repo.get_session_messages(db, session_id, limit=40)
+        )
+
+        # Tìm các tài liệu liên quan nếu có vector hợp lệ
+        context_chunks = []
+        if any(v != 0.0 for v in embedding_res[:10]):
+            category = ROOM_TO_CATEGORY.get(room_code, "ONLINE_SAFETY")
+            rag_results = await repo.search_similar_knowledge(db, embedding_res, category, limit=2)
+            context_chunks = [r["content_chunk"] for r in rag_results if r["distance"] < 0.65]
         
         # Lấy tối đa 6 tin nhắn trước đó (không tính tin nhắn USER vừa lưu để tránh lặp)
         # Nhưng để gửi đi cho LLM, ta lấy history gồm tin nhắn user hiện tại và 5-6 tin trước
@@ -443,17 +455,22 @@ async def chat_sse_stream(
             # Bổ sung rolling summary làm bộ nhớ dài hạn
             system_instruction += f"\n[TRÍ NHỚ TÓM TẮT HỘI THOẠI TRƯỚC ĐÓ]\n{session.recent_summary}\n"
             
-        # 4. Gọi Gemini Stream Generator
-        gemini_gen = gemini.generate_chat_stream(system_instruction, history_for_llm, context_chunks)
-        
-        # Gọi parser để lấy text dialogue và full_buffer
+        # 4. Gọi Gemini Stream Generator với cơ chế bắt lỗi an toàn
         full_buffer = ""
-        async for chunk in parse_dialogue_stream(gemini_gen):
-            if chunk.startswith("__FULL_RESPONSE__:"):
-                full_buffer = chunk.split(":", 1)[1]
-            else:
-                # Gửi delta text dialogue về cho client render
-                yield "event: delta\ndata: " + json.dumps({"dialogue_chunk": chunk}) + "\n\n"
+        try:
+            gemini_gen = gemini.generate_chat_stream(system_instruction, history_for_llm, context_chunks)
+            async for chunk in parse_dialogue_stream(gemini_gen):
+                if chunk.startswith("__FULL_RESPONSE__:"):
+                    full_buffer = chunk.split(":", 1)[1]
+                else:
+                    # Gửi delta text dialogue về cho client render
+                    yield "event: delta\ndata: " + json.dumps({"dialogue_chunk": chunk}) + "\n\n"
+        except Exception as exc:
+            logger.exception("Lỗi khi stream dialogue từ Gemini cho session %s: %s", session_id, exc)
+            yield "event: error\ndata: " + json.dumps({
+                "detail": "Mô hình AI đang tạm thời bận hoặc quá tải kết nối. Vui lòng bấm thử lại nhé!"
+            }) + "\n\n"
+            return
                 
     # 5. Phân tích kết quả Structured JSON trả về từ Gemini để cập nhật Database
     if not full_buffer:

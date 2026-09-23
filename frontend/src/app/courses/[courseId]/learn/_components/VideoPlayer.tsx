@@ -1,53 +1,147 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import "plyr/dist/plyr.css";
+import {
+  Play,
+  Pause,
+  SpeakerHigh,
+  SpeakerSimpleX,
+  ArrowCounterClockwise,
+  ArrowClockwise,
+  DownloadSimple,
+  ArrowSquareOut,
+  Sparkle,
+  Headphones,
+} from "@phosphor-icons/react";
 
 interface VideoPlayerProps {
   url: string;
   title?: string;
+  contentType?: string;
   autoPlay?: boolean;
   onEnded?: () => void;
+}
+
+export type MediaSourceType =
+  | "youtube"
+  | "vimeo"
+  | "drive"
+  | "notebooklm"
+  | "audio"
+  | "video";
+
+export function detectMediaSource(url: string, contentType?: string): {
+  type: MediaSourceType;
+  id?: string;
+  embedUrl?: string;
+  originalUrl: string;
+} {
+  const trimmed = (url || "").trim();
+
+  // Explicit AUDIO content type or audio extensions
+  const isAudioExtension = /\.(m4a|mp3|wav|ogg|aac|flac)(\?.*)?$/i.test(trimmed);
+  if (contentType === "AUDIO" || isAudioExtension) {
+    // If it's a drive URL but marked audio, still handle drive embed or direct stream
+    const driveMatch = trimmed.match(
+      /drive\.google\.com\/(?:file\/d\/|open\?id=)([a-zA-Z0-9_-]+)/i
+    );
+    if (driveMatch) {
+      return {
+        type: "drive",
+        id: driveMatch[1],
+        embedUrl: `https://drive.google.com/file/d/${driveMatch[1]}/preview`,
+        originalUrl: trimmed,
+      };
+    }
+    return { type: "audio", originalUrl: trimmed };
+  }
+
+  // 1. YouTube ID or URL
+  if (/^[\w-]{11}$/.test(trimmed)) {
+    return { type: "youtube", id: trimmed, originalUrl: trimmed };
+  }
+  const ytMatch = trimmed.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/i
+  );
+  if (ytMatch) {
+    return { type: "youtube", id: ytMatch[1], originalUrl: trimmed };
+  }
+
+  // 2. Google Drive (Audio Overview / Video from NotebookLM or Drive)
+  const driveMatch = trimmed.match(
+    /drive\.google\.com\/(?:file\/d\/|open\?id=)([a-zA-Z0-9_-]+)/i
+  );
+  if (driveMatch) {
+    return {
+      type: "drive",
+      id: driveMatch[1],
+      embedUrl: `https://drive.google.com/file/d/${driveMatch[1]}/preview`,
+      originalUrl: trimmed,
+    };
+  }
+
+  // 3. NotebookLM Share URL
+  const nblmMatch = trimmed.match(
+    /notebooklm\.google\.com\/notebook\/([a-zA-Z0-9_-]+)/i
+  );
+  if (nblmMatch) {
+    return {
+      type: "notebooklm",
+      id: nblmMatch[1],
+      embedUrl: trimmed,
+      originalUrl: trimmed,
+    };
+  }
+
+  // 4. Vimeo
+  if (/^\d{6,12}$/.test(trimmed)) {
+    return { type: "vimeo", id: trimmed, originalUrl: trimmed };
+  }
+  const vimeoMatch = trimmed.match(/vimeo\.com\/(\d+)/i);
+  if (vimeoMatch) {
+    return { type: "vimeo", id: vimeoMatch[1], originalUrl: trimmed };
+  }
+
+  // 5. Default Video
+  return { type: "video", originalUrl: trimmed };
 }
 
 export function VideoPlayer({
   url,
   title = "Bài học",
+  contentType = "HYBRID",
   autoPlay = true,
   onEnded,
 }: VideoPlayerProps) {
+  const media = useMemo(
+    () => detectMediaSource(url, contentType),
+    [url, contentType]
+  );
+
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
 
-  const trimmedUrl = (url || "").trim();
+  // Audio Player State for direct audio / NotebookLM audio
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
 
-  // Detect YouTube ID (supports raw 11-char ID or full URL)
-  let youtubeId: string | null = null;
-  if (/^[\w-]{11}$/.test(trimmedUrl)) {
-    youtubeId = trimmedUrl;
-  } else {
-    const ytMatch = trimmedUrl.match(
-      /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/i
-    );
-    youtubeId = ytMatch ? ytMatch[1] : null;
-  }
-
-  // Detect Vimeo ID (supports raw digits ID or full URL)
-  let vimeoId: string | null = null;
-  if (/^\d{6,12}$/.test(trimmedUrl)) {
-    vimeoId = trimmedUrl;
-  } else {
-    const vimeoMatch = trimmedUrl.match(/vimeo\.com\/(\d+)/i);
-    vimeoId = vimeoMatch ? vimeoMatch[1] : null;
-  }
-
+  // Standard Plyr initialization for YouTube, Vimeo, and MP4 Video
   useEffect(() => {
+    if (media.type === "drive" || media.type === "notebooklm" || media.type === "audio") {
+      return;
+    }
+
     let isMounted = true;
 
     async function initPlayer() {
       if (!containerRef.current) return;
 
-      // Safe destroy existing instance if any
       if (playerRef.current) {
         try {
           const prev = playerRef.current;
@@ -56,7 +150,7 @@ export function VideoPlayer({
             prev.destroy();
           }
         } catch (e) {
-          // ignore cleanup race conditions
+          // ignore
         }
       }
 
@@ -89,9 +183,8 @@ export function VideoPlayer({
             "fullscreen",
           ],
           settings: ["quality", "speed"],
-          speed: { selected: 1, options: [0.75, 1, 1.25, 1.5] },
-          seekTime: 0,
-          captions: { active: false, language: "auto", update: false },
+          speed: { selected: 1, options: [0.75, 1, 1.25, 1.5, 2] },
+          seekTime: 10,
           youtube: {
             noCookie: true,
             rel: 0,
@@ -127,27 +220,12 @@ export function VideoPlayer({
             volume: "Âm lượng",
             mute: "Tắt tiếng",
             unmute: "Bật tiếng",
-            enableCaptions: "Bật phụ đề",
-            disableCaptions: "Tắt phụ đề",
-            download: "Tải xuống",
             enterFullscreen: "Xem toàn màn hình",
             exitFullscreen: "Thoát toàn màn hình",
             frameTitle: "Trình phát {title}",
-            captions: "Phụ đề",
             settings: "Cài đặt",
-            pip: "Hình trong hình (PiP)",
             speed: "Tốc độ phát",
             quality: "Chất lượng",
-            loop: "Lặp lại",
-            normal: "Bình thường",
-            qualityBadge: {
-              2160: "4K",
-              1440: "2K",
-              1080: "FHD",
-              720: "HD",
-              576: "SD",
-              480: "SD",
-            },
           },
         });
 
@@ -159,30 +237,17 @@ export function VideoPlayer({
               if (player.elements && player.elements.container) {
                 originalDestroy();
               }
-            } catch (e) {
-              // Suppress internal Plyr unmount race condition
-            }
+            } catch (e) {}
           };
         }
 
-        // Forcefully ensure YouTube native captions and subtitles are unloaded and disabled
         const disableCaptions = () => {
           try {
-            if (player.captions) {
-              player.captions.active = false;
-            }
-            if (typeof player.toggleCaptions === "function") {
-              player.toggleCaptions(false);
-            }
-            if (player.embed) {
-              if (typeof player.embed.unloadModule === "function") {
-                player.embed.unloadModule("captions");
-                player.embed.unloadModule("cc");
-              }
-              if (typeof player.embed.setOption === "function") {
-                player.embed.setOption("captions", "track", {});
-                player.embed.setOption("cc", "track", {});
-              }
+            if (player.captions) player.captions.active = false;
+            if (typeof player.toggleCaptions === "function") player.toggleCaptions(false);
+            if (player.embed && typeof player.embed.unloadModule === "function") {
+              player.embed.unloadModule("captions");
+              player.embed.unloadModule("cc");
             }
           } catch (e) {}
         };
@@ -192,19 +257,6 @@ export function VideoPlayer({
         player.on("playing", disableCaptions);
 
         playerRef.current = player;
-
-        let maxWatchedTime = 0;
-        player.on("timeupdate", () => {
-          if (player.currentTime > maxWatchedTime) {
-            maxWatchedTime = player.currentTime;
-          }
-        });
-
-        player.on("seeking", () => {
-          if (player.currentTime > maxWatchedTime + 0.5) {
-            player.currentTime = maxWatchedTime;
-          }
-        });
 
         if (onEnded) {
           player.on("ended", () => {
@@ -227,36 +279,267 @@ export function VideoPlayer({
           if (p && typeof p.destroy === "function") {
             p.destroy();
           }
-        } catch (e) {
-          // ignore
-        }
+        } catch (e) {}
       }
     };
-  }, [trimmedUrl, autoPlay]);
+  }, [media, autoPlay, onEnded]);
 
+  // Audio helper handlers
+  const togglePlayAudio = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+  };
+
+  const handleAudioSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!audioRef.current) return;
+    const time = Number(e.target.value);
+    audioRef.current.currentTime = time;
+    setCurrentTime(time);
+  };
+
+  const skipAudio = (seconds: number) => {
+    if (!audioRef.current) return;
+    audioRef.current.currentTime = Math.min(
+      Math.max(0, audioRef.current.currentTime + seconds),
+      duration
+    );
+  };
+
+  const toggleSpeed = () => {
+    if (!audioRef.current) return;
+    const speeds = [1, 1.25, 1.5, 2, 0.75];
+    const nextIdx = (speeds.indexOf(playbackRate) + 1) % speeds.length;
+    const nextSpeed = speeds[nextIdx];
+    audioRef.current.playbackRate = nextSpeed;
+    setPlaybackRate(nextSpeed);
+  };
+
+  const toggleMute = () => {
+    if (!audioRef.current) return;
+    const newMute = !isMuted;
+    audioRef.current.muted = newMute;
+    setIsMuted(newMute);
+  };
+
+  const formatTime = (sec: number) => {
+    if (isNaN(sec) || sec === 0) return "00:00";
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
+  // 1. Google Drive Media (Audio Overview from NotebookLM / Drive Video)
+  if (media.type === "drive") {
+    return (
+      <div className="w-full h-full aspect-video bg-black rounded-none border border-outline-variant/30 overflow-hidden relative group flex flex-col items-center justify-center">
+        <iframe
+          src={media.embedUrl}
+          className="w-full h-full border-0 rounded-none"
+          allow="autoplay; encrypted-media; fullscreen"
+          allowFullScreen
+          title={title}
+        />
+      </div>
+    );
+  }
+
+  // 2. NotebookLM Notebook Share Link
+  if (media.type === "notebooklm") {
+    return (
+      <div className="w-full h-full aspect-video bg-[#121316] text-white rounded-none border border-outline-variant/30 flex flex-col items-center justify-center p-8 text-center relative select-none">
+        <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 text-white font-bold text-xs uppercase tracking-wider mb-4 border border-white/20">
+          <Sparkle size={16} weight="fill" className="text-emerald-400" />
+          <span>Google NotebookLM</span>
+        </div>
+        <h3 className="text-xl font-extrabold max-w-xl mb-2">{title}</h3>
+        <p className="text-xs text-white/70 max-w-md mb-6 leading-relaxed">
+          Tài liệu & Audio Overview được tạo từ Google NotebookLM. Bạn có thể mở trực tiếp không gian làm việc số để nghiên cứu sâu.
+        </p>
+        <a
+          href={media.originalUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-colors cursor-pointer border border-primary/40 shadow-sm"
+        >
+          <span>Mở NotebookLM & Nghe Audio Overview</span>
+          <ArrowSquareOut size={16} weight="bold" />
+        </a>
+      </div>
+    );
+  }
+
+  // 3. Audio / Podcast Studio Player (NotebookLM Audio Overview .m4a / .mp3 / .wav)
+  if (media.type === "audio") {
+    const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+    return (
+      <div className="w-full h-full aspect-video bg-[#0f1412] text-white rounded-none border border-outline-variant/30 flex flex-col justify-between p-6 sm:p-8 relative select-none overflow-hidden">
+        <audio
+          ref={audioRef}
+          src={media.originalUrl}
+          autoPlay={autoPlay}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onTimeUpdate={() => {
+            if (audioRef.current) {
+              setCurrentTime(audioRef.current.currentTime);
+            }
+          }}
+          onLoadedMetadata={() => {
+            if (audioRef.current) {
+              setDuration(audioRef.current.duration);
+            }
+          }}
+          onEnded={() => {
+            setIsPlaying(false);
+            if (onEnded) onEnded();
+          }}
+        />
+
+        {/* Top Header Badge */}
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div className="flex items-center gap-2.5">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/20 text-emerald-300 font-bold text-[10px] uppercase tracking-wider border border-primary/40">
+              <Headphones size={14} weight="bold" />
+              NotebookLM Audio Overview
+            </span>
+            <span className="text-xs text-white/50 hidden sm:inline">• Hai chuyên gia AI đàm luận</span>
+          </div>
+
+          <a
+            href={media.originalUrl}
+            download
+            className="flex items-center gap-1 text-[11px] text-white/70 hover:text-white transition-colors"
+            title="Tải tệp âm thanh về máy"
+          >
+            <DownloadSimple size={14} weight="bold" />
+            <span className="hidden sm:inline">Tải audio</span>
+          </a>
+        </div>
+
+        {/* Center: Title & Sound Wave Visualizer */}
+        <div className="flex flex-col items-center justify-center my-auto py-2 text-center">
+          <h3 className="text-base sm:text-xl font-black max-w-xl text-white mb-2 leading-snug">
+            {title}
+          </h3>
+          <p className="text-xs text-white/60 font-light mb-6">
+            Bản tóm tắt phân tích chuyên sâu (Deep Dive Podcast)
+          </p>
+
+          {/* Animated sound wave bars */}
+          <div className="flex items-end justify-center gap-1 h-12 w-full max-w-xs px-4">
+            {[40, 65, 85, 30, 95, 50, 75, 100, 60, 80, 45, 90, 70, 35, 85, 55, 65, 90, 40, 75].map((h, i) => (
+              <span
+                key={i}
+                className="w-1.5 bg-primary transition-all duration-300"
+                style={{
+                  height: isPlaying ? `${Math.max(12, (h * (0.6 + 0.4 * Math.sin(currentTime * 3 + i))))}%` : "16%",
+                  opacity: isPlaying ? 0.9 : 0.35,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom: Player Controls */}
+        <div className="space-y-3 pt-3 border-t border-white/10">
+          {/* Progress Slider */}
+          <div className="flex items-center gap-3 text-xs text-white/60">
+            <span className="w-10 text-right font-mono text-[11px]">{formatTime(currentTime)}</span>
+            <div className="relative flex-1 flex items-center">
+              <input
+                type="range"
+                min="0"
+                max={duration || 100}
+                value={currentTime}
+                onChange={handleAudioSeek}
+                className="w-full h-1.5 bg-white/20 accent-primary rounded-none cursor-pointer appearance-none"
+              />
+            </div>
+            <span className="w-10 font-mono text-[11px]">{formatTime(duration)}</span>
+          </div>
+
+          {/* Buttons bar */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleSpeed}
+                className="px-2.5 py-1 text-[11px] font-bold bg-white/10 hover:bg-white/20 transition-colors text-white border border-white/20"
+                title="Tốc độ phát"
+              >
+                {playbackRate}x
+              </button>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => skipAudio(-10)}
+                className="text-white/80 hover:text-white transition-colors cursor-pointer p-1"
+                title="Lùi 10 giây"
+              >
+                <ArrowCounterClockwise size={20} weight="bold" />
+              </button>
+
+              <button
+                onClick={togglePlayAudio}
+                className="w-12 h-12 bg-primary hover:bg-primary-hover text-white flex items-center justify-center transition-colors shadow-md cursor-pointer border border-primary/40"
+                title={isPlaying ? "Tạm dừng" : "Phát"}
+              >
+                {isPlaying ? <Pause size={22} weight="fill" /> : <Play size={22} weight="fill" className="ml-0.5" />}
+              </button>
+
+              <button
+                onClick={() => skipAudio(10)}
+                className="text-white/80 hover:text-white transition-colors cursor-pointer p-1"
+                title="Tiến 10 giây"
+              >
+                <ArrowClockwise size={20} weight="bold" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleMute}
+                className="text-white/80 hover:text-white transition-colors cursor-pointer p-1"
+                title={isMuted ? "Bật âm thanh" : "Tắt tiếng"}
+              >
+                {isMuted ? <SpeakerSimpleX size={20} weight="bold" /> : <SpeakerHigh size={20} weight="bold" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 4. Default: YouTube / Vimeo / Direct Video (Plyr)
   return (
     <div
       ref={containerRef}
-      className="custom-video-wrapper w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-lg border border-white/80 relative select-none group"
+      className="custom-video-wrapper w-full aspect-video bg-black rounded-none overflow-hidden border border-outline-variant/30 relative select-none group"
     >
-      {youtubeId ? (
+      {media.type === "youtube" && media.id ? (
         <div
-          key={`yt-${youtubeId}`}
+          key={`yt-${media.id}`}
           data-plyr-provider="youtube"
-          data-plyr-embed-id={youtubeId}
+          data-plyr-embed-id={media.id}
           className="w-full h-full"
         />
-      ) : vimeoId ? (
+      ) : media.type === "vimeo" && media.id ? (
         <div
-          key={`vimeo-${vimeoId}`}
+          key={`vimeo-${media.id}`}
           data-plyr-provider="vimeo"
-          data-plyr-embed-id={vimeoId}
+          data-plyr-embed-id={media.id}
           className="w-full h-full"
         />
       ) : (
         <video
-          key={`video-${trimmedUrl}`}
-          src={trimmedUrl}
+          key={`video-${media.originalUrl}`}
+          src={media.originalUrl}
           playsInline
           className="w-full h-full object-contain"
         />

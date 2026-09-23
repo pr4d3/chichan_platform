@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { BRAND_CONFIG } from "@/config/branding";
 import {
-  Flask,
   Warning,
   Brain,
   EnvelopeSimple,
@@ -127,19 +126,10 @@ export default function AboutPage() {
 
   return (
     <main className="flex-grow flex flex-col relative w-full">
-      {/* Decorative Background Elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary-container/5 rounded-full blur-3xl"></div>
-        <div className="absolute top-40 -left-40 w-96 h-96 bg-secondary-container/5 rounded-full blur-3xl"></div>
-      </div>
 
       {/* Header Banner */}
       <section className="relative w-full py-16 px-4 md:px-16 flex items-center justify-center overflow-hidden">
         <div className="relative z-10 max-w-4xl mx-auto text-center space-y-4">
-          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-xs font-bold mb-2">
-            <Flask size={16} weight="fill" />
-            Đề tài Nghiên cứu Khoa học — THPT Giồng Ông Tố
-          </div>
           <h1 className="text-3xl md:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary-container mb-4 leading-tight">
             Mô Hình Học Tập Số Giáo Dục Giới Tính
           </h1>
@@ -153,9 +143,8 @@ export default function AboutPage() {
       <section className="py-12 px-4 md:px-16 max-w-7xl mx-auto w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Card 1: Tính cấp thiết */}
-          <div className="bg-white/80 backdrop-blur-md rounded-3xl p-10 shadow-sm hover-shadow transition-all duration-300 border border-white/50 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-error-container/40 to-transparent rounded-bl-[100px] -z-10 transition-transform group-hover:scale-105 duration-500"></div>
-            <div className="w-14 h-14 bg-gradient-to-br from-error-container to-white text-error rounded-2xl flex items-center justify-center mb-8 shadow-sm border border-error-container/50">
+          <div className="bg-white rounded-none p-10 shadow-depth-2 hover:shadow-depth-3 hover:-translate-y-1 transition-all duration-200 border border-outline-variant/40 relative overflow-hidden group">
+            <div className="w-14 h-14 bg-error-container/20 text-error rounded-none flex items-center justify-center mb-8 border border-error/30 shadow-depth-1">
               <Warning size={28} weight="duotone" />
             </div>
             <h2 className="text-xl font-bold text-on-surface mb-4">
@@ -167,9 +156,8 @@ export default function AboutPage() {
           </div>
 
           {/* Card 2: Phương pháp */}
-          <div className="bg-white/80 backdrop-blur-md rounded-3xl p-10 shadow-sm hover-shadow transition-all duration-300 border border-white/50 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-tertiary-fixed/40 to-transparent rounded-bl-[100px] -z-10 transition-transform group-hover:scale-105 duration-500"></div>
-            <div className="w-14 h-14 bg-gradient-to-br from-tertiary-fixed to-white text-tertiary-container rounded-2xl flex items-center justify-center mb-8 shadow-sm border border-tertiary-fixed/50">
+          <div className="bg-white rounded-none p-10 shadow-depth-2 hover:shadow-depth-3 hover:-translate-y-1 transition-all duration-200 border border-outline-variant/40 relative overflow-hidden group">
+            <div className="w-14 h-14 bg-primary/10 text-primary rounded-none flex items-center justify-center mb-8 border border-primary/30 shadow-depth-1">
               <Brain size={28} weight="duotone" />
             </div>
             <h2 className="text-xl font-bold text-on-surface mb-4">
@@ -228,11 +216,7 @@ export default function AboutPage() {
 
       {/* Section 3: Feedback Form & Contact */}
       <section className="py-20 px-4 md:px-16 max-w-5xl mx-auto w-full">
-        <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 md:p-14 shadow-sm relative overflow-hidden border border-white/50">
-          {/* Decorative subtle elements */}
-          <div className="absolute -top-32 -right-32 w-80 h-80 bg-gradient-to-bl from-primary-fixed to-secondary-fixed rounded-full blur-[80px] opacity-60"></div>
-          <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-gradient-to-tr from-secondary-fixed to-primary-fixed rounded-full blur-[80px] opacity-40"></div>
-
+        <div className="bg-white rounded-none p-8 md:p-14 shadow-depth-2 relative overflow-hidden border border-outline-variant/40">
           <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16">
             {/* Contact Info */}
             <div className="space-y-6">
@@ -294,10 +278,10 @@ export default function AboutPage() {
             {/* Feedback Form */}
             <form
               onSubmit={handleSendFeedback}
-              className="space-y-5 bg-white/40 p-6 rounded-2xl border border-white/60 shadow-inner backdrop-blur-sm"
+              className="space-y-5 bg-surface-container-low p-6 rounded-none border border-outline-variant/30 shadow-depth-1"
             >
               {feedbackSent && (
-                <div className="rounded-2xl bg-primary/10 border border-primary/20 p-3 text-xs font-semibold text-primary flex items-center gap-2">
+                <div className="rounded-none bg-primary/10 border border-primary/20 p-3 text-xs font-semibold text-primary flex items-center gap-2">
                   <CheckCircle size={18} weight="fill" />
                   Cảm ơn bạn đã đóng góp ý kiến cho đội ngũ nghiên cứu!
                 </div>
@@ -307,7 +291,7 @@ export default function AboutPage() {
                   value={feedbackName}
                   onChange={(e) => setFeedbackName(e.target.value)}
                   required
-                  className="w-full bg-white/50 border border-white/60 rounded-2xl px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary focus:border-primary shadow-inner transition-all outline-none"
+                  className="w-full bg-white border border-outline-variant/60 rounded-none px-4 py-3 text-sm text-on-surface focus:ring-1 focus:ring-primary focus:border-primary transition-colors outline-none"
                   placeholder="Nhập họ và tên của bạn"
                   type="text"
                 />
@@ -317,7 +301,7 @@ export default function AboutPage() {
                   value={feedbackEmail}
                   onChange={(e) => setFeedbackEmail(e.target.value)}
                   required
-                  className="w-full bg-white/50 border border-white/60 rounded-2xl px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary focus:border-primary shadow-inner transition-all outline-none"
+                  className="w-full bg-white border border-outline-variant/60 rounded-none px-4 py-3 text-sm text-on-surface focus:ring-1 focus:ring-primary focus:border-primary transition-colors outline-none"
                   placeholder="Nhập địa chỉ email"
                   type="email"
                 />
@@ -328,14 +312,14 @@ export default function AboutPage() {
                   value={feedbackContent}
                   onChange={(e) => setFeedbackContent(e.target.value)}
                   required
-                  className="w-full bg-white/50 border border-white/60 rounded-2xl px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary focus:border-primary shadow-inner transition-all outline-none resize-none overflow-hidden"
+                  className="w-full bg-white border border-outline-variant/60 rounded-none px-4 py-3 text-sm text-on-surface focus:ring-1 focus:ring-primary focus:border-primary transition-colors outline-none resize-none overflow-hidden"
                   placeholder="Chia sẻ ý kiến của bạn..."
                   rows={4}
                 />
               </FormRow>
               <button
                 type="submit"
-                className="w-full bg-primary text-white py-3.5 rounded-2xl font-bold text-xs transition-all shadow-md hover:shadow-lg hover:opacity-95 cursor-pointer"
+                className="w-full bg-primary text-white py-3.5 rounded-none font-bold text-xs transition-colors shadow-depth-1 hover:shadow-depth-2 hover:opacity-95 cursor-pointer"
               >
                 Gửi phản hồi
               </button>

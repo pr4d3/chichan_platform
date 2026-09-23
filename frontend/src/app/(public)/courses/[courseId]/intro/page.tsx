@@ -10,7 +10,6 @@ import { BRAND_CONFIG } from '@/config/branding';
 import { EmptyState } from '@/components/ui';
 import {
   WarningCircle,
-  ShieldCheck,
   Sparkle,
   CheckCircle,
   CaretDown,
@@ -21,6 +20,8 @@ import {
   Infinity as InfinityIcon,
   ArrowRight,
 } from "@phosphor-icons/react";
+
+import { MarkdownRenderer } from '@/components/common/MarkdownRenderer';
 
 interface SyllabusItem {
     id: string;
@@ -123,20 +124,20 @@ export default function CourseIntroPage() {
             <div className="w-full lg:w-[70%] space-y-10">
                 {/* Hero section */}
                 <section className="space-y-6">
-                    <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-xs font-semibold">
-                        <ShieldCheck size={16} weight="fill" />
-                        Dành cho {audienceText}
-                    </div>
                     <h1 className="text-2xl md:text-4xl font-extrabold text-on-surface leading-tight">
                         {courseData.title}
                     </h1>
-                    <p className="text-base text-on-surface-variant font-light leading-relaxed">
-                        {courseData.description || 'Chưa có mô tả chi tiết cho khóa học này. Hãy bắt đầu lộ trình học tập để tích lũy kiến thức chuẩn khoa học ngay hôm nay.'}
-                    </p>
+                    <div className="text-base text-on-surface-variant font-light leading-relaxed">
+                        {courseData.description ? (
+                            <MarkdownRenderer content={courseData.description} />
+                        ) : (
+                            <p>Chưa có mô tả chi tiết cho khóa học này. Hãy bắt đầu lộ trình học tập để tích lũy kiến thức chuẩn khoa học ngay hôm nay.</p>
+                        )}
+                    </div>
 
                     {/* Learning Objectives */}
                     {courseData.learning_objectives ? (
-                        <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 shadow-sm border border-white/50 mt-8">
+                        <div className="bg-white p-8 border border-outline-variant/30 mt-8">
                             <h2 className="text-lg font-bold text-on-surface mb-6 flex items-center gap-2">
                                 <Sparkle size={22} weight="fill" className="text-primary" />
                                 Mục tiêu học tập
@@ -147,7 +148,7 @@ export default function CourseIntroPage() {
                                     .map((line: string) => line.trim().replace(/^[-*•]\s*/, ''))
                                     .filter((line: string) => line.length > 0)
                                     .map((obj: string, idx: number) => (
-                                        <li key={idx} className="flex items-start gap-3 bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/10">
+                                        <li key={idx} className="flex items-start gap-3 bg-surface-container-low/50 p-4 border border-outline-variant/20">
                                             <CheckCircle size={20} weight="fill" className="text-primary mt-0.5 flex-shrink-0" />
                                             <span className="text-sm text-on-surface font-medium leading-relaxed">{obj}</span>
                                         </li>
@@ -155,7 +156,7 @@ export default function CourseIntroPage() {
                             </ul>
                         </div>
                     ) : (
-                        <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 shadow-sm border border-white/50 mt-8">
+                        <div className="bg-white p-8 border border-outline-variant/30 mt-8">
                             <h2 className="text-lg font-bold text-on-surface mb-4 flex items-center gap-2">
                                 <Sparkle size={22} weight="fill" className="text-primary" />
                                 Mục tiêu học tập
@@ -183,9 +184,9 @@ export default function CourseIntroPage() {
                                 <p className="text-sm text-on-surface-variant/80">Đề cương đang được cập nhật.</p>
                             ) : (
                                 courseData.syllabus.map((lesson: SyllabusItem) => (
-                                    <div key={lesson.id} className="bg-white/80 backdrop-blur-md rounded-2xl p-6 shadow-sm border border-white/50 flex justify-between items-center transition-all hover:border-primary/20">
+                                    <div key={lesson.id} className="bg-white p-6 border border-outline-variant/30 flex justify-between items-center transition-all hover:border-primary">
                                         <div className="flex items-center gap-4">
-                                            <div className="bg-primary/10 text-primary w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm">
+                                            <div className="bg-primary/10 text-primary w-10 h-10 flex items-center justify-center font-bold text-sm">
                                                 {lesson.order_index}
                                             </div>
                                             <h3 className="font-bold text-on-surface text-sm">{lesson.title}</h3>
@@ -206,10 +207,10 @@ export default function CourseIntroPage() {
                 {/* Instructor Card */}
                 <section className="pt-4">
                     <h2 className="text-lg font-bold text-on-surface mb-6">Giảng viên phụ trách</h2>
-                    <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 shadow-sm border border-white/50 flex flex-col sm:flex-row items-center sm:items-start gap-8">
+                    <div className="bg-white p-8 border border-outline-variant/30 flex flex-col sm:flex-row items-center sm:items-start gap-8">
                         <img
                             loading="lazy"
-                            className="w-20 h-20 rounded-full object-cover shadow-sm bg-primary-fixed border-2 border-primary/20"
+                            className="w-20 h-20 object-cover border border-outline-variant/30 bg-surface-container"
                             alt={courseData.instructor.full_name}
                             src={courseData.instructor.avatar_url || 'https://lh3.googleusercontent.com/aida-public/AB6AXuDLgNlt8oxrJXRkbLEhGWQB1WaLOqf9Zm7fBANEhyCLI3WBvhBT1fFopS25w1iSYvOj7ChfPef3vVnlOy4-2IfSJh9cSEEDdOHVz1f0RxGNFvC6S9pytVBlevtz6tEDiHNgYyDr2GmyZE3sjiypqLWOCkhf2du7uRwTKYADj9nXtFS3CrbKEQUi9agqpKyN-LZtQr9-UkMUYQ-Z1npuTPGg-Zb0iumqS2vauThTOXStUxw7mMeHr-dUXw'}
                         />
@@ -225,7 +226,7 @@ export default function CourseIntroPage() {
 
             {/* Right Column: Sticky Sidebar (30%) */}
             <aside className="w-full lg:w-[30%]">
-                <div className="sticky top-24 bg-white/80 backdrop-blur-md rounded-3xl shadow-sm border border-white/50 overflow-hidden">
+                <div className="sticky top-24 bg-white border border-outline-variant/30 overflow-hidden">
                     {/* Course Thumbnail */}
                     <div className="relative w-full h-48 sm:h-56 bg-surface-container">
                         <img
@@ -235,7 +236,7 @@ export default function CourseIntroPage() {
                             src={courseData.thumbnail_url || 'https://lh3.googleusercontent.com/aida-public/AB6AXuD9-sxq6hwgyme01rYTAWAZzCHGgH8DuSQtNxeTBNyeagcRB66jUv-pKFaK84qEbPi-1JCa6Apc_NeHXJCFfYyURKkzLpD4ZwIAmfCzJ_MqJxX598zjHbSPR66nKvVfG5hpgqfgP7Lgh8aPTVF10p2aeCZqQQEKXgG_Go_krqDOYALphZ_tJUPtZqrshdB0Y57Q-fI1nmcOBVyQFaqp5ytmflg2-mbg3FWJWKJa5Ik9ZY-zNZoxf9Qkjg'}
                         />
                         <div onClick={handleAction} className="absolute inset-0 flex items-center justify-center bg-black/15 hover:bg-black/25 transition-all cursor-pointer">
-                            <div className="w-14 h-14 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md">
+                            <div className="w-14 h-14 bg-white flex items-center justify-center border border-outline-variant/30">
                                 <Play size={26} weight="fill" className="text-primary ml-0.5" />
                             </div>
                         </div>
@@ -271,7 +272,7 @@ export default function CourseIntroPage() {
                         <button 
                             onClick={handleAction}
                             disabled={enrolling}
-                            className="w-full bg-gradient-to-r from-secondary-container to-secondary text-white text-xs font-bold py-4 px-6 rounded-full shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                            className="w-full bg-primary hover:bg-primary-hover text-white text-sm font-bold py-4 px-6 transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                         >
                             {enrolling ? 'Đang xử lý...' : courseData.is_enrolled ? 'Vào học ngay' : 'Bắt đầu học'}
                             <ArrowRight size={18} weight="bold" />
