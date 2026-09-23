@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Mea_Culpa, WindSong } from "next/font/google";
-import "./globals.css";
+import { Inter, Mea_Culpa, WindSong } from "next/font/google";
+import "@/styles/global.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ToastProvider } from "@/context/ToastContext";
 
-// Font chính self-host qua next/font (thay cho @import Google Fonts chặn render trước đây).
-// Là variable font nên không khai báo weight — nhận đủ dải 200-800, hiện cả 300-800 cũ.
-// Biến --font-jakarta được globals.css tham chiếu trong token --font-sans.
-const jakarta = Plus_Jakarta_Sans({
+// Font chính Inter self-host qua next/font, tối ưu hóa và hỗ trợ tiếng Việt toàn diện.
+const inter = Inter({
   subsets: ["latin", "vietnamese"],
-  variable: "--font-jakarta",
+  variable: "--font-inter",
+  display: "swap",
 });
 
 const meaCulpa = Mea_Culpa({
@@ -38,7 +37,7 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
-      className={`${jakarta.variable} ${meaCulpa.variable} ${windSong.variable} h-full`}
+      className={`${inter.variable} ${meaCulpa.variable} ${windSong.variable} h-full`}
     >
       <body className="min-h-full bg-background text-on-background font-sans antialiased flex flex-col">
         <ToastProvider>

@@ -140,7 +140,7 @@ export default function DashboardStudentsPage() {
                                     const isParent = student.role === 'STUDENT_PARENT';
                                     const roleText = isParent ? 'Phụ huynh' : 'Học sinh';
                                     const roleClass = isParent 
-                                        ? 'border-secondary-container/20 bg-secondary-container/10 text-secondary-container' 
+                                        ? 'border-secondary/30 bg-secondary/10 text-secondary' 
                                         : 'border-primary/20 bg-primary/10 text-primary';
 
                                     const isCompleted = student.status === 'COMPLETED';
@@ -149,7 +149,7 @@ export default function DashboardStudentsPage() {
                                         <tr key={student.student_id} className="hover:bg-white/40 transition-colors">
                                             <td className="py-4 px-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-xs">
+                                                    <div className="h-8 w-8 rounded-none bg-primary/10 flex items-center justify-center font-bold text-primary text-xs">
                                                         {student.full_name.charAt(0)}
                                                     </div>
                                                     <div>
@@ -158,12 +158,12 @@ export default function DashboardStudentsPage() {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="py-4 px-4">
+                                            <td className="py-4 px-4 whitespace-nowrap">
                                                 <Badge uppercase tone={`border ${roleClass}`}>
                                                     {roleText}
                                                 </Badge>
                                             </td>
-                                            <td className="py-4 px-4 text-on-surface-variant font-medium">
+                                            <td className="py-4 px-4 text-on-surface-variant font-medium whitespace-nowrap">
                                                 {new Date(student.enrolled_at).toLocaleDateString('vi-VN')}
                                             </td>
                                             <td className="py-4 px-4 space-y-1.5 w-60">
@@ -171,15 +171,15 @@ export default function DashboardStudentsPage() {
                                                     <span>Đã học: {student.completed_lessons_count} bài</span>
                                                     <span>{student.progress_percentage}%</span>
                                                 </div>
-                                                <div className="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
-                                                    <div className="bg-primary h-full transition-all duration-300 rounded-full" style={{ width: `${student.progress_percentage}%` }} />
+                                                <div className="w-full bg-surface-container-high h-2 rounded-none overflow-hidden">
+                                                    <div className="bg-primary h-full transition-all duration-300 rounded-none" style={{ width: `${student.progress_percentage}%` }} />
                                                 </div>
                                             </td>
-                                            <td className="py-4 px-4">
-                                                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                                            <td className="py-4 px-4 whitespace-nowrap">
+                                                <span className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-none text-[9px] font-bold uppercase tracking-wider whitespace-nowrap ${
                                                     isCompleted 
                                                         ? 'bg-primary/10 text-primary border border-primary/20' 
-                                                        : 'bg-secondary-container/10 text-secondary-container border border-secondary-container/20'
+                                                        : 'bg-secondary/10 text-secondary border border-secondary/30'
                                                 }`}>
                                                     {isCompleted ? 'Hoàn thành' : 'Đang học'}
                                                 </span>

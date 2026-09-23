@@ -81,6 +81,9 @@ export function Modal({
 
   if (!open) return null;
 
+  const hasCustomOverflow = /\boverflow-(hidden|auto|y-auto|x-auto|scroll)\b/.test(panelClassName);
+  const defaultOverflow = hasCustomOverflow ? "" : "overflow-y-auto";
+
   return (
     <div
       onClick={() => dismissible && onClose()}
@@ -92,7 +95,7 @@ export function Modal({
         style={{
           animation: "uiModalScaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) both",
         }}
-        className={`relative w-full bg-white rounded-3xl shadow-2xl max-h-[90vh] overflow-y-auto ${
+        className={`relative w-full bg-white rounded-none shadow-2xl max-h-[90vh] overflow-hidden ${defaultOverflow} ${
           sizeMap[size]
         } ${panelClassName}`}
       >
@@ -102,7 +105,7 @@ export function Modal({
             onClick={onClose}
             aria-label="Đóng"
             title="Đóng"
-            className="absolute top-4 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-surface-container text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface cursor-pointer"
+            className="absolute top-4 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-none bg-surface-container text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface cursor-pointer"
           >
             <X size={18} weight="bold" />
           </button>

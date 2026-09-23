@@ -37,7 +37,7 @@ export function Card({
   const Tag: ElementType = as;
   return (
     <Tag
-      className={`rounded-2xl ${toneMap[tone]} ${paddingMap[p]} ${shadow} ${className}`}
+      className={`rounded-none ${toneMap[tone]} ${paddingMap[p]} ${shadow} ${className}`}
     >
       {children}
     </Tag>

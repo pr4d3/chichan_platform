@@ -16,7 +16,6 @@ import {
   Lightning,
   BookOpen,
   ChartLineUp,
-  ShieldCheck,
   Robot,
   UsersThree,
   UserCircle,
@@ -113,10 +112,6 @@ export default function HomePage() {
       <section className="relative pt-16 pb-16 md:pt-24 md:pb-24 px-4 md:px-16">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="flex flex-col gap-6 md:gap-8">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold w-fit shadow-xs">
-              <ShieldCheck size={16} weight="fill" />
-              <span>Đề tài NCKH THPT Giồng Ông Tố</span>
-            </div>
             <HeroTypingTitle />
             <p className="text-base md:text-lg text-on-surface-variant font-normal leading-relaxed max-w-lg">
               Nền tảng hỗ trợ giáo viên trong công tác Giáo dục giới tính tại THPT Giồng Ông Tố — Tiện lợi, khoa học, thú vị — đồng hành cùng Học sinh, Phụ huynh và Nhà trường. Môi trường học tập số tiện lợi, an toàn, hỗ trợ giảm thiểu rào cản trong việc GDGT ở nhà trường và gia đình.
@@ -143,7 +138,7 @@ export default function HomePage() {
 
       {/* NCKH THPT Giồng Ông Tố Intro Banner */}
       <section className="px-4 md:px-16 -mt-4 mb-4">
-        <div className="max-w-7xl mx-auto p-6 md:p-8 rounded-3xl bg-gradient-to-r from-primary-container/20 via-white/80 to-secondary-container/20 border border-outline-variant/30 backdrop-blur-md shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="max-w-7xl mx-auto p-6 md:p-8 rounded-none bg-white border border-outline-variant/40 shadow-depth-2 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2">
             <span className="text-xs font-black uppercase tracking-wider text-primary">Về chúng tôi</span>
             <h3 className="text-lg md:text-xl font-extrabold text-on-surface">
@@ -155,7 +150,7 @@ export default function HomePage() {
           </div>
           <Link
             href="/about"
-            className="shrink-0 px-5 py-2.5 rounded-full bg-white border border-outline-variant/30 text-xs font-bold text-primary hover:bg-primary/5 transition-all shadow-2xs"
+            className="shrink-0 px-5 py-2.5 rounded-none bg-white border border-outline-variant/40 text-xs font-bold text-primary hover:bg-surface-container transition-all shadow-depth-1"
           >
             Tìm hiểu đề tài
           </Link>
@@ -186,23 +181,23 @@ export default function HomePage() {
 
           {/* Switcher Tabs - Only visible for Guests / Admin / Instructors */}
           {!isParent && !isChild && (
-            <div className="inline-flex p-1.5 bg-surface-container-high rounded-full mb-16 shadow-inner border border-outline-variant/20">
+            <div className="inline-flex p-1 bg-surface-container-low rounded-none mb-16 border border-outline-variant/30">
               <button
                 onClick={() => setActiveTab("PARENT")}
-                className={`px-8 py-3 rounded-full text-sm font-semibold transition-all cursor-pointer ${
+                className={`px-8 py-3 rounded-none text-sm font-semibold transition-all cursor-pointer ${
                   activeTab === "PARENT"
-                    ? "bg-white text-on-surface shadow-sm"
-                    : "text-on-surface-variant hover:text-on-surface"
+                    ? "bg-white text-primary font-bold shadow-depth-1 border border-outline-variant/20"
+                    : "text-on-surface-variant hover:text-on-surface hover:bg-white/50"
                 }`}
               >
                 Dành cho Phụ huynh
               </button>
               <button
                 onClick={() => setActiveTab("CHILD")}
-                className={`px-8 py-3 rounded-full text-sm font-semibold transition-all cursor-pointer ${
+                className={`px-8 py-3 rounded-none text-sm font-semibold transition-all cursor-pointer ${
                   activeTab === "CHILD"
-                    ? "bg-white text-on-surface shadow-sm"
-                    : "text-on-surface-variant hover:text-on-surface"
+                    ? "bg-white text-primary font-bold shadow-depth-1 border border-outline-variant/20"
+                    : "text-on-surface-variant hover:text-on-surface hover:bg-white/50"
                 }`}
               >
                 Dành cho Học sinh
@@ -278,7 +273,7 @@ export default function HomePage() {
                   <Link
                     key={post.id}
                     href={`/forum/${post.id}`}
-                    className="p-8 bg-white/80 backdrop-blur-md rounded-3xl border border-white/50 shadow-sm hover-shadow transition-all duration-300 flex flex-col justify-between group"
+                    className="p-8 bg-white rounded-none border border-outline-variant/40 shadow-depth-1 hover:shadow-depth-3 hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group"
                   >
                     <div>
                       <div className="flex items-center justify-between gap-3 mb-5">
@@ -357,7 +352,7 @@ export default function HomePage() {
           <div className="mt-10 text-center md:hidden">
             <Link
               href="/forum"
-              className="inline-flex px-8 py-3 border border-outline/30 text-on-surface rounded-full text-sm font-bold bg-white/50 backdrop-blur-sm shadow-sm hover:bg-white/80 transition-colors"
+              className="inline-flex px-8 py-3 border border-outline/30 text-on-surface rounded-none text-sm font-bold bg-white shadow-depth-1 hover:bg-surface-container transition-colors"
             >
               Xem tất cả thảo luận
             </Link>

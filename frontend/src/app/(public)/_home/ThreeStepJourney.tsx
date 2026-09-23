@@ -56,9 +56,6 @@ export function ThreeStepJourney() {
 
   return (
     <section className="relative py-20 md:py-28 px-4 md:px-16 overflow-hidden">
-      {/* Seamless Ambient Gradient Lighting */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-7xl h-96 bg-gradient-to-r from-primary/5 via-teal-500/5 to-amber-500/5 blur-3xl -z-10 pointer-events-none rounded-full" />
-
       <div className="max-w-7xl mx-auto flex flex-col gap-14">
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto space-y-3">
@@ -75,7 +72,7 @@ export function ThreeStepJourney() {
           {steps.map((item, idx) => (
             <div
               key={idx}
-              className="relative bg-white/90 backdrop-blur-md rounded-3xl p-8 border border-white/80 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group overflow-hidden"
+              className="relative bg-white rounded-none p-8 border border-outline-variant/40 shadow-depth-2 hover:shadow-depth-3 hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between group overflow-hidden"
             >
               {/* Step number watermark */}
               <span className="absolute top-5 right-7 text-7xl sm:text-8xl font-black text-outline-variant/25 select-none font-mono tracking-tighter group-hover:text-primary/25 group-hover:scale-105 transition-all duration-300 pointer-events-none">
