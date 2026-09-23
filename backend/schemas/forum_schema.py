@@ -43,16 +43,14 @@ class PostListResponse(BaseModel):
     success: bool
     data: list[PostListData]
 
-class PostListPaginatedData(BaseModel):
-    # Shape phân trang mới của GET /forum/posts (chỉ dùng khi client truyền limit/offset)
+class PostListCursorData(BaseModel):
     items: list[PostListData]
-    total: int
-    limit: int
-    offset: int
+    next_cursor: Optional[str] = None
+    has_more: bool = False
 
-class PostListPaginatedResponse(BaseModel):
+class PostListCursorResponse(BaseModel):
     success: bool
-    data: PostListPaginatedData
+    data: PostListCursorData
 
 class CommentAuthorInfo(BaseModel):
     id: UUID

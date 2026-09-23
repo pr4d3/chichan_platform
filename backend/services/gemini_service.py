@@ -8,7 +8,7 @@ from core.config import settings
 _client = None
 
 def get_client() -> genai.Client:
-    """Khởi tạo Client của Gemini lazily bằng AI_API_KEY"""
+    """Khởi tạo Client của Gemini lazily bằng AI_API_KEY với cấu hình fast-fail không retry dây dưa"""
     global _client
     if _client is not None:
         return _client
@@ -18,7 +18,12 @@ def get_client() -> genai.Client:
     if not api_key:
         raise ValueError("AI_API_KEY chưa được cấu hình trong file .env!")
     
-    _client = genai.Client(api_key=api_key)
+    _client = genai.Client(
+        api_key=api_key,
+        http_options=types.HttpOptions(
+            retry_options=types.HttpRetryOptions(attempts=1)
+        )
+    )
     return _client
 
 async def generate_embedding(text_content: str) -> List[float]:
@@ -37,14 +42,36 @@ async def generate_embedding(text_content: str) -> List[float]:
         return [0.0] * 768
     return [0.0] * 768
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+def get_candidate_models() -> List[str]:
+    """Danh sách các model Gemini ưu tiên, tự động fallback nếu model chính gặp 503 / 429"""
+    primary = settings.GEMINI_MODEL or "gemini-3.6-flash"
+    fallbacks = [
+        primary,
+        "gemini-3.6-flash",
+        "gemini-3.1-flash-lite",
+        "gemini-3.7-flash",
+        "gemini-flash-latest",
+        "gemini-flash-lite-latest",
+    ]
+    seen = set()
+    result = []
+    for m in fallbacks:
+        if m and m not in seen:
+            seen.add(m)
+            result.append(m)
+    return result
+
 async def generate_chat_stream(
     system_prompt: str,
     history_messages: List[dict],
     context_chunks: List[str]
 ) -> AsyncGenerator[str, None]:
-    """Gọi Gemini API và stream luồng phản hồi dưới dạng JSON"""
+    """Gọi Gemini API và stream luồng phản hồi dưới dạng JSON với cơ chế fallback tự động"""
     client = get_client()
-    model_name = settings.GEMINI_MODEL
 
     # Ráp ngữ cảnh tri thức RAG (nếu có) vào hệ thống
     rag_context = ""
@@ -74,47 +101,62 @@ async def generate_chat_stream(
         response_schema=GeminiRoleplayOutput,
     )
     
-    # Thực hiện gọi API bất đồng bộ và stream kết quả
-    stream_response = await client.aio.models.generate_content_stream(
-        model=model_name,
-        contents=contents,
-        config=config
-    )
-    async for chunk in stream_response:
-        text = chunk.text or ""
-        if text:
-            yield text
+    candidates = get_candidate_models()
+    last_error = None
+
+    for model_name in candidates:
+        try:
+            stream_response = await client.aio.models.generate_content_stream(
+                model=model_name,
+                contents=contents,
+                config=config
+            )
+            # Yield từng chunk ra stream
+            async for chunk in stream_response:
+                text = chunk.text or ""
+                if text:
+                    yield text
+            return
+        except Exception as e:
+            last_error = e
+            logger.warning("Gemini model %s gặp lỗi (%s), đang thử model dự phòng...", model_name, e)
+            continue
+
+    if last_error:
+        raise last_error
 
 async def summarize_session(history_messages: List[dict]) -> str:
     """Tạo tóm tắt ngắn gọn (recent_summary) về diễn biến hội thoại cũ"""
-    try:
-        client = get_client()
-        model_name = settings.GEMINI_MODEL
+    client = get_client()
 
-        # Tạo chuỗi hội thoại
-        chat_log = ""
-        for m in history_messages:
-            chat_log += f"{m['sender']}: {m['dialogue']}\n"
-            
-        prompt = f"""
+    # Tạo chuỗi hội thoại
+    chat_log = ""
+    for m in history_messages:
+        chat_log += f"{m['sender']}: {m['dialogue']}\n"
+        
+    prompt = f"""
 Hãy tóm tắt diễn biến hội thoại sau đây trong tối đa 2 đến 3 câu ngắn gọn.
 Tập trung vào phản ứng, thái độ của người chơi (đồng ý, từ chối, nghi ngờ) và mục tiêu hiện tại của NPC.
 
 Hội thoại:
 {chat_log}
 """
-        response = await client.aio.models.generate_content(
-            model=model_name,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.3,
-                max_output_tokens=200
+    candidates = get_candidate_models()
+    for model_name in candidates:
+        try:
+            response = await client.aio.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.3,
+                    max_output_tokens=200
+                )
             )
-        )
-        return response.text.strip() if response.text else ""
-    except Exception as e:
-        print(f"Error summarizing session: {e}")
-        return ""
+            return response.text.strip() if response.text else ""
+        except Exception as e:
+            logger.warning("Lỗi tóm tắt với model %s: %s", model_name, e)
+            continue
+    return ""
 
 async def evaluate_session(
     history_messages: List[dict],
@@ -122,16 +164,14 @@ async def evaluate_session(
     scenario_title: str
 ) -> str:
     """Đánh giá chi tiết phản xạ của người chơi ở cuối màn game để viết báo cáo khoa học"""
-    try:
-        client = get_client()
-        model_name = settings.GEMINI_MODEL
+    client = get_client()
 
-        chat_log = ""
-        for m in history_messages:
-            action_text = f" ({m.get('action')})" if m.get('action') else ""
-            chat_log += f"{m['sender']}: {m['dialogue']}{action_text}\n"
-            
-        prompt = f"""
+    chat_log = ""
+    for m in history_messages:
+        action_text = f" ({m.get('action')})" if m.get('action') else ""
+        chat_log += f"{m['sender']}: {m['dialogue']}{action_text}\n"
+        
+    prompt = f"""
 Bạn là chuyên gia tâm lý học đường và cố vấn an toàn giáo dục giới tính tại Việt Nam.
 Hãy viết nhận xét đánh giá tổng kết chi tiết (khoảng 150-200 từ) về màn chơi mô phỏng của người học.
 
@@ -146,15 +186,22 @@ CẤU TRÚC ĐÁNH GIÁ (BẮT BUỘC):
 3. Hậu quả thực tế & Bài học: Giải thích rõ nếu xảy ra ngoài đời thực, cách xử lý này mang lại kết quả hay hậu quả gì cho bản thân và đưa ra 1 nguyên tắc vàng cần ghi nhớ.
 4. Giọng điệu ấm áp, tôn trọng, giàu tính giáo dục và bảo vệ người học.
 """
-        response = await client.aio.models.generate_content(
-            model=model_name,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.5,
-                max_output_tokens=600
+    candidates = get_candidate_models()
+    for model_name in candidates:
+        try:
+            response = await client.aio.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.5,
+                    max_output_tokens=600
+                )
             )
-        )
-        return response.text.strip() if response.text else "Chúc mừng bạn đã hoàn thành màn chơi mô phỏng!"
-    except Exception as e:
-        print(f"Error evaluating session: {e}")
-        return "Hoàn thành màn chơi mô phỏng giáo dục giới tính thành công!"
+            if response and response.text:
+                return response.text.strip()
+        except Exception as e:
+            logger.warning("Lỗi đánh giá với model %s: %s", model_name, e)
+            continue
+
+    return "Chúc mừng bạn đã hoàn thành màn chơi mô phỏng giáo dục giới tính an toàn!"
+

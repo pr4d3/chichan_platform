@@ -1,0 +1,90 @@
+/**
+ * ChiChan Design System - Reset Rules (reset.css)
+ * Chuẩn hóa phần tử, triệt tiêu border-radius toàn diện và loại bỏ hiệu ứng Glow
+ */
+
+/* 1. Box Sizing & Font Smoothing */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 2. Quy tắc Tuyệt đối: ZERO BORDER RADIUS trên toàn bộ hệ thống */
+*,
+*::before,
+*::after {
+  border-radius: 0px !important;
+}
+
+/* 3. Base Elements Reset */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background-color: var(--color-background);
+  color: var(--color-on-background);
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+}
+
+/* 4. Loại bỏ Glow và Backlight ngoài ý muốn */
+.no-glow {
+  filter: none !important;
+  box-shadow: none !important;
+}
+
+/* 5. Clean Solid Scrollbar (Sắc nét, không bo tròn) */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface-container);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-outline-variant);
+  border-radius: 0px !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-outline);
+}
+
+/* 6. Form Controls & Buttons Normalization */
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit;
+  border-radius: 0px !important;
+}
+
+input,
+textarea,
+select {
+  box-shadow: none;
+}
+
+/* Checkbox & Radio Accents (Đồng bộ màu sắc chính Primary #005039) */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+/* 7. Media elements */
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}

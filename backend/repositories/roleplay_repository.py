@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, text, update, func
+from sqlalchemy import select, and_, text, update, delete, func
 from sqlalchemy.orm import selectinload, joinedload
 from models.ai_scenario import AIScenario
 from models.ai_session import AISession
@@ -41,6 +41,51 @@ async def get_session_by_id(db: AsyncSession, session_id: UUID) -> Optional[AISe
         .where(AISession.id == session_id)
     )
     return result.scalars().first()
+
+async def get_active_session_by_scenario(db: AsyncSession, user_id: UUID, scenario_id: int) -> Optional[AISession]:
+    """Tìm phiên chơi gần nhất đang dở dang (status = 'ACTIVE') của user với kịch bản."""
+    result = await db.execute(
+        select(AISession)
+        .options(
+            joinedload(AISession.scenario)
+        )
+        .where(
+            and_(
+                AISession.user_id == user_id,
+                AISession.scenario_id == scenario_id,
+                AISession.status == "ACTIVE"
+            )
+        )
+        .order_by(AISession.updated_at.desc())
+    )
+    return result.scalars().first()
+
+async def delete_active_sessions(db: AsyncSession, user_id: UUID, scenario_id: int) -> int:
+    """Xóa vĩnh viễn toàn bộ phiên ACTIVE cũ của user với kịch bản (kèm cascade messages, evaluations)."""
+    sessions_res = await db.execute(
+        select(AISession).where(
+            and_(
+                AISession.user_id == user_id,
+                AISession.scenario_id == scenario_id,
+                AISession.status == "ACTIVE"
+            )
+        )
+    )
+    active_sessions = list(sessions_res.scalars().all())
+    for s in active_sessions:
+        await db.delete(s)
+    if active_sessions:
+        await db.commit()
+    return len(active_sessions)
+
+async def delete_session_by_id(db: AsyncSession, session_id: UUID, user_id: UUID) -> bool:
+    """Xóa vĩnh viễn một session theo ID thuộc quyền sở hữu của user."""
+    session = await get_session_by_id(db, session_id)
+    if not session or session.user_id != user_id:
+        return False
+    await db.delete(session)
+    await db.commit()
+    return True
 
 async def abandon_active_sessions(db: AsyncSession, user_id: UUID, scenario_id: int) -> None:
     """Hủy toàn bộ phiên ACTIVE cũ của user với kịch bản bằng 1 UPDATE nguyên tử có WHERE status
@@ -84,22 +129,25 @@ async def create_message(db: AsyncSession, message: AIMessage) -> AIMessage:
     return message
 
 async def get_session_messages(db: AsyncSession, session_id: UUID, limit: Optional[int] = None) -> List[AIMessage]:
+    if limit:
+        # Lấy limit tin nhắn mới nhất của phiên
+        stmt = (
+            select(AIMessage)
+            .where(AIMessage.session_id == session_id)
+            .order_by(AIMessage.created_at.desc())
+            .limit(limit)
+        )
+        result = await db.execute(stmt)
+        messages = list(result.scalars().all())
+        # Đảo ngược lại để hiển thị xuôi dòng thời gian (từ cũ đến mới)
+        messages.reverse()
+        return messages
+
     query = (
         select(AIMessage)
         .where(AIMessage.session_id == session_id)
         .order_by(AIMessage.created_at.asc())
     )
-    if limit:
-        # Nếu giới hạn, ta lấy tin nhắn mới nhất nhưng xếp xuôi dòng thời gian
-        subquery = (
-            select(AIMessage)
-            .where(AIMessage.session_id == session_id)
-            .order_by(AIMessage.created_at.desc())
-            .limit(limit)
-        ).subquery()
-        # SELECT * FROM subquery ORDER BY created_at ASC
-        query = select(AIMessage).select_from(subquery).order_by(subquery.c.created_at.asc())
-        
     result = await db.execute(query)
     return list(result.scalars().all())
 

@@ -46,6 +46,10 @@ class SessionResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class ActiveSessionCheckResponse(BaseModel):
+    has_active_session: bool
+    session: Optional[SessionResponse] = None
+
 class SessionDetailResponse(BaseModel):
     success: bool
     data: dict

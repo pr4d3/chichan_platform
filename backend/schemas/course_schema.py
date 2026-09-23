@@ -122,7 +122,7 @@ class CourseOutroResponse(BaseModel):
 
 class LessonCreate(BaseModel):
     title: str = Field(..., max_length=255)
-    content_type: str = Field("HYBRID", pattern="^(VIDEO|TEXT|HYBRID|QUIZ)$")
+    content_type: str = Field("HYBRID", pattern="^(VIDEO|TEXT|HYBRID|QUIZ|AUDIO|NOTEBOOKLM|PODCAST)$")
     video_url: Optional[str] = Field(None, max_length=500)
     content_body: Optional[str] = None
     order_index: int = 1

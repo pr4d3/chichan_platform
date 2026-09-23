@@ -15,6 +15,8 @@ interface ButtonProps {
   type?: "button" | "submit" | "reset";
   onClick?: () => void;
   href?: string;
+  target?: string;
+  rel?: string;
   icon?: ReactNode;
   className?: string;
   children?: ReactNode;
@@ -41,11 +43,13 @@ export function Button({
   type = "button",
   onClick,
   href,
+  target,
+  rel,
   icon,
   className = "",
   children,
 }: ButtonProps) {
-  const classes = `inline-flex items-center justify-center gap-2 rounded-full font-bold text-xs transition disabled:opacity-50 ${
+  const classes = `inline-flex items-center justify-center gap-2 rounded-none font-bold text-xs transition disabled:opacity-50 ${
     variantMap[variant]
   } ${sizeMap[size]} ${full ? "w-full" : ""} ${className}`;
 
@@ -53,9 +57,15 @@ export function Button({
   const spinnerTone = variant === "primary" ? "white" : "primary";
 
   if (href) {
+    const isExternal = /^https?:\/\//i.test(href);
+    const computedTarget = target || (isExternal ? "_blank" : undefined);
+    const computedRel = rel || (isExternal ? "noopener noreferrer" : undefined);
+
     return (
       <Link
         href={href}
+        target={computedTarget}
+        rel={computedRel}
         onClick={onClick}
         aria-disabled={inactive}
         className={`${classes} ${inactive ? "pointer-events-none opacity-50" : ""}`}

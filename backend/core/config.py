@@ -28,7 +28,7 @@ class Settings(BaseSettings):
 
     # AI (Gemini)
     AI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-flash-lite-latest"
+    GEMINI_MODEL: str = "gemini-3.6-flash"
 
     # SQL logging của SQLAlchemy (bật qua ECHO=true khi cần debug, mặc định tắt)
     ECHO: bool = False

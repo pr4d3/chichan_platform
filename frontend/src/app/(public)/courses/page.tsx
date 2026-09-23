@@ -8,10 +8,6 @@ import { CourseCardSkeleton } from "@/components/Skeleton";
 import {
   BookOpen,
   ArrowSquareOut,
-  GraduationCap,
-  Sparkle,
-  ChatCircle,
-  ShieldCheck,
   Article,
 } from "@phosphor-icons/react";
 
@@ -116,10 +112,6 @@ export default function CoursesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 border-b border-outline-variant/30 pb-6">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold mb-2">
-            <GraduationCap size={16} weight="fill" />
-            <span>Nội dung bài giảng học đường</span>
-          </div>
           <h1 className="text-3xl font-extrabold text-on-surface tracking-tight">
             {isParent
               ? "Góc Học Tập Cho Phụ Huynh"
@@ -138,13 +130,13 @@ export default function CoursesPage() {
 
         {/* Filters - Only displayed for Guests / Admins / Instructors */}
         {!isParent && !isChild && (
-          <div className="flex gap-2 p-1.5 rounded-full bg-surface-container border border-outline-variant/30 shadow-inner">
+          <div className="flex gap-1 p-1 rounded-none bg-surface-container-low border border-outline-variant/30">
             <button
               onClick={() => setFilter("ALL")}
-              className={`px-5 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
+              className={`px-5 py-2 rounded-none text-xs font-bold transition-all cursor-pointer ${
                 filter === "ALL"
-                  ? "bg-primary text-white shadow-sm"
-                  : "text-on-surface-variant hover:text-primary hover:bg-surface-container-high"
+                  ? "bg-primary text-white shadow-depth-1"
+                  : "text-on-surface-variant hover:text-primary hover:bg-white/50"
               }`}
             >
               Tất cả
@@ -152,10 +144,10 @@ export default function CoursesPage() {
 
             <button
               onClick={() => setFilter("CHILD")}
-              className={`px-5 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
+              className={`px-5 py-2 rounded-none text-xs font-bold transition-all cursor-pointer ${
                 filter === "CHILD"
-                  ? "bg-primary text-white shadow-sm"
-                  : "text-on-surface-variant hover:text-primary hover:bg-surface-container-high"
+                  ? "bg-primary text-white shadow-depth-1"
+                  : "text-on-surface-variant hover:text-primary hover:bg-white/50"
               }`}
             >
               Dành cho Học sinh
@@ -163,10 +155,10 @@ export default function CoursesPage() {
 
             <button
               onClick={() => setFilter("PARENT")}
-              className={`px-5 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
+              className={`px-5 py-2 rounded-none text-xs font-bold transition-all cursor-pointer ${
                 filter === "PARENT"
-                  ? "bg-primary text-white shadow-sm"
-                  : "text-on-surface-variant hover:text-primary hover:bg-surface-container-high"
+                  ? "bg-primary text-white shadow-depth-1"
+                  : "text-on-surface-variant hover:text-primary hover:bg-white/50"
               }`}
             >
               Dành cho Phụ huynh
@@ -214,10 +206,6 @@ export default function CoursesPage() {
       <section className="pt-8 border-t border-outline-variant/30 space-y-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold mb-2">
-              <Sparkle size={14} weight="fill" />
-              <span>Tài liệu tham khảo mở rộng</span>
-            </div>
             <h2 className="text-2xl font-extrabold text-on-surface">
               Tìm Hiểu Thêm: Nghiên Cứu &amp; Bài Báo Uy Tín
             </h2>

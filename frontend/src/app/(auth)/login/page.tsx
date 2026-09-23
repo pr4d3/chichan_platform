@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
@@ -39,7 +40,7 @@ export default function LoginPage() {
   return (
     <>
       {error && (
-        <div className="rounded-2xl bg-red-50 border border-red-200/60 p-4 text-xs font-semibold text-red-600 flex items-center gap-2.5 shadow-xs">
+        <div className="rounded-none bg-red-50 border border-red-200 p-4 text-xs font-semibold text-red-600 flex items-center gap-2.5">
           <WarningCircle size={18} weight="fill" className="text-red-500 shrink-0" />
           <span>{error}</span>
         </div>
@@ -53,7 +54,7 @@ export default function LoginPage() {
             type="text"
             required
             placeholder=" "
-            className="peer block w-full px-5 pt-[22px] pb-[10px] rounded-2xl bg-white/50 border border-white/60 focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all text-sm text-on-surface placeholder:text-transparent backdrop-blur-sm shadow-inner"
+            className="peer block w-full px-5 pt-[22px] pb-[10px] rounded-none bg-white border border-outline-variant/60 focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none transition-colors text-sm text-on-surface placeholder:text-transparent"
             value={usernameOrEmail}
             onChange={(e) => setUsernameOrEmail(e.target.value)}
           />
@@ -72,7 +73,7 @@ export default function LoginPage() {
             type="password"
             required
             placeholder=" "
-            className="peer block w-full px-5 pt-[22px] pb-[10px] rounded-2xl bg-white/50 border border-white/60 focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all text-sm text-on-surface placeholder:text-transparent backdrop-blur-sm shadow-inner"
+            className="peer block w-full px-5 pt-[22px] pb-[10px] rounded-none bg-white border border-outline-variant/60 focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none transition-colors text-sm text-on-surface placeholder:text-transparent"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -88,7 +89,7 @@ export default function LoginPage() {
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
-              className="rounded border-outline-variant text-primary focus:ring-primary w-4 h-4 bg-white/50"
+              className="rounded-none border-outline-variant accent-primary focus:ring-primary w-4 h-4 bg-white cursor-pointer"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
             />
@@ -107,10 +108,20 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full mt-4 bg-primary text-white py-4 rounded-2xl font-bold text-xs transition-all duration-300 hover:opacity-90 disabled:opacity-50 cursor-pointer shadow-md hover:shadow-lg"
+          className="w-full mt-4 bg-primary text-white py-3.5 rounded-none font-bold text-xs transition-all duration-200 hover:bg-primary-hover disabled:opacity-50 cursor-pointer shadow-depth-1 hover:shadow-depth-2"
         >
           {loading ? "Đang đăng nhập..." : "Đăng nhập"}
         </button>
+
+        <p className="text-center text-xs text-on-surface-variant mt-2">
+          Chưa có tài khoản?{" "}
+          <Link
+            href="/register"
+            className="font-bold text-primary hover:underline hover:text-primary-hover transition-colors"
+          >
+            Đăng ký ngay
+          </Link>
+        </p>
       </form>
     </>
   );

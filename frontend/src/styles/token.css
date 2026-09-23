@@ -1,0 +1,98 @@
+/**
+ * ChiChan Design System - Design Tokens (token.css)
+ * Triết lý: Solid Colors, Inter Font, Zero Border-Radius, Shadow Depth Scale (Không dùng Glow)
+ */
+
+:root {
+  /* Font Families */
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+
+  /* Solid Colors Palette - Primary (Xanh ngọc sư phạm/y tế) */
+  --color-primary: #005039;
+  --color-primary-hover: #003d2b;
+  --color-primary-active: #002d20;
+  --color-primary-container: #006b4d;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #93e8c2;
+
+  /* Solid Colors Palette - Secondary (Cam đất ấm áp) */
+  --color-secondary: #8f4e00;
+  --color-secondary-container: #fc9d41;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #6b3900;
+
+  /* Solid Colors Palette - Tertiary (Xanh lam khoa học) */
+  --color-tertiary: #004d5d;
+  --color-tertiary-container: #00667b;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-container: #8be3ff;
+
+  /* Solid Colors Palette - Neutral & Surfaces */
+  --color-background: #f8f9fa;
+  --color-foreground: #191c1d;
+  --color-on-background: #191c1d;
+
+  --color-surface: #f8f9fa;
+  --color-surface-dim: #d9dadb;
+  --color-surface-bright: #ffffff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f3f4f5;
+  --color-surface-container: #edeeef;
+  --color-surface-container-high: #e7e8e9;
+  --color-surface-container-highest: #e1e3e4;
+
+  --color-on-surface: #191c1d;
+  --color-on-surface-variant: #3f4943;
+  --color-inverse-surface: #2e3132;
+  --color-inverse-on-surface: #f0f1f2;
+
+  /* Solid Borders & Outlines */
+  --color-outline: #6f7a73;
+  --color-outline-variant: #bec9c1;
+  --color-border-light: #e5e7eb;
+  --color-border-default: #d1d5db;
+  --color-border-strong: #9ca3af;
+
+  /* Fixed Accent Tones */
+  --color-primary-fixed: #9ef4cd;
+  --color-primary-fixed-dim: #82d7b2;
+  --color-on-primary-fixed: #002115;
+  --color-on-primary-fixed-variant: #00513a;
+
+  --color-secondary-fixed: #ffdcc2;
+  --color-secondary-fixed-dim: #ffb77a;
+  --color-on-secondary-fixed: #2e1500;
+  --color-on-secondary-fixed-variant: #6d3a00;
+
+  --color-tertiary-fixed: #b3ebff;
+  --color-tertiary-fixed-dim: #4ed6fb;
+  --color-on-tertiary-fixed: #001f27;
+  --color-on-tertiary-fixed-variant: #004e5f;
+
+  /* Feedback Colors */
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-error: #dc2626;
+  --color-info: #0284c7;
+
+  /* Strict Zero Border Radius (Không bao giờ có góc bo) */
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-full: 0px;
+  --radius: 0px;
+  --radius-default: 0px;
+
+  /* Shadow Depth Scale (Tạo chiều sâu thuần túy bằng box-shadow, không dùng Glow) */
+  --shadow-depth-1: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.08);
+  --shadow-depth-2: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+  --shadow-depth-3: 0 10px 15px -3px rgba(0, 0, 0, 0.09), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  --shadow-depth-4: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  --shadow-depth-card: 0 2px 8px 0 rgba(0, 0, 0, 0.06);
+  --shadow-depth-hover: 0 8px 24px 0 rgba(0, 0, 0, 0.1);
+}

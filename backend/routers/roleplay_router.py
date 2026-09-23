@@ -6,7 +6,7 @@ from core.dependencies import get_current_user, RoleGuard
 from models.user import User
 from schemas.roleplay_schema import (
     ScenarioResponse, SessionResponse, SessionCreateRequest, ChatRequest,
-    SessionDetailResponse, EvaluationResponse
+    SessionDetailResponse, EvaluationResponse, ActiveSessionCheckResponse
 )
 import services.roleplay_service as service
 from uuid import UUID
@@ -18,6 +18,21 @@ router = APIRouter(prefix="/api/v1/roleplay", tags=["AI Roleplay Hub"])
 async def list_scenarios(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Lấy danh sách tất cả kịch bản phòng chơi AI đang hoạt động"""
     return await service.list_scenarios(db)
+
+@router.get("/scenarios/{scenario_id}/active-session", response_model=ActiveSessionCheckResponse, status_code=status.HTTP_200_OK)
+async def check_active_session(
+    scenario_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Kiểm tra xem người dùng hiện tại có phiên chơi dở dang (ACTIVE) ở kịch bản này không"""
+    session = await service.get_active_session(db, current_user.id, scenario_id)
+    if session:
+        return ActiveSessionCheckResponse(
+            has_active_session=True,
+            session=SessionResponse.model_validate(session)
+        )
+    return ActiveSessionCheckResponse(has_active_session=False, session=None)
 
 @router.post("/sessions", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
 async def create_session(
@@ -85,6 +100,21 @@ async def abandon_session(
     """Hủy bỏ màn chơi hiện tại giữa chừng (mark status = ABANDONED)"""
     session = await service.abandon_active_session(db, session_id, current_user.id)
     return session
+
+@router.delete("/sessions/{session_id}", status_code=status.HTTP_200_OK)
+async def delete_session(
+    session_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Xóa vĩnh viễn phiên chơi nếu đúng chính chủ"""
+    deleted = await service.delete_session(db, session_id, current_user.id)
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Phiên chơi không tồn tại hoặc bạn không có quyền xóa"
+        )
+    return {"success": True, "message": "Đã xóa phiên chơi thành công"}
 
 @router.get("/evaluations/{session_id}", response_model=EvaluationResponse, status_code=status.HTTP_200_OK)
 async def get_evaluation(

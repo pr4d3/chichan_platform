@@ -122,7 +122,7 @@ export default function DashboardOverviewPage() {
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [lessonTitle, setLessonTitle] = useState("");
   const [lessonContentType, setLessonContentType] = useState<
-    "VIDEO" | "TEXT" | "HYBRID"
+    "VIDEO" | "TEXT" | "HYBRID" | "AUDIO"
   >("HYBRID");
   const [lessonVideoUrl, setLessonVideoUrl] = useState("");
   const [lessonContentBody, setLessonContentBody] = useState("");
@@ -1053,14 +1053,15 @@ export default function DashboardOverviewPage() {
                 </label>
                 <select
                   id="lType"
-                  className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                  className="w-full bg-white border border-outline-variant/30 rounded-none px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
                   value={lessonContentType}
                   onChange={(e) =>
                     setLessonContentType(e.target.value as any)
                   }
                 >
-                  <option value="HYBRID">Hỗn hợp</option>
-                  <option value="VIDEO">Video</option>
+                  <option value="HYBRID">Hỗn hợp (Video/Audio + Tài liệu)</option>
+                  <option value="VIDEO">Video YouTube / MP4</option>
+                  <option value="AUDIO">Audio Podcast (Google NotebookLM / Drive)</option>
                   <option value="TEXT">Văn bản thuần</option>
                 </select>
               </div>
@@ -1077,7 +1078,7 @@ export default function DashboardOverviewPage() {
                   type="number"
                   min="1"
                   placeholder="Phút..."
-                  className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                  className="w-full bg-white border border-outline-variant/30 rounded-none px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
                   value={lessonDuration}
                   onChange={(e) =>
                     setLessonDuration(
@@ -1090,28 +1091,41 @@ export default function DashboardOverviewPage() {
 
             {lessonContentType !== "TEXT" && (
               <div className="flex flex-col gap-1.5">
-                <label
-                  className="text-xs font-semibold text-on-surface ml-1"
-                  htmlFor="lVideo"
-                >
-                  Đường dẫn Video
-                </label>
+                <div className="flex items-center justify-between">
+                  <label
+                    className="text-xs font-semibold text-on-surface ml-1"
+                    htmlFor="lVideo"
+                  >
+                    {lessonContentType === "AUDIO"
+                      ? "Đường dẫn Audio / NotebookLM"
+                      : "Đường dẫn Video / Audio"}
+                  </label>
+                  <span className="text-[10px] text-primary font-medium">Hỗ trợ YouTube & NotebookLM</span>
+                </div>
                 <input
                   id="lVideo"
                   type="text"
-                  placeholder="Dán link youtube hoặc video"
-                  className="w-full bg-white border border-outline-variant/30 rounded-2xl px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                  placeholder={
+                    lessonContentType === "AUDIO"
+                      ? "Dán link Google Drive (Audio Overview), file .m4a/.mp3 hoặc link NotebookLM..."
+                      : "Dán link YouTube, Google Drive (NotebookLM), hoặc file video/audio..."
+                  }
+                  className="w-full bg-white border border-outline-variant/30 rounded-none px-4 py-3 text-xs text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
                   value={lessonVideoUrl}
                   onChange={(e) => {
                     const val = e.target.value;
                     const cleaned = extractVideoIdentifier(val);
-                    if (cleaned && cleaned !== val && val.includes("http")) {
+                    if (cleaned && cleaned !== val && (val.includes("youtube.com") || val.includes("youtu.be"))) {
                       setLessonVideoUrl(cleaned);
                     } else {
                       setLessonVideoUrl(val);
                     }
                   }}
                 />
+                <p className="text-[10px] text-on-surface-variant font-light ml-1 leading-relaxed">
+                  💡 <strong>YouTube:</strong> Link xem hoặc mã video (vd: <code className="bg-surface-container px-1">GU3JqoUDkjA</code>).<br />
+                  💡 <strong>NotebookLM:</strong> Link Google Drive chia sẻ (Audio Overview), link tệp <code className="bg-surface-container px-1">.m4a/.mp3</code>, hoặc link sổ tay NotebookLM.
+                </p>
               </div>
             )}
 
@@ -1302,27 +1316,27 @@ export default function DashboardOverviewPage() {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-outline-variant/30">
-                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20">
+                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20 whitespace-nowrap">
                     Khóa học
                   </EyebrowLabel>
-                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20">
+                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20 whitespace-nowrap">
                     Đối tượng
                   </EyebrowLabel>
-                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20">
+                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20 whitespace-nowrap">
                     Số bài học
                   </EyebrowLabel>
-                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20">
+                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20 whitespace-nowrap">
                     Lượt học viên
                   </EyebrowLabel>
-                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20">
+                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20 whitespace-nowrap">
                     Đã xong / Đang học
                   </EyebrowLabel>
-                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20">
+                  <EyebrowLabel as="th" className="py-4 px-4 bg-white/20 whitespace-nowrap">
                     Trạng thái
                   </EyebrowLabel>
                   <EyebrowLabel
                     as="th"
-                    className="py-4 px-4 bg-white/20 text-right"
+                    className="py-4 px-4 bg-white/20 text-right whitespace-nowrap"
                   >
                     Thao tác
                   </EyebrowLabel>
@@ -1337,11 +1351,11 @@ export default function DashboardOverviewPage() {
                     <td className="py-4 px-4 font-bold text-on-surface">
                       {c.title}
                     </td>
-                    <td className="py-4 px-4">
+                    <td className="py-4 px-4 whitespace-nowrap">
                       <span
-                        className={`px-2.5 py-0.5 rounded-full border text-[9px] font-bold uppercase ${
+                        className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-none border text-[9px] font-bold uppercase tracking-wider whitespace-nowrap ${
                           c.target_audience === "PARENT"
-                            ? "border-secondary-container/20 bg-secondary-container/10 text-secondary-container"
+                            ? "border-secondary/30 bg-secondary/10 text-secondary"
                             : c.target_audience === "CHILD"
                               ? "border-primary/20 bg-primary/10 text-primary"
                               : "border-tertiary/20 bg-tertiary/10 text-tertiary"
@@ -1354,13 +1368,13 @@ export default function DashboardOverviewPage() {
                             : "Cả hai"}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-on-surface-variant font-medium">
+                    <td className="py-4 px-4 text-on-surface-variant font-medium whitespace-nowrap">
                       {c.total_lessons} bài
                     </td>
-                    <td className="py-4 px-4 font-bold text-on-surface">
+                    <td className="py-4 px-4 font-bold text-on-surface whitespace-nowrap">
                       {c.total_enrolled}
                     </td>
-                    <td className="py-4 px-4 text-on-surface-variant">
+                    <td className="py-4 px-4 text-on-surface-variant whitespace-nowrap">
                       <strong className="text-primary font-bold">
                         {c.completed_count}
                       </strong>{" "}
@@ -1370,34 +1384,36 @@ export default function DashboardOverviewPage() {
                       </strong>{" "}
                       Đang học
                     </td>
-                    <td className="py-4 px-4">
+                    <td className="py-4 px-4 whitespace-nowrap">
                       <span
-                        className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                        className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-none text-[9px] font-bold uppercase tracking-wider whitespace-nowrap ${
                           c.is_published
                             ? "bg-primary/10 text-primary border border-primary/20"
-                            : "bg-surface-container text-on-surface-variant"
+                            : "bg-surface-container text-on-surface-variant border border-outline-variant/30"
                         }`}
                       >
                         {c.is_published ? "Public" : "Bản nháp"}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-right flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => handleSelectCourse(c.course_id)}
-                        className="px-3 py-1.5 rounded-full text-[10px] font-bold transition-all cursor-pointer shadow-sm bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
-                      >
-                        Quản lý
-                      </button>
-                      <button
-                        onClick={() => handleTogglePublish(c.course_id)}
-                        className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition-all cursor-pointer shadow-sm ${
-                          c.is_published
-                            ? "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-                            : "bg-primary text-white hover:opacity-90"
-                        }`}
-                      >
-                        {c.is_published ? "Hạ nháp" : "Xuất bản"}
-                      </button>
+                    <td className="py-4 px-4 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleSelectCourse(c.course_id)}
+                          className="px-3 py-1.5 rounded-none text-[10px] font-bold transition-all cursor-pointer shadow-sm bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
+                        >
+                          Quản lý
+                        </button>
+                        <button
+                          onClick={() => handleTogglePublish(c.course_id)}
+                          className={`px-3 py-1.5 rounded-none text-[10px] font-bold transition-all cursor-pointer shadow-sm ${
+                            c.is_published
+                              ? "bg-surface-container text-on-surface-variant hover:bg-surface-container-high border border-outline-variant/30"
+                              : "bg-primary text-white hover:opacity-90"
+                          }`}
+                        >
+                          {c.is_published ? "Hạ nháp" : "Xuất bản"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

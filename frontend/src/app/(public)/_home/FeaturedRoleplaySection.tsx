@@ -140,14 +140,10 @@ export const FeaturedRoleplaySection: React.FC = () => {
   }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove]);
 
   return (
-    <section className="py-24 px-4 md:px-16 relative overflow-hidden bg-gradient-to-b from-transparent via-primary-container/15 to-transparent select-none">
+    <section className="py-24 px-4 md:px-16 relative overflow-hidden bg-surface select-none">
       <div className="max-w-5xl mx-auto flex flex-col gap-10">
         {/* Section Header */}
         <div className="text-center space-y-3 max-w-2xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold shadow-2xs">
-            <Sparkle size={14} weight="fill" />
-            <span>SO SÁNH CÔNG NGHỆ NHẬP VAI AI</span>
-          </div>
           <h2 className="text-2xl md:text-4xl font-extrabold text-on-surface tracking-tight">
             Không Chỉ Trả Lời — Đây Là Đối Thoại Có Cảm Xúc
           </h2>
@@ -172,10 +168,10 @@ export const FeaturedRoleplaySection: React.FC = () => {
                 handleMove(e.touches[0].clientX);
               }
             }}
-            className="relative rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 cursor-ew-resize bg-surface-container-lowest"
+            className="relative rounded-none shadow-depth-3 overflow-hidden border border-outline-variant/40 cursor-ew-resize bg-white"
           >
             {/* Top Bar with Clean Windows Dots */}
-            <div className="px-5 py-3 flex items-center justify-start border-b border-outline-variant/20 bg-white/95 backdrop-blur-md z-30 relative">
+            <div className="px-5 py-3 flex items-center justify-start border-b border-outline-variant/20 bg-white z-30 relative">
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
@@ -406,16 +402,16 @@ export const FeaturedRoleplaySection: React.FC = () => {
                 }}
               >
                 {/* Slim Vertical Divider Line */}
-                <div className="w-[1.5px] h-full bg-slate-300/80 shadow-xs relative">
-                  <div className="absolute inset-y-0 -left-0.5 -right-0.5 bg-primary/20 blur-xs"></div>
+                <div className="w-[1.5px] h-full bg-slate-300 relative">
+                  <div className="absolute inset-y-0 -left-0.5 -right-0.5 bg-primary/20"></div>
                 </div>
 
                 {/* Sleek Minimalist Pill Drag Capsule */}
                 <div
-                  className={`absolute top-1/2 -translate-y-1/2 w-7 h-11 sm:w-8 sm:h-12 rounded-full bg-white/95 backdrop-blur-md text-slate-600 shadow-md shadow-black/10 border border-slate-200/90 flex flex-col items-center justify-center gap-0.5 pointer-events-auto cursor-ew-resize transition-all duration-150 ${
+                  className={`absolute top-1/2 -translate-y-1/2 w-7 h-11 sm:w-8 sm:h-12 rounded-none bg-white text-slate-700 shadow-depth-2 border border-slate-300 flex flex-col items-center justify-center gap-0.5 pointer-events-auto cursor-ew-resize transition-all duration-150 ${
                     isDragging
-                      ? "scale-110 shadow-lg ring-2 ring-primary/30 border-primary/50 text-primary"
-                      : "hover:scale-105 hover:border-slate-300 hover:shadow-lg"
+                      ? "scale-105 shadow-depth-3 border-primary text-primary"
+                      : "hover:scale-105 hover:border-slate-400 hover:shadow-depth-3"
                   }`}
                   onMouseDown={(e) => {
                     e.stopPropagation();
@@ -428,7 +424,7 @@ export const FeaturedRoleplaySection: React.FC = () => {
                 >
                   <div className="flex items-center justify-center text-slate-500 hover:text-primary">
                     <CaretLeft size={10} weight="bold" />
-                    <div className="w-[1.5px] h-3.5 bg-slate-300 mx-0.5 rounded-full" />
+                    <div className="w-[1.5px] h-3.5 bg-slate-300 mx-0.5 rounded-none" />
                     <CaretRight size={10} weight="bold" />
                   </div>
                 </div>
@@ -441,7 +437,7 @@ export const FeaturedRoleplaySection: React.FC = () => {
         <div className="flex justify-center pt-2 relative z-30">
           <Link
             href="/game"
-            className="inline-flex items-center gap-3 px-7 py-3.5 rounded-2xl bg-primary text-white text-sm font-bold shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all group cursor-pointer"
+            className="inline-flex items-center gap-3 px-7 py-3.5 rounded-none bg-primary text-white text-sm font-bold shadow-depth-2 hover:bg-primary-hover transition-all group cursor-pointer"
           >
             <span>Bước vào Phòng Chơi Giả Lập AI Để Thử Thách Ngay</span>
             <ArrowRight
@@ -454,15 +450,12 @@ export const FeaturedRoleplaySection: React.FC = () => {
 
         {/* 3 CORE FEATURE PILLARS (RESPONSIVE GRID) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto w-full pt-2">
-          <div className="bg-white/95 backdrop-blur-md rounded-3xl p-5 border border-white/80 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col items-center text-center gap-3">
+          <div className="bg-white rounded-none p-5 border border-outline-variant/40 shadow-depth-1 hover:shadow-depth-2 hover:-translate-y-1 transition-all duration-200 flex flex-col items-center text-center gap-3">
             <RoleplayInteractiveIllustration className="w-28 h-20" />
             <div>
               <div className="flex items-center justify-center gap-1.5">
                 <span className="text-sm font-bold text-on-surface">
                   Giả Lập 1–1
-                </span>
-                <span className="px-1.5 py-0.2 rounded text-[8px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                  Thực chiến
                 </span>
               </div>
               <p className="text-xs text-on-surface-variant font-light leading-snug mt-1">
@@ -471,15 +464,12 @@ export const FeaturedRoleplaySection: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white/95 backdrop-blur-md rounded-3xl p-5 border border-white/80 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col items-center text-center gap-3">
+          <div className="bg-white rounded-none p-5 border border-outline-variant/40 shadow-depth-1 hover:shadow-depth-2 hover:-translate-y-1 transition-all duration-200 flex flex-col items-center text-center gap-3">
             <MedicalBoundaryIllustration className="w-28 h-20" />
             <div>
               <div className="flex items-center justify-center gap-1.5">
                 <span className="text-sm font-bold text-on-surface">
                   Chuẩn Y Văn
-                </span>
-                <span className="px-1.5 py-0.2 rounded text-[8px] font-extrabold bg-teal-50 text-teal-700 border border-teal-200/60">
-                  Y tế
                 </span>
               </div>
               <p className="text-xs text-on-surface-variant font-light leading-snug mt-1">
@@ -488,14 +478,13 @@ export const FeaturedRoleplaySection: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white/95 backdrop-blur-md rounded-3xl p-5 border border-white/80 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col items-center text-center gap-3">
+          <div className="bg-white rounded-none p-5 border border-outline-variant/40 shadow-depth-1 hover:shadow-depth-2 hover:-translate-y-1 transition-all duration-200 flex flex-col items-center text-center gap-3">
             <AnonymousSafeIllustration className="w-28 h-20" />
             <div>
               <div className="flex items-center justify-center gap-1.5">
                 <span className="text-sm font-bold text-on-surface">
                   100% Ẩn Danh
                 </span>
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
               </div>
               <p className="text-xs text-on-surface-variant font-light leading-snug mt-1">
                 Bảo mật danh tính tuyệt đối, đồng hành không phán xét

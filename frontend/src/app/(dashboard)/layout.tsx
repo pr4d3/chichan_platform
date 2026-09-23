@@ -10,7 +10,6 @@ import {
   ChartLineUp,
   UserGear,
   UsersThree,
-  Robot,
   ArrowLeft,
 } from "@phosphor-icons/react";
 
@@ -68,7 +67,7 @@ export default function DashboardLayout({
                         
                         <Link
                             href="/dashboard"
-                            className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all ${
+                            className={`flex items-center gap-3 px-4 py-3 rounded-none text-xs font-semibold transition-all ${
                                 isLinkActive('/dashboard') 
                                     ? 'bg-primary text-white shadow-sm' 
                                     : 'text-on-surface-variant hover:text-on-surface hover:bg-white/50'
@@ -81,7 +80,7 @@ export default function DashboardLayout({
                         {user?.role === 'ADMIN' && (
                             <Link
                                 href="/dashboard/users"
-                                className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all ${
+                                className={`flex items-center gap-3 px-4 py-3 rounded-none text-xs font-semibold transition-all ${
                                     isLinkActive('/dashboard/users') 
                                         ? 'bg-primary text-white shadow-sm' 
                                         : 'text-on-surface-variant hover:text-on-surface hover:bg-white/50'
@@ -94,7 +93,7 @@ export default function DashboardLayout({
 
                         <Link
                             href="/dashboard/students"
-                            className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all ${
+                            className={`flex items-center gap-3 px-4 py-3 rounded-none text-xs font-semibold transition-all ${
                                 isLinkActive('/dashboard/students') 
                                     ? 'bg-primary text-white shadow-sm' 
                                     : 'text-on-surface-variant hover:text-on-surface hover:bg-white/50'
@@ -103,25 +102,13 @@ export default function DashboardLayout({
                             <UsersThree size={18} weight="bold" />
                             Theo dõi học viên
                         </Link>
-
-                        <Link
-                            href="/game"
-                            className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all ${
-                                isLinkActive('/game') 
-                                    ? 'bg-primary text-white shadow-sm' 
-                                    : 'text-on-surface-variant hover:text-on-surface hover:bg-white/50'
-                            }`}
-                        >
-                            <Robot size={18} weight="duotone" />
-                            Phòng Chơi AI Roleplay
-                        </Link>
                     </div>
                 </div>
 
                 {/* Sidebar footer */}
                 <div className="p-4 border-t border-outline-variant/20 space-y-2">
-                    <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/60 border border-white/80 shadow-sm">
-                        <div className="h-9 w-9 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-bold uppercase">
+                    <div className="flex items-center gap-3 p-3 rounded-none bg-white/60 border border-white/80 shadow-sm">
+                        <div className="h-9 w-9 rounded-none bg-primary/15 text-primary flex items-center justify-center text-xs font-bold uppercase">
                             {user?.full_name?.charAt(0) || 'G'}
                         </div>
                         <div className="truncate">
@@ -132,7 +119,7 @@ export default function DashboardLayout({
 
                     <button
                         onClick={() => router.push('/')}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold text-on-surface-variant hover:text-on-surface hover:bg-white/50 transition-all cursor-pointer"
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-none text-xs font-semibold text-on-surface-variant hover:text-on-surface hover:bg-white/50 transition-all cursor-pointer"
                     >
                         <ArrowLeft size={18} weight="bold" />
                         Về trang chủ

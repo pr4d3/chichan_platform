@@ -213,10 +213,10 @@ export default function ProfilePage() {
                                             <div className="flex-1 w-full space-y-4">
                                                 <div className="flex items-center justify-between gap-4">
                                                     <h3 className="font-bold text-on-surface text-sm sm:text-base leading-snug">{c.course_title}</h3>
-                                                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase ${
+                                                    <span className={`inline-flex items-center justify-center text-[9px] font-bold px-2 py-0.5 rounded-none border uppercase tracking-wider whitespace-nowrap ${
                                                         c.status === 'COMPLETED'
                                                             ? 'border-primary/20 bg-primary/10 text-primary'
-                                                            : 'border-secondary-container/20 bg-secondary-container/10 text-secondary-container'
+                                                            : 'border-secondary/30 bg-secondary/10 text-secondary'
                                                     }`}>
                                                         {c.status === 'COMPLETED' ? 'Hoàn thành' : 'Đang học'}
                                                     </span>
@@ -300,7 +300,7 @@ export default function ProfilePage() {
                                         id="fullName"
                                         type="text"
                                         required
-                                        className="w-full bg-white/50 border border-white/60 rounded-2xl px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary focus:border-primary shadow-inner transition-all outline-none"
+                                        className="w-full bg-white border border-outline-variant/60 rounded-none px-4 py-3 text-sm text-on-surface focus:ring-1 focus:ring-primary focus:border-primary transition-colors outline-none"
                                         value={fullName}
                                         onChange={(e) => setFullName(e.target.value)}
                                     />
@@ -309,7 +309,7 @@ export default function ProfilePage() {
                                 <FormRow label="Giới tính" htmlFor="gender" className="flex flex-col gap-1.5">
                                     <select
                                         id="gender"
-                                        className="w-full bg-white/50 border border-white/60 rounded-2xl px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary focus:border-primary shadow-inner transition-all outline-none"
+                                        className="w-full bg-white border border-outline-variant/60 rounded-none px-4 py-3 text-sm text-on-surface focus:ring-1 focus:ring-primary focus:border-primary transition-colors outline-none"
                                         value={gender}
                                         onChange={(e) => setGender(e.target.value)}
                                     >
@@ -324,7 +324,7 @@ export default function ProfilePage() {
                                     <input
                                         id="dob"
                                         type="date"
-                                        className="w-full bg-white/50 border border-white/60 rounded-2xl px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary focus:border-primary shadow-inner transition-all outline-none"
+                                        className="w-full bg-white border border-outline-variant/60 rounded-none px-4 py-3 text-sm text-on-surface focus:ring-1 focus:ring-primary focus:border-primary transition-colors outline-none"
                                         value={dob}
                                         onChange={(e) => setDob(e.target.value)}
                                     />
@@ -334,7 +334,7 @@ export default function ProfilePage() {
                                     <input
                                         id="phone"
                                         type="text"
-                                        className="w-full bg-white/50 border border-white/60 rounded-2xl px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary focus:border-primary shadow-inner transition-all outline-none"
+                                        className="w-full bg-white border border-outline-variant/60 rounded-none px-4 py-3 text-sm text-on-surface focus:ring-1 focus:ring-primary focus:border-primary transition-colors outline-none"
                                         placeholder="0901234567"
                                         value={phone}
                                         onChange={(e) => setPhone(e.target.value)}
@@ -345,7 +345,7 @@ export default function ProfilePage() {
                                     <input
                                         id="avatarUrl"
                                         type="text"
-                                        className="w-full bg-white/50 border border-white/60 rounded-2xl px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary focus:border-primary shadow-inner transition-all outline-none"
+                                        className="w-full bg-white border border-outline-variant/60 rounded-none px-4 py-3 text-sm text-on-surface focus:ring-1 focus:ring-primary focus:border-primary transition-colors outline-none"
                                         placeholder="https://image-url.com/avatar.jpg"
                                         value={avatarUrl}
                                         onChange={(e) => setAvatarUrl(e.target.value)}
@@ -357,7 +357,7 @@ export default function ProfilePage() {
                                         ref={bioRef}
                                         id="bio"
                                         rows={4}
-                                        className="w-full bg-white/50 border border-white/60 rounded-2xl px-4 py-3 text-sm text-on-surface focus:ring-2 focus:ring-primary focus:border-primary shadow-inner transition-all outline-none resize-none overflow-hidden"
+                                        className="w-full bg-white border border-outline-variant/60 rounded-none px-4 py-3 text-sm text-on-surface focus:ring-1 focus:ring-primary focus:border-primary transition-colors outline-none resize-none overflow-hidden"
                                         placeholder="Nhập giới thiệu ngắn về bản thân..."
                                         value={bio}
                                         onChange={(e) => setBio(e.target.value)}

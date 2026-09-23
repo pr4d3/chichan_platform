@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -149,7 +150,7 @@ export default function RegisterPage() {
     return (
         <>
             {error && (
-                <div className="rounded-2xl bg-red-50 border border-red-200/50 p-4 text-xs font-semibold text-red-600">
+                <div className="rounded-none bg-red-50 border border-red-200 p-4 text-xs font-semibold text-red-600">
                     {error}
                 </div>
             )}
@@ -163,10 +164,10 @@ export default function RegisterPage() {
                     <div className="grid grid-cols-2 gap-3">
                         <div
                             onClick={() => setRole('STUDENT_PARENT')}
-                            className={`flex flex-col items-center justify-center p-3 rounded-2xl border cursor-pointer backdrop-blur-sm transition-all select-none ${
+                            className={`flex flex-col items-center justify-center p-3 rounded-none border cursor-pointer transition-all select-none ${
                                 role === 'STUDENT_PARENT' 
-                                    ? 'border-primary bg-primary-fixed/30 shadow-sm' 
-                                    : 'border-white/60 bg-white/40 hover:bg-white/60'
+                                    ? 'border-primary bg-primary/10 text-primary font-bold shadow-depth-1' 
+                                    : 'border-outline-variant/30 bg-white hover:bg-surface-container-low'
                             }`}
                         >
                             <HouseLine size={24} weight="duotone" className="text-primary mb-1.5" />
@@ -174,10 +175,10 @@ export default function RegisterPage() {
                         </div>
                         <div
                             onClick={() => setRole('STUDENT_CHILD')}
-                            className={`flex flex-col items-center justify-center p-3 rounded-2xl border cursor-pointer backdrop-blur-sm transition-all select-none ${
+                            className={`flex flex-col items-center justify-center p-3 rounded-none border cursor-pointer transition-all select-none ${
                                 role === 'STUDENT_CHILD' 
-                                    ? 'border-primary bg-primary-fixed/30 shadow-sm' 
-                                    : 'border-white/60 bg-white/40 hover:bg-white/60'
+                                    ? 'border-primary bg-primary/10 text-primary font-bold shadow-depth-1' 
+                                    : 'border-outline-variant/30 bg-white hover:bg-surface-container-low'
                             }`}
                         >
                             <Backpack size={24} weight="duotone" className="text-primary mb-1.5" />
@@ -194,10 +195,10 @@ export default function RegisterPage() {
                         type="text"
                         required
                         placeholder=" "
-                        className={`peer block w-full px-5 pt-[20px] pb-[8px] rounded-2xl bg-white/50 border focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all text-sm text-on-surface placeholder:text-transparent backdrop-blur-sm shadow-inner ${
+                        className={`peer block w-full px-5 pt-[20px] pb-[8px] rounded-none bg-white border focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none transition-colors text-sm text-on-surface placeholder:text-transparent ${
                             touched.fullName && errors.fullName
                                 ? 'border-red-400 focus:ring-red-400'
-                                : 'border-white/60'
+                                : 'border-outline-variant/60'
                         }`}
                         value={fullName}
                         onBlur={() => setTouched(p => ({ ...p, fullName: true }))}
@@ -225,10 +226,10 @@ export default function RegisterPage() {
                         type="text"
                         required
                         placeholder=" "
-                        className={`peer block w-full px-5 pt-[20px] pb-[8px] rounded-2xl bg-white/50 border focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all text-sm text-on-surface placeholder:text-transparent backdrop-blur-sm shadow-inner ${
+                        className={`peer block w-full px-5 pt-[20px] pb-[8px] rounded-none bg-white border focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none transition-colors text-sm text-on-surface placeholder:text-transparent ${
                             touched.username && errors.username
                                 ? 'border-red-400 focus:ring-red-400'
-                                : 'border-white/60'
+                                : 'border-outline-variant/60'
                         }`}
                         value={username}
                         onBlur={() => setTouched(p => ({ ...p, username: true }))}
@@ -256,10 +257,10 @@ export default function RegisterPage() {
                         type="email"
                         required
                         placeholder=" "
-                        className={`peer block w-full px-5 pt-[20px] pb-[8px] rounded-2xl bg-white/50 border focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all text-sm text-on-surface placeholder:text-transparent backdrop-blur-sm shadow-inner ${
+                        className={`peer block w-full px-5 pt-[20px] pb-[8px] rounded-none bg-white border focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none transition-colors text-sm text-on-surface placeholder:text-transparent ${
                             touched.email && errors.email
                                 ? 'border-red-400 focus:ring-red-400'
-                                : 'border-white/60'
+                                : 'border-outline-variant/60'
                         }`}
                         value={email}
                         onBlur={() => setTouched(p => ({ ...p, email: true }))}
@@ -287,10 +288,10 @@ export default function RegisterPage() {
                         type="password"
                         required
                         placeholder=" "
-                        className={`peer block w-full px-5 pt-[20px] pb-[8px] rounded-2xl bg-white/50 border focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none transition-all text-sm text-on-surface placeholder:text-transparent backdrop-blur-sm shadow-inner ${
+                        className={`peer block w-full px-5 pt-[20px] pb-[8px] rounded-none bg-white border focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none transition-colors text-sm text-on-surface placeholder:text-transparent ${
                             touched.password && errors.password
                                 ? 'border-red-400 focus:ring-red-400'
-                                : 'border-white/60'
+                                : 'border-outline-variant/60'
                         }`}
                         value={password}
                         onBlur={() => setTouched(p => ({ ...p, password: true }))}
@@ -316,7 +317,7 @@ export default function RegisterPage() {
                             {password.length >= 6 ? (
                                 <Check size={14} weight="bold" className="text-emerald-500 shrink-0" />
                             ) : (
-                                <span className="h-1.5 w-1.5 rounded-full bg-on-surface-variant/40 ml-1.5 mr-1" />
+                                <span className="h-1.5 w-1.5 rounded-none bg-on-surface-variant/40 ml-1.5 mr-1" />
                             )}
                             <span className={password.length >= 6 ? "text-emerald-600 font-semibold" : "text-on-surface-variant/50"}>
                                 Tối thiểu 6 ký tự
@@ -327,7 +328,7 @@ export default function RegisterPage() {
                             {/[a-zA-Z]/.test(password) ? (
                                 <Check size={14} weight="bold" className="text-emerald-500 shrink-0" />
                             ) : (
-                                <span className="h-1.5 w-1.5 rounded-full bg-on-surface-variant/40 ml-1.5 mr-1" />
+                                <span className="h-1.5 w-1.5 rounded-none bg-on-surface-variant/40 ml-1.5 mr-1" />
                             )}
                             <span className={/[a-zA-Z]/.test(password) ? "text-emerald-600 font-semibold" : "text-on-surface-variant/50"}>
                                 Chứa ít nhất 1 chữ cái
@@ -338,7 +339,7 @@ export default function RegisterPage() {
                             {/\d/.test(password) ? (
                                 <Check size={14} weight="bold" className="text-emerald-500 shrink-0" />
                             ) : (
-                                <span className="h-1.5 w-1.5 rounded-full bg-on-surface-variant/40 ml-1.5 mr-1" />
+                                <span className="h-1.5 w-1.5 rounded-none bg-on-surface-variant/40 ml-1.5 mr-1" />
                             )}
                             <span className={/\d/.test(password) ? "text-emerald-600 font-semibold" : "text-on-surface-variant/50"}>
                                 Chứa ít nhất 1 chữ số
@@ -349,7 +350,7 @@ export default function RegisterPage() {
                             {password && !/\s/.test(password) ? (
                                 <Check size={14} weight="bold" className="text-emerald-500 shrink-0" />
                             ) : (
-                                <span className="h-1.5 w-1.5 rounded-full bg-on-surface-variant/40 ml-1.5 mr-1" />
+                                <span className="h-1.5 w-1.5 rounded-none bg-on-surface-variant/40 ml-1.5 mr-1" />
                             )}
                             <span className={password && !/\s/.test(password) ? "text-emerald-600 font-semibold" : "text-on-surface-variant/50"}>
                                 Không chứa khoảng trắng
@@ -361,10 +362,20 @@ export default function RegisterPage() {
                 <button
                     type="submit"
                     disabled={loading || success}
-                    className="w-full mt-2 bg-primary text-white py-4 rounded-2xl font-bold text-xs transition-all duration-300 hover:opacity-90 disabled:opacity-50 cursor-pointer shadow-md hover:shadow-lg"
+                    className="w-full mt-2 bg-primary text-white py-3.5 rounded-none font-bold text-xs transition-all duration-200 hover:bg-primary-hover disabled:opacity-50 cursor-pointer shadow-depth-1 hover:shadow-depth-2"
                 >
                     {loading ? 'Đang tạo tài khoản...' : 'Đăng ký'}
                 </button>
+
+                <p className="text-center text-xs text-on-surface-variant mt-2">
+                    Đã có tài khoản?{' '}
+                    <Link
+                        href="/login"
+                        className="font-bold text-primary hover:underline hover:text-primary-hover transition-colors"
+                    >
+                        Đăng nhập ngay
+                    </Link>
+                </p>
             </form>
         </>
     );

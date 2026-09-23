@@ -4,6 +4,7 @@ from repositories import forum_repository
 from models.forum import ForumPost, ForumComment
 from schemas.forum_schema import PostCreate, CommentCreate
 from uuid import UUID
+import base64
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -60,45 +61,96 @@ def _serialize_feed_post(p, comment_count: int, liked_ids: set, current_user_id:
         "created_at": p.created_at
     }
 
+def _encode_cursor(sort_by: str, post: ForumPost, comment_count: int) -> str:
+    if sort_by == "most_comments":
+        sort_val = str(comment_count)
+    elif sort_by == "most_likes":
+        sort_val = str(post.likes_count or 0)
+    elif sort_by == "most_views":
+        sort_val = str(post.views_count or 0)
+    else:
+        sort_val = ""
+    raw = f"{sort_by}|{sort_val}|{post.created_at.isoformat()}|{post.id}"
+    return base64.urlsafe_b64encode(raw.encode()).decode()
+
+def _decode_cursor(cursor_str: str) -> tuple[Optional[str], Optional[int], Optional[datetime], Optional[UUID]]:
+    try:
+        raw = base64.urlsafe_b64decode(cursor_str.encode()).decode()
+        parts = raw.split("|")
+        # Hỗ trợ định dạng cũ: dt|id
+        if len(parts) == 2:
+            return "newest", None, datetime.fromisoformat(parts[0]), UUID(parts[1])
+        if len(parts) == 4:
+            mode = parts[0]
+            val = int(parts[1]) if parts[1] else None
+            dt = datetime.fromisoformat(parts[2])
+            pid = UUID(parts[3])
+            return mode, val, dt, pid
+        return None, None, None, None
+    except Exception:
+        return None, None, None, None
+
 async def get_forum_feed(
     db: AsyncSession,
-    category_id: int = None,
-    search: str = None,
+    category_id: Optional[int] = None,
+    search: Optional[str] = None,
     include_hidden_deleted: bool = False,
     current_user_id: Optional[UUID] = None,
-    limit: int = None,
-    offset: int = None
+    limit: Optional[int] = None,
+    cursor: Optional[str] = None,
+    sort_by: str = "newest"
 ):
-    # COMPAT SHIM cho site đang live: không truyền limit/offset -> trả list bài viết đầy đủ như cũ.
-    # Truyền limit (hoặc offset) -> trả dict phân trang {items, total, limit, offset}.
-    paginated = limit is not None or offset is not None
+    if sort_by not in ("newest", "most_comments", "most_likes", "most_views"):
+        sort_by = "newest"
+
+    # Phân trang con trỏ khi client truyền limit hoặc cursor
+    paginated = limit is not None or cursor is not None
     if paginated:
-        # Chế độ phân trang mới (router đã cap limit <= 50)
-        if limit is None:
-            limit = 20
-        if offset is None:
-            offset = 0
-        total = await forum_repository.count_posts(db, category_id, search, include_hidden_deleted)
-        posts = await forum_repository.get_posts(db, category_id, search, include_hidden_deleted, limit=limit, offset=offset)
+        fetch_limit = limit or 20
+        c_mode, c_val, cursor_dt, cursor_id = _decode_cursor(cursor) if cursor else (None, None, None, None)
+        # Nếu cursor truyền vào khác chế độ sort_by hiện tại, đặt lại con trỏ
+        if c_mode and c_mode != sort_by:
+            c_val, cursor_dt, cursor_id = None, None, None
+
+        raw_posts = await forum_repository.get_posts(
+            db,
+            category_id=category_id,
+            search=search,
+            include_hidden_deleted=include_hidden_deleted,
+            limit=fetch_limit + 1,
+            cursor_created_at=cursor_dt,
+            cursor_id=cursor_id,
+            sort_by=sort_by,
+            cursor_sort_val=c_val
+        )
+        has_more = len(raw_posts) > fetch_limit
+        posts = raw_posts[:fetch_limit]
     else:
-        posts = await forum_repository.get_posts(db, category_id, search, include_hidden_deleted)
+        posts = await forum_repository.get_posts(
+            db,
+            category_id=category_id,
+            search=search,
+            include_hidden_deleted=include_hidden_deleted,
+            sort_by=sort_by
+        )
+        has_more = False
 
     post_ids = [p.id for p in posts]
     liked_ids = await forum_repository.get_user_liked_post_ids(db, current_user_id, post_ids) if current_user_id else set()
-
-    # Đếm bình luận cho cả danh sách bài viết trong 1 truy vấn GROUP BY (tránh N+1 query từng bài)
     comment_counts = await forum_repository.count_comments_for_posts(db, post_ids)
 
-    results = []
-    for p in posts:
-        results.append(_serialize_feed_post(p, comment_counts.get(p.id, 0), liked_ids, current_user_id))
+    results = [
+        _serialize_feed_post(p, comment_counts.get(p.id, 0), liked_ids, current_user_id)
+        for p in posts
+    ]
+
+    next_cursor = _encode_cursor(sort_by, posts[-1], comment_counts.get(posts[-1].id, 0)) if (paginated and has_more and posts) else None
 
     if paginated:
         return {
             "items": results,
-            "total": total,
-            "limit": limit,
-            "offset": offset
+            "next_cursor": next_cursor,
+            "has_more": has_more
         }
     return results
 
