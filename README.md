@@ -1,4 +1,4 @@
-# SexEd Platform 🌱
+# Chichan Platform 🌱
 
 > Học về giới tính không có gì phải ngại — hỏi thẳng, học cho chắc, luyện trước khi gặp thật.
 
