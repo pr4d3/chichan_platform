@@ -40,8 +40,11 @@ async def complete_lesson(course_id: UUID, lesson_id: UUID, current_user: User =
 import os
 import uuid
 import io
-from fastapi import UploadFile, File, HTTPException
-from PIL import Image, ImageOps
+try:
+    from PIL import Image, ImageOps
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
 
 UPLOAD_AVATARS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads", "avatars")
 os.makedirs(UPLOAD_AVATARS_DIR, exist_ok=True)
@@ -98,25 +101,28 @@ async def upload_avatar(
         )
 
     try:
-        image = Image.open(io.BytesIO(contents))
-        image = ImageOps.exif_transpose(image)
-        if image.mode in ("RGBA", "LA") or (image.mode == "P" and "transparency" in image.info):
-            image = image.convert("RGBA")
+        if HAS_PIL:
+            image = Image.open(io.BytesIO(contents))
+            image = ImageOps.exif_transpose(image)
+            if image.mode in ("RGBA", "LA") or (image.mode == "P" and "transparency" in image.info):
+                image = image.convert("RGBA")
+            else:
+                image = image.convert("RGB")
+
+            # Center crop to square
+            w, h = image.size
+            min_dim = min(w, h)
+            left = (w - min_dim) // 2
+            top = (h - min_dim) // 2
+            image = image.crop((left, top, left + min_dim, top + min_dim))
+            image = image.resize((400, 400), Image.Resampling.LANCZOS)
+
+            # Encode WebP bytes for database storage
+            output_buffer = io.BytesIO()
+            image.save(output_buffer, "WEBP", quality=85)
+            avatar_bytes = output_buffer.getvalue()
         else:
-            image = image.convert("RGB")
-
-        # Center crop to square
-        w, h = image.size
-        min_dim = min(w, h)
-        left = (w - min_dim) // 2
-        top = (h - min_dim) // 2
-        image = image.crop((left, top, left + min_dim, top + min_dim))
-        image = image.resize((400, 400), Image.Resampling.LANCZOS)
-
-        # Encode WebP bytes for database storage
-        output_buffer = io.BytesIO()
-        image.save(output_buffer, "WEBP", quality=85)
-        avatar_bytes = output_buffer.getvalue()
+            avatar_bytes = contents
 
         # Save to disk as well
         filename = f"{uuid.uuid4().hex}.webp"
