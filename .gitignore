@@ -42,3 +42,4 @@ scratch/
 # dev zone
 tasks/
 backend/seeds/
+backend/tests/

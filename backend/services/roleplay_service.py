@@ -376,6 +376,46 @@ async def add_sse_heartbeat(generator: AsyncGenerator[str, None], interval: floa
         except (asyncio.CancelledError, StopAsyncIteration, Exception):
             pass
 
+# --- Hàm trích xuất và phân tích JSON kiên cố từ buffer của LLM ---
+def extract_json_from_buffer(buffer: str) -> dict:
+    """Trích xuất và phân tích JSON an toàn từ buffer trả về của LLM (xử lý markdown codeblock, text rác và cắt cụt)"""
+    text = buffer.strip()
+    # 1. Loại bỏ markdown code fences nếu có
+    if text.startswith("```"):
+        lines = text.split("\n")
+        if len(lines) > 2 and lines[-1].strip() == "```":
+            text = "\n".join(lines[1:-1]).strip()
+        elif lines[0].startswith("```"):
+            text = "\n".join(lines[1:]).strip()
+            if text.endswith("```"):
+                text = text[:-3].strip()
+
+    # 2. Tìm cặp dấu ngoặc nhọn ngoài cùng
+    start_idx = text.find("{")
+    end_idx = text.rfind("}")
+    if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+        text = text[start_idx:end_idx + 1]
+
+    # 3. Parse JSON chuẩn
+    try:
+        return json.loads(text)
+    except Exception:
+        # 4. Dự phòng bằng regex nếu JSON bị cụt hoặc lỗi syntax nhỏ
+        dialogue_m = re.search(r'"dialogue"\s*:\s*"((?:[^"\\]|\\.)*)"', text)
+        action_m = re.search(r'"action"\s*:\s*"((?:[^"\\]|\\.)*)"', text)
+        emotion_m = re.search(r'"emotion"\s*:\s*"([^"]+)"', text)
+        score_m = re.search(r'"score_change"\s*:\s*(-?\d+)', text)
+        trigger_m = re.search(r'"trigger_event"\s*:\s*"([^"]+)"', text)
+        if dialogue_m:
+            return {
+                "dialogue": dialogue_m.group(1),
+                "action": action_m.group(1) if action_m else "",
+                "emotion": emotion_m.group(1) if emotion_m else "neutral",
+                "score_change": int(score_m.group(1)) if score_m else 0,
+                "trigger_event": trigger_m.group(1) if trigger_m else "none",
+            }
+        raise
+
 # --- Phân hệ SSE Stream Logic chính ---
 async def chat_sse_stream(
     db_factory, # truyền AsyncSessionLocal
@@ -478,14 +518,14 @@ async def chat_sse_stream(
         return
         
     try:
-        response_json = json.loads(full_buffer)
+        response_json = extract_json_from_buffer(full_buffer)
         dialogue = response_json.get("dialogue", "")
         action = response_json.get("action", "")
         emotion = response_json.get("emotion", "neutral")
         score_change = int(response_json.get("score_change", 0))
         trigger_event = response_json.get("trigger_event", "none")
     except Exception as e:
-        print(f"Failed to parse Gemini output JSON: {e}. Buffer: {full_buffer}")
+        logger.warning("Failed to parse Gemini output JSON: %s. Buffer: %s", e, full_buffer)
         # Dự phòng nếu LLM bị đứt hoặc lỗi format JSON
         dialogue = "Tớ hơi bối rối, chúng mình nói tiếp chuyện vừa rồi nhé..."
         action = "*nhìn bạn ngơ ngác*"
@@ -606,4 +646,3 @@ async def chat_sse_stream(
             "ai_feedback_summary": eval_summary
         }
         yield "event: turn_complete\ndata: " + json.dumps(complete_payload) + "\n\n"
-        yield "event: complete\ndata: " + json.dumps(complete_payload) + "\n\n"
