@@ -731,6 +731,7 @@ export default function GamePlayPage() {
 
       const decoder = new TextDecoder("utf-8");
       let buffer = "";
+      let turnFinalized = false;
 
       while (true) {
         const { value, done } = await reader.read();
@@ -772,6 +773,8 @@ export default function GamePlayPage() {
             eventName === "turn_complete" ||
             eventName === "complete"
           ) {
+            if (turnFinalized) continue;
+            turnFinalized = true;
             setThinking(false);
             setError("");
             setLastFailedMessage(null);
