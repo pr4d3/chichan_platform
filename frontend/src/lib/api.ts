@@ -129,9 +129,13 @@ export const api = {
         const token = api.getToken(cookieOpts);
         
         const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
             ...options.headers,
         };
+        
+        const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+        if (!isFormData && !headers['Content-Type']) {
+            headers['Content-Type'] = 'application/json';
+        }
         
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
@@ -184,5 +188,6 @@ export const api = {
     get: (endpoint: string, options: any = {}) => api.request(endpoint, { ...options, method: 'GET' }),
     post: (endpoint: string, body: any, options: any = {}) => api.request(endpoint, { ...options, method: 'POST', body: JSON.stringify(body) }),
     put: (endpoint: string, body: any, options: any = {}) => api.request(endpoint, { ...options, method: 'PUT', body: JSON.stringify(body) }),
+    upload: (endpoint: string, formData: FormData, options: any = {}) => api.request(endpoint, { ...options, method: 'POST', body: formData }),
     delete: (endpoint: string, options: any = {}) => api.request(endpoint, { ...options, method: 'DELETE' }),
 };

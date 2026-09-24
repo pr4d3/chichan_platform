@@ -9,8 +9,10 @@ import {
   Gear,
   Certificate,
   Robot,
+  Camera,
 } from "@phosphor-icons/react";
 import { FormRow } from "@/components/ui";
+import AvatarPickerModal from "@/components/profile/AvatarPickerModal";
 
 interface EnrolledCourse {
     course_id: string;
@@ -31,6 +33,7 @@ export default function ProfilePage() {
     const [profileLoading, setProfileLoading] = useState(true);
     const [myCourses, setMyCourses] = useState<EnrolledCourse[]>([]);
     const [coursesLoading, setCoursesLoading] = useState(false);
+    const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
 
     // Form states
     const [fullName, setFullName] = useState('');
@@ -64,6 +67,7 @@ export default function ProfilePage() {
                     setPhone(u.phone_number || '');
                     setAvatarUrl(u.avatar_url || '');
                     setBio(u.bio || '');
+                    updateUserLocal({ full_name: u.full_name, avatar_url: u.avatar_url });
 
                     if (u.role === 'STUDENT_PARENT' || u.role === 'STUDENT_CHILD') {
                         setActiveTab('progress');
@@ -112,7 +116,7 @@ export default function ProfilePage() {
 
             if (res.success) {
                 setMsg({ type: 'success', text: 'Cập nhật hồ sơ cá nhân thành công!' });
-                updateUserLocal({ full_name: fullName });
+                updateUserLocal({ full_name: fullName, avatar_url: avatarUrl });
             }
         } catch (err: any) {
             setMsg({ type: 'error', text: err.message || 'Lỗi khi cập nhật hồ sơ' });
@@ -136,17 +140,37 @@ export default function ProfilePage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Side: Avatar and role widget */}
                 <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 text-center border border-white/60 shadow-sm space-y-5">
-                        <div className="relative mx-auto h-28 w-28 rounded-full overflow-hidden border-4 border-surface-container shadow-sm bg-surface-container-low">
+                    <div className="bg-white/80 backdrop-blur-md rounded-none p-8 text-center border border-outline-variant/40 shadow-xs space-y-5">
+                        <div className="relative mx-auto h-28 w-28 rounded-none overflow-hidden border-2 border-primary/20 shadow-xs bg-surface-container-low group">
                             <img
-                                src={avatarUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAjrgdc9z0GZMlo2tAx1T7LVSV-OamtTdXT-m_7GazSWUSIPwxGINMVTnUWpfKnSZqvW4Me8RDkJFOoSwnx0gTwIqj7kNGSPqeQItmW2vHH0WZVmackXLPAPMmR0OWYYq9vw6ucWlAUm71KUctPiqTVnbFLdY17vAdPSOILyoR4nGo1i2Vh-Zh30Bads3Dc09BpMNvA2_TZzCwbKpF34Kcu7_ZXU2JA7NJIXgJWoP00Z_Oxx5jPPyB08g'}
+                                src={avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=ChiChan&backgroundColor=ffd5dc'}
                                 alt="User Avatar"
                                 className="h-full w-full object-cover"
+                                onError={(e) => {
+                                    (e.target as HTMLImageElement).src = 'https://api.dicebear.com/7.x/bottts/svg?seed=ChiChan&backgroundColor=ffd5dc';
+                                }}
                             />
+                            <button
+                                type="button"
+                                onClick={() => setIsAvatarModalOpen(true)}
+                                className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity cursor-pointer gap-1"
+                                aria-label="Đổi ảnh đại diện"
+                            >
+                                <Camera size={22} weight="bold" />
+                                <span className="text-[10px] font-bold">Đổi ảnh</span>
+                            </button>
                         </div>
+                        <button
+                            type="button"
+                            onClick={() => setIsAvatarModalOpen(true)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-surface-container-high hover:bg-primary hover:text-white text-on-surface text-[11px] font-bold transition-colors cursor-pointer border border-outline-variant/40"
+                        >
+                            <Camera size={14} weight="bold" />
+                            <span>Đổi ảnh đại diện</span>
+                        </button>
                         <div className="space-y-1">
                             <h3 className="text-base font-bold text-on-surface leading-tight">{fullName}</h3>
-                            <span className="inline-flex px-3 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant text-[10px] font-bold uppercase tracking-wider">
+                            <span className="inline-flex px-3 py-0.5 rounded-none bg-primary-fixed text-on-primary-fixed-variant text-[10px] font-bold uppercase tracking-wider">
                                 {user?.role === 'ADMIN'
                                     ? 'Quản trị viên'
                                     : user?.role === 'INSTRUCTOR'
@@ -162,13 +186,13 @@ export default function ProfilePage() {
                     </div>
 
                     {/* Navigation Tab Menu */}
-                    <div className="bg-white/80 backdrop-blur-md rounded-2xl p-2 flex flex-col space-y-1 border border-white/60 shadow-sm">
+                    <div className="bg-white/80 backdrop-blur-md rounded-none p-2 flex flex-col space-y-1 border border-outline-variant/40 shadow-xs">
                         {isStudent && (
                             <button
                                 onClick={() => setActiveTab('progress')}
-                                className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
+                                className={`flex items-center gap-3 px-4 py-3 rounded-none text-xs font-semibold transition-all cursor-pointer ${
                                     activeTab === 'progress' 
-                                        ? 'bg-primary text-white shadow-sm' 
+                                        ? 'bg-primary text-white shadow-xs' 
                                         : 'text-on-surface-variant hover:text-on-surface hover:bg-white/40'
                                 }`}
                             >
@@ -178,9 +202,9 @@ export default function ProfilePage() {
                         )}
                         <button
                             onClick={() => setActiveTab('settings')}
-                            className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
+                            className={`flex items-center gap-3 px-4 py-3 rounded-none text-xs font-semibold transition-all cursor-pointer ${
                                 activeTab === 'settings' 
-                                        ? 'bg-primary text-white shadow-sm' 
+                                        ? 'bg-primary text-white shadow-xs' 
                                         : 'text-on-surface-variant hover:text-on-surface hover:bg-white/40'
                             }`}
                         >
@@ -341,16 +365,6 @@ export default function ProfilePage() {
                                     />
                                 </FormRow>
 
-                                <FormRow label="Đường dẫn ảnh đại diện (Avatar URL)" htmlFor="avatarUrl" className="flex flex-col gap-1.5 md:col-span-2">
-                                    <input
-                                        id="avatarUrl"
-                                        type="text"
-                                        className="w-full bg-white border border-outline-variant/60 rounded-none px-4 py-3 text-sm text-on-surface focus:ring-1 focus:ring-primary focus:border-primary transition-colors outline-none"
-                                        placeholder="https://image-url.com/avatar.jpg"
-                                        value={avatarUrl}
-                                        onChange={(e) => setAvatarUrl(e.target.value)}
-                                    />
-                                </FormRow>
 
                                 <FormRow label="Tiểu sử bản thân (Bio)" htmlFor="bio" className="flex flex-col gap-1.5 md:col-span-2">
                                     <textarea
@@ -368,7 +382,7 @@ export default function ProfilePage() {
                                     <button
                                         type="submit"
                                         disabled={updating}
-                                        className="w-full flex h-11 items-center justify-center rounded-full bg-primary text-xs font-bold text-white shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-50"
+                                        className="w-full flex h-11 items-center justify-center rounded-none bg-primary text-xs font-bold text-white shadow-xs hover:opacity-90 transition-all cursor-pointer disabled:opacity-50"
                                     >
                                         {updating ? 'Đang lưu...' : 'Lưu thay đổi'}
                                     </button>
@@ -378,6 +392,19 @@ export default function ProfilePage() {
                     )}
                 </div>
             </div>
+
+            {/* Avatar Picker Modal */}
+            <AvatarPickerModal
+                isOpen={isAvatarModalOpen}
+                onClose={() => setIsAvatarModalOpen(false)}
+                currentAvatar={avatarUrl}
+                onAvatarUpdated={(newAvatarUrl) => {
+                    setAvatarUrl(newAvatarUrl);
+                    updateUserLocal({ avatar_url: newAvatarUrl });
+                    setMsg({ type: 'success', text: 'Cập nhật ảnh đại diện thành công!' });
+                }}
+            />
         </div>
     );
 }
+

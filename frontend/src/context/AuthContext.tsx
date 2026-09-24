@@ -16,6 +16,7 @@ interface User {
     email: string;
     full_name: string;
     role: string;
+    avatar_url?: string;
 }
 
 interface AuthContextType {
@@ -34,11 +35,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const loadUser = () => {
+        const loadUser = async () => {
             const token = api.getToken();
             const userInfo = api.getUserInfo();
             if (token && userInfo) {
                 setUser(userInfo);
+                // Đồng bộ ảnh đại diện thực tế từ database ngay khi ứng dụng khởi động
+                try {
+                    const res = await api.get('/users/profile');
+                    if (res.success && res.data) {
+                        const freshUser = {
+                            ...userInfo,
+                            full_name: res.data.full_name || userInfo.full_name,
+                            avatar_url: res.data.avatar_url || userInfo.avatar_url,
+                        };
+                        setUser(freshUser);
+                        localStorage.setItem('user_info', JSON.stringify(freshUser));
+                    }
+                } catch {
+                    // Fallback to local storage if offline
+                }
             } else {
                 api.clearAuth();
                 setUser(null);
@@ -55,8 +71,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const res = await api.post('/auth/login', credentials);
             if (res.success) {
                 const { access_token, refresh_token, user: userData } = res.data;
+                let finalUser = userData;
                 api.saveAuth(access_token, refresh_token, userData);
-                setUser(userData);
+
+                // Đồng bộ ngay avatar_url từ profile nếu login chưa có
+                if (!userData.avatar_url) {
+                    try {
+                        const profRes = await api.get('/users/profile');
+                        if (profRes.success && profRes.data?.avatar_url) {
+                            finalUser = {
+                                ...userData,
+                                avatar_url: profRes.data.avatar_url,
+                            };
+                            api.saveAuth(access_token, refresh_token, finalUser);
+                        }
+                    } catch {
+                        // ignore
+                    }
+                }
+
+                setUser(finalUser);
                 return res;
             }
         } catch (err) {
@@ -98,12 +132,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const updateUserLocal = useCallback((updatedUser: Partial<User>) => {
-        if (user) {
-            const newUserData = { ...user, ...updatedUser };
-            setUser(newUserData);
+        setUser((prev) => {
+            const base = prev || api.getUserInfo();
+            if (!base) return null;
+            const newUserData = { ...base, ...updatedUser };
             localStorage.setItem('user_info', JSON.stringify(newUserData));
-        }
-    }, [user]);
+            return newUserData;
+        });
+    }, []);
 
     // value được memo lại: consumer chỉ re-render khi user/loading thực sự đổi
     const value = useMemo(
