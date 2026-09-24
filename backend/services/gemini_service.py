@@ -96,7 +96,7 @@ async def generate_chat_stream(
     config = types.GenerateContentConfig(
         system_instruction=full_system_prompt,
         temperature=0.6,
-        max_output_tokens=300,
+        max_output_tokens=800,
         response_mime_type="application/json",
         response_schema=GeminiRoleplayOutput,
     )
