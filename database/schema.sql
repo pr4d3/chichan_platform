@@ -47,6 +47,7 @@ CREATE TABLE user_profiles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     avatar_url VARCHAR(500),
+    avatar_data BYTEA,
     gender VARCHAR(20),
     date_of_birth DATE,
     phone_number VARCHAR(20),

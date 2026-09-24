@@ -15,96 +15,20 @@ import {
   Headphones,
 } from "@phosphor-icons/react";
 
+import {
+  detectMediaPlatform,
+  DetectedMedia,
+  PlatformType,
+} from "@/lib/videoPlatformDetector";
+
+export { detectMediaPlatform as detectMediaSource };
+
 interface VideoPlayerProps {
   url: string;
   title?: string;
   contentType?: string;
   autoPlay?: boolean;
   onEnded?: () => void;
-}
-
-export type MediaSourceType =
-  | "youtube"
-  | "vimeo"
-  | "drive"
-  | "notebooklm"
-  | "audio"
-  | "video";
-
-export function detectMediaSource(url: string, contentType?: string): {
-  type: MediaSourceType;
-  id?: string;
-  embedUrl?: string;
-  originalUrl: string;
-} {
-  const trimmed = (url || "").trim();
-
-  // Explicit AUDIO content type or audio extensions
-  const isAudioExtension = /\.(m4a|mp3|wav|ogg|aac|flac)(\?.*)?$/i.test(trimmed);
-  if (contentType === "AUDIO" || isAudioExtension) {
-    // If it's a drive URL but marked audio, still handle drive embed or direct stream
-    const driveMatch = trimmed.match(
-      /drive\.google\.com\/(?:file\/d\/|open\?id=)([a-zA-Z0-9_-]+)/i
-    );
-    if (driveMatch) {
-      return {
-        type: "drive",
-        id: driveMatch[1],
-        embedUrl: `https://drive.google.com/file/d/${driveMatch[1]}/preview`,
-        originalUrl: trimmed,
-      };
-    }
-    return { type: "audio", originalUrl: trimmed };
-  }
-
-  // 1. YouTube ID or URL
-  if (/^[\w-]{11}$/.test(trimmed)) {
-    return { type: "youtube", id: trimmed, originalUrl: trimmed };
-  }
-  const ytMatch = trimmed.match(
-    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/i
-  );
-  if (ytMatch) {
-    return { type: "youtube", id: ytMatch[1], originalUrl: trimmed };
-  }
-
-  // 2. Google Drive (Audio Overview / Video from NotebookLM or Drive)
-  const driveMatch = trimmed.match(
-    /drive\.google\.com\/(?:file\/d\/|open\?id=)([a-zA-Z0-9_-]+)/i
-  );
-  if (driveMatch) {
-    return {
-      type: "drive",
-      id: driveMatch[1],
-      embedUrl: `https://drive.google.com/file/d/${driveMatch[1]}/preview`,
-      originalUrl: trimmed,
-    };
-  }
-
-  // 3. NotebookLM Share URL
-  const nblmMatch = trimmed.match(
-    /notebooklm\.google\.com\/notebook\/([a-zA-Z0-9_-]+)/i
-  );
-  if (nblmMatch) {
-    return {
-      type: "notebooklm",
-      id: nblmMatch[1],
-      embedUrl: trimmed,
-      originalUrl: trimmed,
-    };
-  }
-
-  // 4. Vimeo
-  if (/^\d{6,12}$/.test(trimmed)) {
-    return { type: "vimeo", id: trimmed, originalUrl: trimmed };
-  }
-  const vimeoMatch = trimmed.match(/vimeo\.com\/(\d+)/i);
-  if (vimeoMatch) {
-    return { type: "vimeo", id: vimeoMatch[1], originalUrl: trimmed };
-  }
-
-  // 5. Default Video
-  return { type: "video", originalUrl: trimmed };
 }
 
 export function VideoPlayer({
@@ -115,7 +39,7 @@ export function VideoPlayer({
   onEnded,
 }: VideoPlayerProps) {
   const media = useMemo(
-    () => detectMediaSource(url, contentType),
+    () => detectMediaPlatform(url, contentType),
     [url, contentType]
   );
 
@@ -133,7 +57,7 @@ export function VideoPlayer({
 
   // Standard Plyr initialization for YouTube, Vimeo, and MP4 Video
   useEffect(() => {
-    if (media.type === "drive" || media.type === "notebooklm" || media.type === "audio") {
+    if (media.isIframeEmbed || media.platform === "NOTEBOOKLM" || media.platform === "AUDIO") {
       return;
     }
 
@@ -332,14 +256,14 @@ export function VideoPlayer({
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  // 1. Google Drive Media (Audio Overview from NotebookLM / Drive Video)
-  if (media.type === "drive") {
+  // 1. Iframe Embed Media (Google Drive, Facebook, TikTok, Loom, Dailymotion, Generic)
+  if (media.isIframeEmbed && media.embedUrl) {
     return (
       <div className="w-full h-full aspect-video bg-black rounded-none border border-outline-variant/30 overflow-hidden relative group flex flex-col items-center justify-center">
         <iframe
           src={media.embedUrl}
           className="w-full h-full border-0 rounded-none"
-          allow="autoplay; encrypted-media; fullscreen"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
           allowFullScreen
           title={title}
         />
@@ -348,7 +272,7 @@ export function VideoPlayer({
   }
 
   // 2. NotebookLM Notebook Share Link
-  if (media.type === "notebooklm") {
+  if (media.platform === "NOTEBOOKLM") {
     return (
       <div className="w-full h-full aspect-video bg-[#121316] text-white rounded-none border border-outline-variant/30 flex flex-col items-center justify-center p-8 text-center relative select-none">
         <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 text-white font-bold text-xs uppercase tracking-wider mb-4 border border-white/20">
@@ -373,7 +297,7 @@ export function VideoPlayer({
   }
 
   // 3. Audio / Podcast Studio Player (NotebookLM Audio Overview .m4a / .mp3 / .wav)
-  if (media.type === "audio") {
+  if (media.platform === "AUDIO") {
     const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
     return (
@@ -522,14 +446,14 @@ export function VideoPlayer({
       ref={containerRef}
       className="custom-video-wrapper w-full aspect-video bg-black rounded-none overflow-hidden border border-outline-variant/30 relative select-none group"
     >
-      {media.type === "youtube" && media.id ? (
+      {media.platform === "YOUTUBE" && media.id ? (
         <div
           key={`yt-${media.id}`}
           data-plyr-provider="youtube"
           data-plyr-embed-id={media.id}
           className="w-full h-full"
         />
-      ) : media.type === "vimeo" && media.id ? (
+      ) : media.platform === "VIMEO" && media.id ? (
         <div
           key={`vimeo-${media.id}`}
           data-plyr-provider="vimeo"

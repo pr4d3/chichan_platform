@@ -23,7 +23,7 @@ export function CourseCard({ course }: CourseCardProps) {
   return (
     <Link
       href={`/courses/${course.id}/intro`}
-      className="glass-panel rounded-3xl overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col h-full group bg-white/80 border border-white/60"
+      className="glass-panel rounded-none overflow-hidden shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col h-full group bg-white/90 border border-outline-variant/40"
     >
       <div className="relative h-52 sm:h-56 w-full overflow-hidden bg-surface-container">
         <img

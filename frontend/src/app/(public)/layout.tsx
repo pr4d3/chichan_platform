@@ -13,6 +13,7 @@ export default function MainLayout({
     const pathname = usePathname();
     // Ẩn Header và Footer hoàn toàn trên phòng chơi game mô phỏng (/game/[sessionId])
     const isGameRoom = pathname?.startsWith('/game/') && pathname !== '/game';
+    const isGame = pathname?.startsWith('/game');
 
     if (isGameRoom) {
         return <>{children}</>;

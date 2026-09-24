@@ -33,3 +33,29 @@ async def update_profile(db: AsyncSession, user_id: UUID, profile_data: UserProf
         "full_name": user.full_name,
         "avatar_url": user.profile.avatar_url if user.profile else None
     }
+
+async def update_avatar(db: AsyncSession, user_id: UUID, avatar_url: str, avatar_data: bytes = None):
+    user = await user_repository.get_user_with_profile(db, str(user_id))
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    if not user.profile:
+        from models.profile import UserProfile
+        user.profile = UserProfile(user_id=user.id)
+        db.add(user.profile)
+    user.profile.avatar_url = avatar_url
+    if avatar_data is not None:
+        user.profile.avatar_data = avatar_data
+    await db.commit()
+    await db.refresh(user)
+    return {
+        "user_id": user.id,
+        "avatar_url": avatar_url
+    }
+
+async def get_avatar_bytes(db: AsyncSession, user_id: UUID):
+    user = await user_repository.get_user_with_profile(db, str(user_id))
+    if not user or not user.profile:
+        return None, None
+    return user.profile.avatar_data, user.profile.avatar_url
+
+
