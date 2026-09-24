@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { LearnPageSkeleton } from "@/components/Skeleton";
@@ -75,6 +75,7 @@ function getCleanLessonTitle(title: string): string {
 export default function CourseLearnPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
 
   const courseId = params.courseId as string;
@@ -83,6 +84,7 @@ export default function CourseLearnPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeIdx, setActiveIdx] = useState(0);
+  const [lessonTab, setLessonTab] = useState<"content" | "quiz">("content");
   const [completing, setCompleting] = useState(false);
   const [completionModalOpen, setCompletionModalOpen] = useState(false);
   const [outroInfo, setOutroInfo] = useState<any>(null);
@@ -100,6 +102,32 @@ export default function CourseLearnPage() {
       const res = await api.get(`/courses/${courseId}/learn`);
       if (res.success) {
         setLearnData(res.data);
+
+        // Resume Learning:
+        // 1. Kiểm tra query param ?lesson=
+        const targetLessonId = searchParams.get("lesson");
+        if (targetLessonId && res.data.lessons) {
+          const foundIdx = res.data.lessons.findIndex((l: Lesson) => l.lesson_id === targetLessonId);
+          if (foundIdx !== -1) {
+            setActiveIdx(foundIdx);
+            return;
+          }
+        }
+
+        // 2. Tự động nhảy tới bài đầu tiên chưa hoàn thành
+        if (res.data.lessons && res.data.lessons.length > 0) {
+          const firstUncompleted = res.data.lessons.findIndex((l: Lesson) => !l.is_completed);
+          if (firstUncompleted !== -1) {
+            setActiveIdx(firstUncompleted);
+          } else {
+            // Đã hoàn thành tất cả: nếu có final quiz và chưa pass thì mở final quiz, không thì ở bài cuối
+            if (res.data.has_final_quiz && !res.data.is_final_quiz_passed) {
+              setIsViewingFinalQuiz(true);
+            } else {
+              setActiveIdx(res.data.lessons.length - 1);
+            }
+          }
+        }
       }
     } catch (err: any) {
       setError(err.message || "Lỗi khi tải phòng học");
@@ -109,10 +137,27 @@ export default function CourseLearnPage() {
   };
 
   const handleSelectLesson = (idx: number) => {
-    if (idx >= 0 && idx < learnData.lessons.length) {
+    if (idx >= 0 && learnData?.lessons && idx < learnData.lessons.length) {
       setIsViewingFinalQuiz(false);
       setShowNotes(false);
+      setLessonTab("content");
       setActiveIdx(idx);
+
+      const targetLesson = learnData.lessons[idx];
+      if (targetLesson?.lesson_id && typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        url.searchParams.set("lesson", targetLesson.lesson_id);
+        window.history.replaceState({}, "", url.toString());
+      }
+
+      // Cuộn lên đầu
+      if (typeof window !== "undefined") {
+        const mainContainer = document.getElementById("learn-main-content");
+        if (mainContainer) {
+          mainContainer.scrollTo({ top: 0, behavior: "smooth" });
+        }
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     }
   };
 
@@ -128,31 +173,50 @@ export default function CourseLearnPage() {
     setCompletionModalOpen(true);
   };
 
-  const handleLessonQuizPassed = (lessonId: string) => {
+  const handleLessonQuizPassed = async (lessonId: string) => {
     if (!learnData || !learnData.lessons) return;
-    const updatedLessons = learnData.lessons.map((l: Lesson) =>
-      l.lesson_id === lessonId
-        ? { ...l, is_quiz_passed: true, is_completed: true }
-        : l
-    );
-    const completedCount = updatedLessons.filter((l: Lesson) => l.is_completed).length;
-    const progress_pct = Math.round((completedCount / updatedLessons.length) * 100);
 
-    setLearnData({
-      ...learnData,
-      progress_percentage: progress_pct,
-      lessons: updatedLessons,
-    });
+    // Gửi request API ghi nhận hoàn thành bài học vào Database ngay khi pass Quiz
+    try {
+      const res = await api.post(`/users/courses/${courseId}/lessons/${lessonId}/complete`, {});
+      const newProgress = res.success ? res.data.progress_percentage : learnData.progress_percentage;
 
-    const isLast = activeIdx === updatedLessons.length - 1;
-    if (isLast) {
-      if (learnData.has_final_quiz && !learnData.is_final_quiz_passed) {
-        showToast("Bạn đã hoàn thành bài học cuối cùng! Hãy tiến hành làm Quiz cuối khóa để nhận chứng chỉ.", "success");
-        setIsViewingFinalQuiz(true);
+      const updatedLessons = learnData.lessons.map((l: Lesson) =>
+        l.lesson_id === lessonId
+          ? { ...l, is_quiz_passed: true, is_completed: true }
+          : l
+      );
+
+      setLearnData({
+        ...learnData,
+        progress_percentage: newProgress,
+        lessons: updatedLessons,
+      });
+
+      const isLast = activeIdx === updatedLessons.length - 1;
+      if (isLast) {
+        if (learnData.has_final_quiz && !learnData.is_final_quiz_passed) {
+          showToast("Bạn đã hoàn thành bài học cuối cùng! Hãy tiến hành làm Quiz cuối khóa để nhận chứng chỉ.", "success");
+          setIsViewingFinalQuiz(true);
+        } else {
+          showToast("Chúc mừng bạn đã hoàn thành khóa học!", "success");
+          await triggerGraduationModal();
+        }
       } else {
-        showToast("Chúc mừng bạn đã hoàn thành khóa học!", "success");
-        triggerGraduationModal();
+        showToast("Tuyệt vời! Bạn đã vượt qua bài kiểm tra và hoàn thành bài học.", "success");
       }
+    } catch (err: any) {
+      console.error("Lỗi khi lưu tiến độ bài học vào database:", err);
+      // Vẫn cập nhật local state để học viên không bị chặn cục bộ
+      const updatedLessons = learnData.lessons.map((l: Lesson) =>
+        l.lesson_id === lessonId
+          ? { ...l, is_quiz_passed: true, is_completed: true }
+          : l
+      );
+      setLearnData({
+        ...learnData,
+        lessons: updatedLessons,
+      });
     }
   };
 
@@ -177,13 +241,15 @@ export default function CourseLearnPage() {
     const isLastLesson = activeIdx === learnData.lessons.length - 1;
     const lesson = learnData.lessons[activeIdx];
 
-    // If lesson is a standalone Quiz and student hasn't passed it yet
-    if (lesson.content_type === "QUIZ" && !lesson.is_quiz_passed && !lesson.is_completed) {
-      showToast("Vui lòng làm đạt bài kiểm tra trắc nghiệm để hoàn thành bài học này!", "error");
+    // Chặn nghiêm ngặt: nếu bài có Quiz (dù là QUIZ độc lập hay HYBRID/TEXT có quiz) mà chưa pass và chưa completed
+    const hasMandatoryQuiz = lesson.has_quiz || lesson.content_type === "QUIZ";
+    if (hasMandatoryQuiz && !lesson.is_quiz_passed && !lesson.is_completed) {
+      showToast("Vui lòng hoàn thành và làm đạt bài kiểm tra trắc nghiệm để tiếp tục!", "warning");
+      setLessonTab("quiz");
       return;
     }
 
-    // If already on the last lesson and it's completed
+    // Nếu bài đã hoàn thành và là bài cuối
     if (isLastLesson && lesson.is_completed) {
       if (learnData.has_final_quiz && !learnData.is_final_quiz_passed) {
         setIsViewingFinalQuiz(true);
@@ -193,13 +259,13 @@ export default function CourseLearnPage() {
       return;
     }
 
-    // If not the last lesson and it's already completed: directly navigate to next lesson
+    // Nếu bài đã hoàn thành và chưa phải bài cuối: chuyển sang bài tiếp theo
     if (!isLastLesson && lesson.is_completed) {
-      setActiveIdx(activeIdx + 1);
+      handleSelectLesson(activeIdx + 1);
       return;
     }
 
-    // Otherwise, submit completion to API
+    // Nếu là bài TEXT thuần túy không có Quiz (hoặc cần complete thủ công):
     setCompleting(true);
     try {
       const res = await api.post(
@@ -226,9 +292,7 @@ export default function CourseLearnPage() {
           }
         } else {
           showToast("Đã hoàn thành bài học!", "success");
-          if (activeIdx < learnData.lessons.length - 1) {
-            setActiveIdx(activeIdx + 1);
-          }
+          handleSelectLesson(activeIdx + 1);
         }
       }
     } catch (err: any) {
@@ -304,8 +368,10 @@ export default function CourseLearnPage() {
       <main className="flex-grow w-full max-w-screen-2xl mx-auto flex flex-col lg:flex-row h-[calc(100vh-72px)] overflow-hidden">
         {/* Left Area: Video & Content Canvas OR Standalone Quiz OR Final Quiz */}
         <div
+          id="learn-main-content"
           className={`flex-grow flex flex-col h-full bg-surface ${
             !isViewingFinalQuiz &&
+            lessonTab === "content" &&
             currentLesson?.content_type !== "TEXT" &&
             currentLesson?.content_type !== "QUIZ" &&
             currentLesson?.video_url
@@ -369,123 +435,206 @@ export default function CourseLearnPage() {
                 />
               </div>
             </div>
-          ) : currentLesson?.content_type !== "TEXT" && currentLesson?.video_url ? (
-            /* Media Lesson: Cinema / Theater Fit-to-screen for Video & Audio/NotebookLM */
-            (() => {
-              const isAudioMedia =
-                currentLesson.content_type === "AUDIO" ||
-                currentLesson.content_type === "NOTEBOOKLM" ||
-                /\.(m4a|mp3|wav|ogg|aac|flac)(\?.*)?$/i.test(currentLesson.video_url || "") ||
-                (currentLesson.video_url || "").includes("notebooklm.google.com");
-
-              return (
-                <div className="flex flex-col flex-grow h-full overflow-hidden">
-                  {/* Compact Video Top Bar */}
-                  <div className="px-6 py-2.5 flex items-center justify-between border-b border-outline-variant/15 bg-white/70 shrink-0">
-                    <div className="flex items-center gap-2.5 truncate">
-                      <Badge
-                        tone={isAudioMedia ? "bg-purple-100 text-purple-700" : "bg-primary/10 text-primary"}
-                        uppercase
-                        icon={isAudioMedia ? <Headphones size={12} weight="bold" /> : <Video size={12} weight="bold" />}
-                      >
-                        {isAudioMedia ? "NotebookLM Audio Podcast" : "Video bài giảng"}
-                      </Badge>
-                      <h2 className="text-xs sm:text-sm font-bold text-on-surface truncate">
-                        Bài {currentLesson.order_index}: {getCleanLessonTitle(currentLesson.title)}
-                      </h2>
-                    </div>
-                    {currentLesson.content_body && (
-                      <button
-                        onClick={() => setShowNotes(!showNotes)}
-                        className="text-xs font-bold text-primary hover:opacity-80 flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-primary/10 transition-all cursor-pointer shrink-0 ml-3"
-                      >
+          ) : (
+            /* HYBRID or TEXT Lesson with optional attached Quiz */
+            <div className="flex flex-col flex-grow h-full overflow-hidden">
+              {/* Top Navigation Tabs for Lessons with Quiz */}
+              {currentLesson?.has_quiz && (
+                <div className="flex items-center justify-between border-b border-outline-variant/20 bg-surface-container-low px-6 py-1.5 shrink-0 z-10">
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setLessonTab("content")}
+                      className={`px-4 py-2 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer rounded-none border-b-2 ${
+                        lessonTab === "content"
+                          ? "border-primary text-primary bg-white shadow-xs"
+                          : "border-transparent text-on-surface-variant hover:text-on-surface hover:bg-white/50"
+                      }`}
+                    >
+                      {currentLesson.content_type === "TEXT" ? (
                         <Article size={14} weight="bold" />
-                        <span>{showNotes ? "Ẩn tài liệu" : "Xem tài liệu bài học"}</span>
-                      </button>
-                    )}
+                      ) : (
+                        <Video size={14} weight="bold" />
+                      )}
+                      <span>{currentLesson.content_type === "TEXT" ? "Tài liệu bài đọc" : "Video bài giảng"}</span>
+                    </button>
+                    <button
+                      onClick={() => setLessonTab("quiz")}
+                      className={`px-4 py-2 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer rounded-none border-b-2 ${
+                        lessonTab === "quiz"
+                          ? "border-primary text-primary bg-white shadow-xs"
+                          : "border-transparent text-on-surface-variant hover:text-on-surface hover:bg-white/50"
+                      }`}
+                    >
+                      <Question size={14} weight="bold" />
+                      <span>Trắc nghiệm củng cố (10 câu)</span>
+                      {currentLesson.is_quiz_passed ? (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-none bg-green-100 text-green-700 font-bold ml-1">Đã đạt</span>
+                      ) : (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-none bg-amber-100 text-amber-800 font-bold ml-1">Bắt buộc</span>
+                      )}
+                    </button>
                   </div>
 
-                  {/* Main Theater Stage - perfectly fits within viewport */}
-                  <div className="flex-1 min-h-0 flex items-center justify-center p-3 sm:p-5 bg-black/95 relative overflow-hidden">
-                    <div className="w-full h-full max-h-[calc(100vh-210px)] aspect-video flex items-center justify-center mx-auto">
-                      <VideoPlayer
-                        key={currentLesson.lesson_id + currentLesson.video_url}
-                        url={currentLesson.video_url}
-                        title={currentLesson.title}
-                        contentType={currentLesson.content_type}
-                        autoPlay={true}
-                      />
-                    </div>
+                  {lessonTab === "content" && !currentLesson.is_quiz_passed && (
+                    <button
+                      onClick={() => setLessonTab("quiz")}
+                      className="text-xs font-bold text-primary hover:opacity-80 flex items-center gap-1 px-3 py-1.5 rounded-none bg-primary/10 transition-all cursor-pointer shrink-0"
+                    >
+                      <span>Làm trắc nghiệm</span>
+                      <ArrowRight size={12} weight="bold" />
+                    </button>
+                  )}
+                </div>
+              )}
 
-                    {/* Collapsible Slide-over overlay if student toggles document notes */}
-                    {showNotes && currentLesson.content_body && (
-                      <div className="absolute inset-0 bg-white z-30 p-6 md:p-10 overflow-y-auto animate-fade-in border border-outline-variant/30">
-                        <div className="max-w-3xl mx-auto space-y-4">
-                          <div className="flex justify-between items-center pb-4 border-b border-outline-variant/20">
-                            <h3 className="font-bold text-base text-on-surface">Tài liệu & Ghi chú bài giảng</h3>
-                            <button
-                              onClick={() => setShowNotes(false)}
-                              className="px-3.5 py-1 rounded-none bg-surface-container text-xs font-bold text-on-surface hover:bg-surface-container-high cursor-pointer"
-                            >
-                              Đóng tài liệu
-                            </button>
-                          </div>
-                          <MarkdownRenderer content={currentLesson.content_body} />
+              {/* Tab Content Display */}
+              {lessonTab === "quiz" && currentLesson?.has_quiz ? (
+                <div className="p-6 md:p-10 flex-grow overflow-y-auto">
+                  <div className="max-w-3xl mx-auto space-y-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge
+                        tone="bg-purple-100 text-purple-700"
+                        uppercase
+                        icon={<Question size={14} weight="bold" />}
+                      >
+                        Bài kiểm tra trắc nghiệm củng cố
+                      </Badge>
+                    </div>
+                    <h2 className="text-xl md:text-2xl font-extrabold text-on-surface">
+                      Bài {currentLesson.order_index}: {getCleanLessonTitle(currentLesson.title)}
+                    </h2>
+                    <p className="text-xs text-on-surface-variant font-light leading-relaxed">
+                      Vui lòng hoàn thành 10 câu hỏi trắc nghiệm dưới đây (đạt tối thiểu 80%) để hoàn tất bài học và mở khóa bài tiếp theo.
+                    </p>
+
+                    <QuizPlayer
+                      key={currentLesson.lesson_id}
+                      courseId={courseId}
+                      lessonId={currentLesson.lesson_id}
+                      onPassed={() => handleLessonQuizPassed(currentLesson.lesson_id)}
+                      onNextLesson={handleNextOrComplete}
+                    />
+                  </div>
+                </div>
+              ) : currentLesson?.content_type !== "TEXT" && currentLesson?.video_url ? (
+                /* Media Lesson: Cinema / Theater Fit-to-screen for Video & Audio/NotebookLM */
+                (() => {
+                  const isAudioMedia =
+                    currentLesson.content_type === "AUDIO" ||
+                    currentLesson.content_type === "NOTEBOOKLM" ||
+                    /\.(m4a|mp3|wav|ogg|aac|flac)(\?.*)?$/i.test(currentLesson.video_url || "") ||
+                    (currentLesson.video_url || "").includes("notebooklm.google.com");
+
+                  return (
+                    <div className="flex flex-col flex-grow h-full overflow-hidden">
+                      {/* Compact Video Top Bar */}
+                      <div className="px-6 py-2.5 flex items-center justify-between border-b border-outline-variant/15 bg-white/70 shrink-0">
+                        <div className="flex items-center gap-2.5 truncate">
+                          <Badge
+                            tone={isAudioMedia ? "bg-purple-100 text-purple-700" : "bg-primary/10 text-primary"}
+                            uppercase
+                            icon={isAudioMedia ? <Headphones size={12} weight="bold" /> : <Video size={12} weight="bold" />}
+                          >
+                            {isAudioMedia ? "NotebookLM Audio Podcast" : "Video bài giảng"}
+                          </Badge>
+                          <h2 className="text-xs sm:text-sm font-bold text-on-surface truncate">
+                            Bài {currentLesson.order_index}: {getCleanLessonTitle(currentLesson.title)}
+                          </h2>
                         </div>
+                        {currentLesson.content_body && (
+                          <button
+                            onClick={() => setShowNotes(!showNotes)}
+                            className="text-xs font-bold text-primary hover:opacity-80 flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-primary/10 transition-all cursor-pointer shrink-0 ml-3"
+                          >
+                            <Article size={14} weight="bold" />
+                            <span>{showNotes ? "Ẩn tài liệu" : "Xem tài liệu bài học"}</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Main Theater Stage */}
+                      <div className="flex-1 min-h-0 flex items-center justify-center p-3 sm:p-5 bg-black/95 relative overflow-hidden">
+                        <div className="w-full h-full max-h-[calc(100vh-210px)] aspect-video flex items-center justify-center mx-auto">
+                          <VideoPlayer
+                            key={currentLesson.lesson_id + currentLesson.video_url}
+                            url={currentLesson.video_url}
+                            title={currentLesson.title}
+                            contentType={currentLesson.content_type}
+                            autoPlay={true}
+                          />
+                        </div>
+
+                        {/* Collapsible Slide-over overlay if student toggles document notes */}
+                        {showNotes && currentLesson.content_body && (
+                          <div className="absolute inset-0 bg-white z-30 p-6 md:p-10 overflow-y-auto animate-fade-in border border-outline-variant/30">
+                            <div className="max-w-3xl mx-auto space-y-4">
+                              <div className="flex justify-between items-center pb-4 border-b border-outline-variant/20">
+                                <h3 className="font-bold text-base text-on-surface">Tài liệu & Ghi chú bài giảng</h3>
+                                <button
+                                  onClick={() => setShowNotes(false)}
+                                  className="px-3.5 py-1 rounded-none bg-surface-container text-xs font-bold text-on-surface hover:bg-surface-container-high cursor-pointer"
+                                >
+                                  Đóng tài liệu
+                                </button>
+                              </div>
+                              <MarkdownRenderer content={currentLesson.content_body} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : (
+                /* Article / Reading Lesson */
+                <div className="p-6 md:p-10 flex-grow overflow-y-auto">
+                  <div className="max-w-4xl mx-auto space-y-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Badge
+                        tone="bg-primary/10 text-primary"
+                        uppercase
+                        icon={<Article size={14} weight="bold" />}
+                      >
+                        Tài liệu đọc
+                      </Badge>
+                    </div>
+                    <h2 className="text-xl md:text-2xl font-extrabold text-on-surface">
+                      Bài {currentLesson.order_index}: {getCleanLessonTitle(currentLesson.title)}
+                    </h2>
+
+                    {currentLesson.content_body ? (
+                      <MarkdownRenderer content={currentLesson.content_body} />
+                    ) : (
+                      <div className="prose max-w-none text-on-surface-variant font-light text-sm md:text-base leading-relaxed space-y-4">
+                        <p>
+                          Chào mừng bạn đến với bài học này. Trong chương trình giáo
+                          dục giới tính chuẩn y khoa, nội dung học tập được thiết kế
+                          ngắn gọn, trực quan và dễ hiểu giúp bạn nhanh chóng nắm bắt
+                          được các kiến thức cần thiết.
+                        </p>
+                        <ul className="list-disc pl-6 space-y-2 mt-4">
+                          <li>Cung cấp kiến thức sinh lý học và tâm lý học toàn diện.</li>
+                          <li>Rèn luyện kỹ năng nhận biết và hành động bảo vệ bản thân.</li>
+                          <li>Bổ sung các tình huống thực tế để dễ dàng ghi nhớ.</li>
+                        </ul>
                       </div>
                     )}
+
+                    <div className="bg-white p-6 rounded-none border border-outline-variant/30 shadow-xs flex gap-4 mt-8">
+                      <Info
+                        size={28}
+                        weight="duotone"
+                        className="text-primary shrink-0"
+                      />
+                      <p className="text-xs text-on-surface-variant leading-relaxed m-0 font-light">
+                        Mọi thông tin trong bài học này đều được kiểm duyệt bởi các
+                        chuyên gia y khoa và được thiết kế để mang lại cảm giác an
+                        toàn, tôn trọng và không phán xét.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              );
-            })()
-          ) : (
-            /* Article / Reading Lesson */
-            <div className="p-6 md:p-10 flex-grow">
-              <div className="max-w-4xl mx-auto space-y-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Badge
-                    tone="bg-primary/10 text-primary"
-                    uppercase
-                    icon={<Article size={14} weight="bold" />}
-                  >
-                    Tài liệu đọc
-                  </Badge>
-                </div>
-                <h2 className="text-xl md:text-2xl font-extrabold text-on-surface">
-                  Bài {currentLesson.order_index}: {getCleanLessonTitle(currentLesson.title)}
-                </h2>
-
-                {currentLesson.content_body ? (
-                  <MarkdownRenderer content={currentLesson.content_body} />
-                ) : (
-                  <div className="prose max-w-none text-on-surface-variant font-light text-sm md:text-base leading-relaxed space-y-4">
-                    <p>
-                      Chào mừng bạn đến với bài học này. Trong chương trình giáo
-                      dục giới tính chuẩn y khoa, nội dung học tập được thiết kế
-                      ngắn gọn, trực quan và dễ hiểu giúp bạn nhanh chóng nắm bắt
-                      được các kiến thức cần thiết.
-                    </p>
-                    <ul className="list-disc pl-6 space-y-2 mt-4">
-                      <li>Cung cấp kiến thức sinh lý học và tâm lý học toàn diện.</li>
-                      <li>Rèn luyện kỹ năng nhận biết và hành động bảo vệ bản thân.</li>
-                      <li>Bổ sung các tình huống thực tế để dễ dàng ghi nhớ.</li>
-                    </ul>
-                  </div>
-                )}
-
-                <div className="bg-white p-6 rounded-2xl border border-white/60 shadow-sm flex gap-4 mt-8">
-                  <Info
-                    size={28}
-                    weight="duotone"
-                    className="text-primary shrink-0"
-                  />
-                  <p className="text-xs text-on-surface-variant leading-relaxed m-0 font-light">
-                    Mọi thông tin trong bài học này đều được kiểm duyệt bởi các
-                    chuyên gia y khoa và được thiết kế để mang lại cảm giác an
-                    toàn, tôn trọng và không phán xét.
-                  </p>
-                </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -495,29 +644,41 @@ export default function CourseLearnPage() {
               <button
                 onClick={() => handleSelectLesson(activeIdx - 1)}
                 disabled={activeIdx === 0}
-                className="flex items-center gap-1.5 text-primary hover:bg-surface-container-low px-5 py-2.5 rounded-full transition-colors text-xs font-bold disabled:opacity-30 cursor-pointer"
+                className="flex items-center gap-1.5 text-primary hover:bg-surface-container-low px-5 py-2.5 rounded-none transition-colors text-xs font-bold disabled:opacity-30 cursor-pointer"
               >
                 <ArrowLeft size={16} weight="bold" />
                 <span>Bài trước</span>
               </button>
-              <button
-                onClick={handleNextOrComplete}
-                disabled={completing}
-                className={`flex items-center gap-1.5 px-8 py-3 rounded-full transition-all text-xs font-bold shadow-md cursor-pointer disabled:opacity-50 ${
-                  activeIdx === learnData.lessons.length - 1
-                    ? "bg-gradient-to-r from-secondary-container to-secondary text-white hover:opacity-95 shadow-lg"
-                    : "bg-primary text-white hover:opacity-90"
-                }`}
-              >
-                <span>
-                  {completing
-                    ? "Đang lưu..."
-                    : activeIdx === learnData.lessons.length - 1
-                      ? (learnData.has_final_quiz && !learnData.is_final_quiz_passed ? "Tới Quiz cuối khóa" : "Hoàn thành")
-                      : "Bài sau"}
-                </span>
-                <ArrowRight size={16} weight="bold" />
-              </button>
+
+              {currentLesson?.has_quiz && !currentLesson?.is_quiz_passed && !currentLesson?.is_completed && lessonTab === "content" ? (
+                <button
+                  onClick={() => setLessonTab("quiz")}
+                  className="flex items-center gap-1.5 px-6 py-2.5 rounded-none transition-all text-xs font-bold shadow-xs cursor-pointer bg-primary text-white hover:opacity-90"
+                >
+                  <Question size={16} weight="bold" />
+                  <span>Làm trắc nghiệm củng cố</span>
+                  <ArrowRight size={16} weight="bold" />
+                </button>
+              ) : (
+                <button
+                  onClick={handleNextOrComplete}
+                  disabled={completing}
+                  className={`flex items-center gap-1.5 px-8 py-2.5 rounded-none transition-all text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50 ${
+                    activeIdx === learnData.lessons.length - 1
+                      ? "bg-gradient-to-r from-secondary-container to-secondary text-white hover:opacity-95 shadow-md"
+                      : "bg-primary text-white hover:opacity-90"
+                  }`}
+                >
+                  <span>
+                    {completing
+                      ? "Đang lưu..."
+                      : activeIdx === learnData.lessons.length - 1
+                        ? (learnData.has_final_quiz && !learnData.is_final_quiz_passed ? "Tới Quiz cuối khóa" : "Hoàn thành khóa học")
+                        : "Bài sau"}
+                  </span>
+                  <ArrowRight size={16} weight="bold" />
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -548,7 +709,7 @@ export default function CourseLearnPage() {
                 <button
                   key={lesson.lesson_id}
                   onClick={() => handleSelectLesson(idx)}
-                  className={`w-full flex items-start gap-4 p-4 rounded-2xl transition-all duration-300 text-left border cursor-pointer ${
+                  className={`w-full flex items-start gap-4 p-4 rounded-none transition-all duration-300 text-left border cursor-pointer ${
                     isActive
                       ? isQuiz
                         ? "bg-purple-50/80 border-purple-200 shadow-sm ring-2 ring-purple-400/20"
@@ -598,7 +759,7 @@ export default function CourseLearnPage() {
                             : "Đọc"}{" "}
                         • 15 phút
                       </span>
-                      {isQuiz && (
+                      {lesson.has_quiz && (
                         <Badge
                           size="xs"
                           tone={
@@ -607,7 +768,7 @@ export default function CourseLearnPage() {
                               : "bg-purple-100 text-purple-800"
                           }
                         >
-                          {lesson.is_quiz_passed || lesson.is_completed ? "✓ Quiz đạt" : "Cần làm Quiz"}
+                          {lesson.is_quiz_passed || lesson.is_completed ? "✓ Quiz đạt" : "Cần Quiz"}
                         </Badge>
                       )}
                     </div>
@@ -622,7 +783,7 @@ export default function CourseLearnPage() {
                 <button
                   disabled={completedCount < learnData.lessons.length && !learnData.is_final_quiz_passed}
                   onClick={() => setIsViewingFinalQuiz(true)}
-                  className={`w-full flex items-start gap-4 p-4 rounded-2xl transition-all duration-300 text-left border ${
+                  className={`w-full flex items-start gap-4 p-4 rounded-none transition-all duration-300 text-left border ${
                     isViewingFinalQuiz
                       ? "bg-white border-white shadow-sm ring-2 ring-primary/20"
                       : completedCount < learnData.lessons.length && !learnData.is_final_quiz_passed

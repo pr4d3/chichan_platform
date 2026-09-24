@@ -116,6 +116,11 @@ app.include_router(roleplay_router.router)
 app.include_router(admin_router.router)
 app.include_router(quiz_router.router)
 
+# Static files for user uploads (e.g. avatars)
+import os
+from fastapi.staticfiles import StaticFiles
 
-
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
+os.makedirs(os.path.join(UPLOAD_DIR, "avatars"), exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 

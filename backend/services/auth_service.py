@@ -90,7 +90,8 @@ async def authenticate_user(db: AsyncSession, login_data: UserLogin, user_agent:
         "user": {
             "id": user.id,
             "full_name": user.full_name,
-            "role": user_role.role_code
+            "role": user_role.role_code,
+            "avatar_url": user.profile.avatar_url if user.profile else None
         }
     }
 

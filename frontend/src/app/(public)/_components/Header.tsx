@@ -53,8 +53,18 @@ export default function Header() {
                 <div className="flex items-center space-x-4">
                     {user ? (
                         <>
-                            <Link href="/profile" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">
-                                Chào, <span className="underline decoration-primary decoration-2 font-semibold">{user.full_name}</span>
+                            <Link href="/profile" className="flex items-center gap-2 text-sm font-medium text-on-surface-variant hover:text-primary transition-colors group">
+                                <div className="w-8 h-8 rounded-none border border-primary/30 overflow-hidden bg-surface-container-low shrink-0 group-hover:border-primary transition-colors">
+                                    <img
+                                        src={user.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=ChiChan&backgroundColor=ffd5dc'}
+                                        alt="Avatar"
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = 'https://api.dicebear.com/7.x/bottts/svg?seed=ChiChan&backgroundColor=ffd5dc';
+                                        }}
+                                    />
+                                </div>
+                                <span className="hidden sm:inline">Chào, <span className="underline decoration-primary decoration-2 font-semibold text-on-surface">{user.full_name}</span></span>
                             </Link>
                             {(user.role === 'ADMIN' || user.role === 'INSTRUCTOR') && (
                                 <Link href="/dashboard" className="hidden sm:inline-flex h-9 items-center justify-center rounded-full bg-primary-container px-4 text-xs font-semibold text-on-primary-container transition-opacity hover:opacity-90">
