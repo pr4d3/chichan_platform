@@ -129,14 +129,6 @@ npm run dev   # http://localhost:3000
 
 ---
 
-## 🤝 Quy ước
-
-- Commit tiếng Anh theo Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`); branch `dev` → merge `main` là tự deploy cả hai đầu.
-- Comments, UI copy, message API, AI prompt — tiếng Việt hết.
-- `scratch/` không commit; `.env` tuyệt đối không commit (mẫu là `backend/.env.example`).
-
----
-
 <div align="center">
 
 *Kiến thức là Sức mạnh.* 🌿
