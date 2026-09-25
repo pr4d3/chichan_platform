@@ -32,3 +32,18 @@ def create_access_token(subject: Union[str, Any], role_code: str) -> str:
 
 def create_refresh_token() -> str:
     return str(uuid.uuid4())
+
+def create_password_reset_token(user_id: str, email: str, password_hash: str) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.PASSWORD_RESET_EXPIRE_MINUTES)
+    to_encode = {
+        "exp": expire,
+        "sub": str(user_id),
+        "email": email,
+        "type": "password_reset",
+        "hash_sample": password_hash[:12] if password_hash else "",
+    }
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+def decode_password_reset_token(token: str) -> dict:
+    return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+

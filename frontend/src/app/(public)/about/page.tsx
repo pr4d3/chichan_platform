@@ -28,9 +28,10 @@ import {
 } from "@phosphor-icons/react";
 import { FormRow, EyebrowLabel, Modal } from "@/components/ui";
 import {
-  AdvisorIllustration,
-  StudentResearcherIllustration,
-  DeveloperIllustration,
+  AdvisorAbstractIllustration,
+  SurveyAnalyticsAbstractIllustration,
+  ScenarioStoryAbstractIllustration,
+  TechSystemAbstractIllustration,
 } from "@/components/illustrations/RoleIllustrations";
 import {
   Chart211,
@@ -58,7 +59,7 @@ const AUTHORS: Author[] = [
     role: "Giáo viên hướng dẫn",
     tagline: "GV Toán • Cố vấn phương pháp luận & Sư phạm",
     institution: "THPT Giồng Ông Tố, TP.HCM",
-    illustration: <AdvisorIllustration className="w-full h-full" />,
+    illustration: <AdvisorAbstractIllustration className="w-full h-full" />,
     quote:
       "Giáo dục giới tính không phải là vẽ đường cho hươu chạy, mà là thắp đèn soi rọi cho các em đi đúng đường trong sự an toàn và hiểu biết.",
   },
@@ -67,7 +68,7 @@ const AUTHORS: Author[] = [
     role: "Đồng tác giả nghiên cứu",
     tagline: "Lớp 12A9 • Phụ trách khảo sát & Phân tích số liệu",
     institution: "THPT Giồng Ông Tố, TP.HCM",
-    illustration: <StudentResearcherIllustration accent="emerald" className="w-full h-full" />,
+    illustration: <SurveyAnalyticsAbstractIllustration className="w-full h-full" />,
     quote:
       "Tụi mình muốn tạo nên một nơi mà bạn bè có thể thoải mái tìm hiểu về chính cơ thể mình mà không phải ngại ngùng hay sợ bị phán xét.",
   },
@@ -76,7 +77,7 @@ const AUTHORS: Author[] = [
     role: "Đồng tác giả nghiên cứu",
     tagline: "Lớp 12A9 • Biên kịch kịch bản tình huống nhập vai",
     institution: "THPT Giồng Ông Tố, TP.HCM",
-    illustration: <StudentResearcherIllustration accent="amber" className="w-full h-full" />,
+    illustration: <ScenarioStoryAbstractIllustration className="w-full h-full" />,
     quote:
       "Nếu đã từng rèn luyện phản xạ từ chối cùng AI trong môi trường giả lập an toàn, khi gặp tình huống thực tế ngoài đời các bạn sẽ tự tin bảo vệ mình.",
   },
@@ -85,7 +86,7 @@ const AUTHORS: Author[] = [
     role: "Kỹ thuật & Công nghệ",
     tagline: "Kỹ sư phần mềm • Kiến trúc sư hệ thống",
     institution: "Đại học FPT",
-    illustration: <DeveloperIllustration className="w-full h-full" />,
+    illustration: <TechSystemAbstractIllustration className="w-full h-full" />,
     quote:
       "Công nghệ mang sứ mệnh kết nối, biến những kiến thức khoa học thành trải nghiệm tương tác trực quan, an toàn và dễ tiếp cận cho mọi bạn trẻ.",
   },
@@ -254,24 +255,35 @@ export default function AboutPage() {
             </div>
           </div>
 
-          {/* Đội ngũ tác giả & GVHD (Storyset SVG Avatars) */}
-          <div className="pt-6 border-t border-outline-variant/20 space-y-3">
-            <EyebrowLabel as="p" size="11">
-              NHÂN SỰ THỰC HIỆN ĐỀ TÀI
-            </EyebrowLabel>
+          {/* Đội ngũ tác giả & GVHD (Tranh Minh Họa Trừu Tượng Phóng Khoáng) */}
+          <div className="pt-6 border-t border-outline-variant/20 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <EyebrowLabel as="p" size="11">
+                  NHÂN SỰ THỰC HIỆN ĐỀ TÀI
+                </EyebrowLabel>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-on-surface mt-1">
+                  Đội Ngũ Thực Hiện &amp; Cố Vấn Dự Án
+                </h2>
+              </div>
+              <span className="text-xs text-on-surface-variant font-medium">
+                Sư phạm • Khảo sát nghiên cứu • Biên kịch kịch bản • Công nghệ số
+              </span>
+            </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {AUTHORS.map((author, index) => (
                 <div
                   key={index}
-                  className="bg-white p-5 rounded-none border border-outline-variant/40 shadow-xs flex flex-col justify-between"
+                  className="bg-white p-5 rounded-none border border-outline-variant/40 shadow-xs hover:border-primary/50 transition-all duration-200 flex flex-col justify-between group hover:-translate-y-1"
                 >
                   <div>
-                    <div className="w-24 h-24 mx-auto rounded-none overflow-hidden mb-3.5 border border-outline-variant/30 bg-surface-container-lowest p-1.5 flex items-center justify-center">
+                    {/* Khung tranh minh họa trừu tượng phóng khoáng (Không gò bó avatar) */}
+                    <div className="w-full h-36 mx-auto rounded-none overflow-hidden mb-4 border border-outline-variant/20 bg-slate-50/70 p-2 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
                       {author.illustration}
                     </div>
                     <div className="text-center space-y-1">
-                      <h3 className="text-base font-bold text-on-surface">
+                      <h3 className="text-base font-bold text-on-surface group-hover:text-primary transition-colors">
                         {author.name}
                       </h3>
                       <p className="text-xs font-bold text-primary uppercase tracking-wide">
@@ -280,12 +292,15 @@ export default function AboutPage() {
                       <p className="text-xs text-on-surface-variant font-medium">
                         {author.tagline}
                       </p>
+                      <p className="text-[11px] text-on-surface-variant/70 font-semibold mt-0.5">
+                        {author.institution}
+                      </p>
                     </div>
                   </div>
                   
                   {/* Hiển thị đầy đủ trích dẫn, KHÔNG line-clamp */}
                   <div className="mt-4 pt-3 border-t border-outline-variant/20">
-                    <p className="text-xs sm:text-sm text-on-surface-variant italic leading-relaxed">
+                    <p className="text-xs text-on-surface-variant italic leading-relaxed text-center">
                       &quot;{author.quote}&quot;
                     </p>
                   </div>

@@ -36,10 +36,10 @@ export default function RegisterPage() {
     }>({});
 
     const validateFullName = (val: string) => {
-        if (!val.trim()) return "Họ và tên không được để trống";
-        if (val.length < 2) return "Họ và tên phải có ít nhất 2 ký tự";
-        const re = /^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÂÊÔƠưăâêôơ\s]+$/;
-        if (!re.test(val)) return "Họ và tên chỉ được chứa chữ cái và khoảng trắng";
+        const trimmed = val.trim();
+        if (!trimmed) return "Nickname không được để trống";
+        if (trimmed.length < 2) return "Nickname phải có ít nhất 2 ký tự";
+        if (trimmed.length > 50) return "Nickname không được vượt quá 50 ký tự";
         return "";
     };
 
@@ -188,34 +188,40 @@ export default function RegisterPage() {
                 </div>
 
                 {/* Inputs */}
-                {/* Full Name Input Container */}
-                <div className="relative">
-                    <input
-                        id="fullName"
-                        type="text"
-                        required
-                        placeholder=" "
-                        className={`peer block w-full px-5 pt-[20px] pb-[8px] rounded-none bg-white border focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none transition-colors text-sm text-on-surface placeholder:text-transparent ${
-                            touched.fullName && errors.fullName
-                                ? 'border-red-400 focus:ring-red-400'
-                                : 'border-outline-variant/60'
-                        }`}
-                        value={fullName}
-                        onBlur={() => setTouched(p => ({ ...p, fullName: true }))}
-                        onChange={(e) => setFullName(e.target.value)}
-                    />
-                    <label
-                        htmlFor="fullName"
-                        className={`absolute left-5 top-[14px] text-sm transition-all duration-300 transform origin-[0] pointer-events-none peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-[0.8] peer-focus:-translate-y-[8px] scale-[0.8] -translate-y-[8px] ${
-                            touched.fullName && errors.fullName
-                                ? 'text-red-500 peer-focus:text-red-500'
-                                : 'text-on-surface-variant/70 peer-focus:text-primary font-medium'
-                        }`}
-                    >
-                        Họ và tên
-                    </label>
-                    {touched.fullName && errors.fullName && (
+                {/* Nickname Input Container */}
+                <div>
+                    <div className="relative">
+                        <input
+                            id="fullName"
+                            type="text"
+                            required
+                            placeholder=" "
+                            className={`peer block w-full px-5 pt-[20px] pb-[8px] rounded-none bg-white border focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none transition-colors text-sm text-on-surface placeholder:text-transparent ${
+                                touched.fullName && errors.fullName
+                                    ? 'border-red-400 focus:ring-red-400'
+                                    : 'border-outline-variant/60'
+                            }`}
+                            value={fullName}
+                            onBlur={() => setTouched(p => ({ ...p, fullName: true }))}
+                            onChange={(e) => setFullName(e.target.value)}
+                        />
+                        <label
+                            htmlFor="fullName"
+                            className={`absolute left-5 top-[14px] text-sm transition-all duration-300 transform origin-[0] pointer-events-none peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-[0.8] peer-focus:-translate-y-[8px] scale-[0.8] -translate-y-[8px] ${
+                                touched.fullName && errors.fullName
+                                    ? 'text-red-500 peer-focus:text-red-500'
+                                    : 'text-on-surface-variant/70 peer-focus:text-primary font-medium'
+                            }`}
+                        >
+                            Nickname
+                        </label>
+                    </div>
+                    {touched.fullName && errors.fullName ? (
                         <span className="text-[10px] text-red-500 font-semibold ml-2 mt-1 block">{errors.fullName}</span>
+                    ) : (
+                        <span className="text-[11px] text-on-surface-variant/60 font-normal ml-2 mt-1 block">
+                            Bạn muốn mọi người gọi bạn bằng gì?
+                        </span>
                     )}
                 </div>
 

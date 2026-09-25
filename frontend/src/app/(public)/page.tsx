@@ -181,10 +181,10 @@ export default function HomePage() {
 
           {/* Switcher Tabs - Only visible for Guests / Admin / Instructors */}
           {!isParent && !isChild && (
-            <div className="inline-flex p-1 bg-surface-container-low rounded-none mb-16 border border-outline-variant/30">
+            <div className="w-full max-w-md flex p-1 bg-surface-container-low rounded-xl mb-10 sm:mb-16 border border-outline-variant/30">
               <button
                 onClick={() => setActiveTab("PARENT")}
-                className={`px-8 py-3 rounded-none text-sm font-semibold transition-all cursor-pointer ${
+                className={`flex-1 px-3 sm:px-8 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer text-center ${
                   activeTab === "PARENT"
                     ? "bg-white text-primary font-bold shadow-depth-1 border border-outline-variant/20"
                     : "text-on-surface-variant hover:text-on-surface hover:bg-white/50"
@@ -194,7 +194,7 @@ export default function HomePage() {
               </button>
               <button
                 onClick={() => setActiveTab("CHILD")}
-                className={`px-8 py-3 rounded-none text-sm font-semibold transition-all cursor-pointer ${
+                className={`flex-1 px-3 sm:px-8 py-2.5 sm:py-3 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer text-center ${
                   activeTab === "CHILD"
                     ? "bg-white text-primary font-bold shadow-depth-1 border border-outline-variant/20"
                     : "text-on-surface-variant hover:text-on-surface hover:bg-white/50"

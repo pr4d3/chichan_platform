@@ -29,6 +29,7 @@ body {
   color: var(--color-on-background);
   font-family: var(--font-sans);
   text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
 
 /* 4. Loại bỏ Glow và Backlight ngoài ý muốn */
