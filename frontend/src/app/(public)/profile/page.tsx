@@ -319,11 +319,12 @@ export default function ProfilePage() {
                             )}
 
                             <form onSubmit={handleUpdate} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <FormRow label="Họ và tên" htmlFor="fullName" required className="flex flex-col gap-1.5">
+                                <FormRow label="Nickname" htmlFor="fullName" required className="flex flex-col gap-1.5">
                                     <input
                                         id="fullName"
                                         type="text"
                                         required
+                                        placeholder="Nhập nickname của bạn"
                                         className="w-full bg-white border border-outline-variant/60 rounded-none px-4 py-3 text-sm text-on-surface focus:ring-1 focus:ring-primary focus:border-primary transition-colors outline-none"
                                         value={fullName}
                                         onChange={(e) => setFullName(e.target.value)}

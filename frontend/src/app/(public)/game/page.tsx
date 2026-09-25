@@ -26,6 +26,7 @@ import {
   ArrowCounterClockwise,
   Play,
 } from "@phosphor-icons/react";
+import { getGameIllustration } from "@/components/illustrations/GameIllustrations";
 
 // Chỉ render trong modal nên nạp lazily (không nằm trong bundle chính của trang game)
 const GuideScriptViewer = dynamic(
@@ -59,6 +60,7 @@ interface ScenarioTheme {
   borderColor: string;
   accentGlow: string;
   badgeStyle: string;
+  shortTag: string;
   categoryTitle: string;
   IconComponent: any;
   iconColor: string;
@@ -74,6 +76,7 @@ const scenarioThemeMap: Record<string, ScenarioTheme> = {
     borderColor: "border-outline-variant/40 hover:border-primary",
     accentGlow: "hover:shadow-depth-3",
     badgeStyle: "bg-rose-50 text-rose-700 border border-rose-200",
+    shortTag: "An Toàn Mạng",
     categoryTitle: "Tình huống 1: An toàn mạng & Ranh giới",
     IconComponent: ShieldWarning,
     iconColor: "text-rose-600 bg-rose-100/70",
@@ -88,6 +91,7 @@ const scenarioThemeMap: Record<string, ScenarioTheme> = {
     borderColor: "border-outline-variant/40 hover:border-primary",
     accentGlow: "hover:shadow-depth-3",
     badgeStyle: "bg-amber-50 text-amber-800 border border-amber-200",
+    shortTag: "Ứng Phó Tống Tiền",
     categoryTitle: "Tình huống 2: Ứng phó tống tiền mạng",
     IconComponent: ShieldCheck,
     iconColor: "text-amber-700 bg-amber-100/80",
@@ -102,6 +106,7 @@ const scenarioThemeMap: Record<string, ScenarioTheme> = {
     borderColor: "border-outline-variant/40 hover:border-primary",
     accentGlow: "hover:shadow-depth-3",
     badgeStyle: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    shortTag: "Y Tế & SKSS",
     categoryTitle: "Tình huống 3: Bác sĩ tư vấn dậy thì & SKSS",
     IconComponent: FirstAid,
     iconColor: "text-emerald-700 bg-emerald-100/70",
@@ -116,6 +121,7 @@ const scenarioThemeMap: Record<string, ScenarioTheme> = {
     borderColor: "border-outline-variant/40 hover:border-primary",
     accentGlow: "hover:shadow-depth-3",
     badgeStyle: "bg-indigo-50 text-indigo-700 border border-indigo-200",
+    shortTag: "Đối Thoại Cùng Con",
     categoryTitle: "Tình huống 4: Cầu nối đối thoại cùng con",
     IconComponent: UsersThree,
     iconColor: "text-indigo-700 bg-indigo-100/70",
@@ -130,6 +136,7 @@ const scenarioThemeMap: Record<string, ScenarioTheme> = {
     borderColor: "border-outline-variant/40 hover:border-primary",
     accentGlow: "hover:shadow-depth-3",
     badgeStyle: "bg-teal-50 text-teal-700 border border-teal-200",
+    shortTag: "Học Đường An Toàn",
     categoryTitle: "Tình huống 5: Chống kỳ thị & Bắt nạt",
     IconComponent: HeartStraight,
     iconColor: "text-teal-700 bg-teal-100/70",
@@ -138,6 +145,22 @@ const scenarioThemeMap: Record<string, ScenarioTheme> = {
     summaryQuote:
       "Đóng vai người bạn tốt an ủi, khẳng định ranh giới cơ thể và cùng báo cáo nhà trường.",
   },
+};
+
+// Fallback avatar an toàn, sắc nét chuẩn vector cho NPC từng kịch bản
+const getNpcAvatar = (sc: Scenario) => {
+  if (sc.npc_avatar_url && !sc.npc_avatar_url.startsWith("/avatars/")) {
+    return sc.npc_avatar_url;
+  }
+  const fallbackSeeds: Record<string, { seed: string; bg: string }> = {
+    ROOM_STRANGER: { seed: "QuanKool", bg: "fee2e2" },
+    ROOM_SEXTORTION: { seed: "CyberAlert", bg: "fef3c7" },
+    ROOM_DOCTOR: { seed: "DoctorMinhTrang", bg: "d1fae5" },
+    ROOM_TEEN_CHILD: { seed: "BaoKhang", bg: "e0e7ff" },
+    ROOM_BULLYING: { seed: "LinhChi", bg: "ccfbf1" },
+  };
+  const config = fallbackSeeds[sc.room_code] || { seed: sc.npc_name, bg: "dcfce7" };
+  return `https://api.dicebear.com/7.x/bottts/svg?seed=${config.seed}&backgroundColor=${config.bg}`;
 };
 
 type FilterCategory = "ALL" | "SAFETY" | "HEALTH" | "FAMILY_SCHOOL";
@@ -416,6 +439,7 @@ export default function GameLandingPage() {
                 accentGlow: "group-hover:shadow-primary/10",
                 badgeStyle:
                   "bg-surface-container text-on-surface-variant border border-outline-variant/30",
+                shortTag: "Mô Phỏng",
                 categoryTitle: "Kịch bản thực hành",
                 IconComponent: Robot,
                 iconColor: "text-primary bg-primary-fixed/50",
@@ -437,157 +461,143 @@ export default function GameLandingPage() {
               return (
                 <div
                   key={sc.id}
-                  className="group relative bg-white rounded-none p-6 sm:p-7 border border-outline-variant/40 hover:border-primary shadow-depth-1 hover:shadow-depth-3 transition-all duration-200 flex flex-col justify-between hover:-translate-y-1"
+                  className="group relative bg-white rounded-none border border-outline-variant/40 hover:border-primary shadow-depth-1 hover:shadow-depth-3 transition-all duration-200 flex flex-col justify-between overflow-hidden hover:-translate-y-1"
                 >
-                  {/* Top Bar inside Card */}
-                  <div>
-                    <div className="flex items-center justify-between gap-2 mb-4">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-xs ${theme.iconColor}`}
-                        >
-                          <ScenarioIcon size={22} weight="duotone" />
-                        </div>
-                        <Badge
-                          tone={theme.badgeStyle}
-                          uppercase
-                          className="py-1 font-extrabold"
-                        >
-                          {theme.categoryTitle}
-                        </Badge>
-                      </div>
+                  {/* 1. KHỐI ẢNH MINH HOẠ SVG RIÊNG BIỆT CHO TỪNG GAME */}
+                  <div className="relative w-full h-44 sm:h-48 overflow-hidden bg-slate-50/70 border-b border-outline-variant/20 flex items-center justify-center p-2">
+                    {getGameIllustration(
+                      sc.room_code,
+                      "w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                    )}
 
-                      {isRecommended && (
-                        <Badge
-                          tone="bg-emerald-500 text-white shadow-xs"
-                          uppercase
-                          icon={<Sparkle size={12} weight="fill" />}
-                          className="font-black! animate-pulse"
-                        >
-                          Khuyên dùng
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Meta Badges */}
-                    <div className="flex flex-wrap items-center gap-1.5 mb-3.5">
-                      {/* Badge người nhắn trước (giữ nguyên thông tin của bản cũ) */}
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                          isNpcFirst
-                            ? "bg-indigo-50 text-indigo-700 border border-indigo-200/80"
-                            : "bg-teal-50 text-teal-700 border border-teal-200/80"
-                        }`}
-                      >
-                        <ChatCircleText size={12} weight="bold" />
-                        {isNpcFirst ? "NPC nhắn trước" : "Bạn nhắn trước"}
-                      </span>
-
-                      {/* Badge giới tính/nhân vật (giữ nguyên thông tin của bản cũ) */}
-                      {sc.gender_info && (
-                        <span className="bg-white/80 border border-outline-variant/30 text-on-surface-variant px-2.5 py-0.5 rounded-full text-[10px] font-semibold">
-                          {sc.gender_info}
-                        </span>
-                      )}
-
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-primary/10 text-primary border border-primary/20">
-                        <Sparkle size={12} weight="fill" />
-                        {sc.target_audience === "CHILD"
-                          ? "Học sinh"
-                          : "Phụ huynh"}
-                      </span>
-
-                      <span className="bg-amber-500/10 text-amber-800 border border-amber-300/60 px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1">
-                        <Lightning
-                          size={12}
-                          weight="fill"
-                          className="text-amber-600"
+                    {/* Tag thể loại tình huống tinh tế góc trái */}
+                    <div className="absolute top-3 left-3 z-10">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-none text-[11px] font-extrabold uppercase tracking-wider bg-white/95 text-on-surface shadow-xs border border-outline-variant/30 backdrop-blur-sm">
+                        <ScenarioIcon
+                          size={14}
+                          weight="duotone"
+                          className={theme.iconColor.split(" ")[0]}
                         />
-                        Phản xạ tình huống
+                        <span>{theme.shortTag}</span>
                       </span>
                     </div>
 
-                    {/* Title */}
-                    <h3 className="text-lg font-black text-on-surface mb-2 tracking-tight group-hover:text-primary transition-colors leading-snug">
-                      {sc.title}
-                    </h3>
-
-                    {/* Core takeaway / Quote */}
-                    <p className="text-xs text-on-surface-variant font-normal leading-relaxed mb-6 line-clamp-3">
-                      {sc.description || theme.summaryQuote}
-                    </p>
+                    {/* Huy hiệu Khuyên dùng nổi bật góc phải */}
+                    {isRecommended && (
+                      <div className="absolute top-3 right-3 z-10">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-none text-[10px] font-black uppercase bg-emerald-600 text-white shadow-xs">
+                          <Sparkle size={12} weight="fill" />
+                          <span>Khuyên dùng</span>
+                        </span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Character Avatar & Action Controls */}
-                  <div className="border-t border-outline-variant/20 pt-4 mt-auto space-y-3.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <img
-                            src={
-                              sc.npc_avatar_url ||
-                              "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"
-                            }
-                            alt={sc.npc_name}
-                            onError={(e) => {
-                              e.currentTarget.src =
-                                "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100";
-                            }}
-                            className="w-10 h-10 rounded-2xl object-cover border-2 border-white shadow-xs group-hover:scale-105 transition-transform"
-                          />
-                          <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-on-surface-variant font-medium">
-                            Nhân vật AI
-                          </p>
-                          <p className="text-xs font-black text-on-surface">
-                            {sc.npc_name}
-                          </p>
-                        </div>
+                  {/* 2. NỘI DUNG CHÍNH (TIÊU ĐỀ & MÔ TẢ GỌN GÀNG, KHÔNG RÁC BADGE) */}
+                  <div className="p-5 sm:p-6 flex-1 flex flex-col justify-between">
+                    <div>
+                      {/* Chỉ giữ 2 chỉ số quan trọng nhất: Đối tượng & Lượt nhắn đầu */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-none text-[10px] font-black bg-primary/10 text-primary border border-primary/20">
+                          <Sparkle size={11} weight="fill" />
+                          {sc.target_audience === "CHILD"
+                            ? "Dành cho Học sinh"
+                            : "Dành cho Phụ huynh"}
+                        </span>
+
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-none text-[10px] font-bold ${
+                            isNpcFirst
+                              ? "bg-indigo-50 text-indigo-700 border border-indigo-200/80"
+                              : "bg-teal-50 text-teal-700 border border-teal-200/80"
+                          }`}
+                        >
+                          <ChatCircleText size={12} weight="bold" />
+                          {isNpcFirst ? "AI mở lời trước" : "Bạn mở lời trước"}
+                        </span>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setSelectedGuideScenario(sc)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-black text-amber-800 bg-amber-100 hover:bg-amber-200 border border-amber-300/80 transition-all cursor-pointer shadow-2xs"
-                      >
-                        <Lightning
-                          size={14}
-                          weight="fill"
-                          className="text-amber-600"
-                        />
-                        <span>Bí kíp 3s</span>
-                      </button>
+                      {/* Tiêu đề tình huống nổi bật, tách bạch rõ ràng */}
+                      <h3 className="text-lg font-black text-on-surface mb-2 tracking-tight group-hover:text-primary transition-colors leading-snug line-clamp-2">
+                        {sc.title}
+                      </h3>
+
+                      {/* Tóm tắt tình huống */}
+                      <p className="text-xs text-on-surface-variant font-normal leading-relaxed line-clamp-3 mb-4">
+                        {sc.description || theme.summaryQuote}
+                      </p>
                     </div>
 
-                    <Button
-                      full
-                      loading={
-                        checkingSessionId === sc.id ||
-                        creatingSessionId === sc.id
-                      }
-                      disabled={
-                        checkingSessionId !== null || creatingSessionId !== null
-                      }
-                      onClick={() => handleStartSession(sc)}
-                      className="h-11 font-black! shadow-md! hover:shadow-lg! shadow-primary/20 group/btn cursor-pointer"
-                    >
-                      {creatingSessionId === sc.id ? (
-                        "Đang vào phòng..."
-                      ) : checkingSessionId === sc.id ? (
-                        "Đang kiểm tra phòng..."
-                      ) : (
-                        <>
-                          <span>Bắt đầu tình huống</span>
-                          <ArrowRight
-                            size={16}
-                            weight="bold"
-                            className="group-hover/btn:translate-x-1 transition-transform"
+                    {/* 3. THÔNG TIN NHÂN VẬT & NÚT HÀNH ĐỘNG */}
+                    <div className="border-t border-outline-variant/20 pt-4 mt-auto space-y-3.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="relative shrink-0">
+                            <img
+                              src={getNpcAvatar(sc)}
+                              alt={sc.npc_name}
+                              onError={(e) => {
+                                e.currentTarget.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${sc.npc_name}&backgroundColor=dcfce7`;
+                              }}
+                              className="w-9 h-9 rounded-none object-cover border border-outline-variant/40 shadow-2xs group-hover:scale-105 transition-transform"
+                            />
+                            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border border-white rounded-full" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-on-surface-variant font-medium truncate">
+                              {sc.gender_info
+                                ? `${sc.gender_info} • AI`
+                                : "Nhân vật phản xạ AI"}
+                            </p>
+                            <p className="text-xs font-black text-on-surface truncate">
+                              {sc.npc_name}
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedGuideScenario(sc)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-none text-[11px] font-black text-amber-800 bg-amber-100/90 hover:bg-amber-200 border border-amber-300/80 transition-all cursor-pointer shadow-2xs shrink-0"
+                        >
+                          <Lightning
+                            size={14}
+                            weight="fill"
+                            className="text-amber-600"
                           />
-                        </>
-                      )}
-                    </Button>
+                          <span>Bí kíp 3s</span>
+                        </button>
+                      </div>
+
+                      <Button
+                        full
+                        loading={
+                          checkingSessionId === sc.id ||
+                          creatingSessionId === sc.id
+                        }
+                        disabled={
+                          checkingSessionId !== null ||
+                          creatingSessionId !== null
+                        }
+                        onClick={() => handleStartSession(sc)}
+                        className="h-11 font-black! rounded-none shadow-md! hover:shadow-lg! shadow-primary/20 group/btn cursor-pointer"
+                      >
+                        {creatingSessionId === sc.id ? (
+                          "Đang vào phòng..."
+                        ) : checkingSessionId === sc.id ? (
+                          "Đang kiểm tra phòng..."
+                        ) : (
+                          <>
+                            <span>Bắt đầu tình huống</span>
+                            <ArrowRight
+                              size={16}
+                              weight="bold"
+                              className="group-hover/btn:translate-x-1 transition-transform"
+                            />
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               );

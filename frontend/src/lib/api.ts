@@ -7,7 +7,7 @@ const FIELD_LABELS: Record<string, string> = {
     content: 'Nội dung',
     email: 'Địa chỉ Email',
     password: 'Mật khẩu',
-    full_name: 'Họ và tên',
+    full_name: 'Nickname',
     parent_comment_id: 'Bình luận',
     is_anonymous: 'Chế độ ẩn danh',
 };

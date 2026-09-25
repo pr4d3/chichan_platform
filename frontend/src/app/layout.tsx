@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Mea_Culpa, WindSong } from "next/font/google";
 import "@/styles/global.css";
 import { AuthProvider } from "@/context/AuthContext";
@@ -23,6 +23,11 @@ const windSong = WindSong({
   variable: "--font-windsong",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 export const metadata: Metadata = {
   title: "ChiChan - Nền tảng Giáo dục Giới tính Trực tuyến",
   description:
@@ -37,9 +42,13 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
+      suppressHydrationWarning
       className={`${inter.variable} ${meaCulpa.variable} ${windSong.variable} h-full`}
     >
-      <body className="min-h-full bg-background text-on-background font-sans antialiased flex flex-col">
+      <body
+        suppressHydrationWarning
+        className="min-h-full bg-background text-on-background font-sans antialiased flex flex-col"
+      >
         <ToastProvider>
           <AuthProvider>{children}</AuthProvider>
         </ToastProvider>

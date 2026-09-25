@@ -222,12 +222,19 @@
 .plyr--vimeo .plyr__video-embed {
   overflow: hidden;
   border-radius: 0px !important;
+  position: relative;
 }
 
 .plyr--youtube .plyr__video-embed iframe,
 .plyr--vimeo .plyr__video-embed iframe {
-  transform: scale(1.22);
-  transform-origin: center center;
+  position: absolute !important;
+  top: -9.5% !important;
+  height: 119% !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+  transform: none !important;
 }
 
 .custom-video-wrapper iframe,
@@ -235,6 +242,27 @@
   width: 100%;
   height: 100%;
   border-radius: 0px !important;
+}
+
+/* Mobile YouTube UI crop: Hides YouTube title banner, accreditation badge at top & controls/watermark at bottom */
+@media (max-width: 1023px) {
+  .custom-video-wrapper.mobile-yt-crop {
+    overflow: hidden !important;
+  }
+  .custom-video-wrapper.mobile-yt-crop .plyr,
+  .custom-video-wrapper.mobile-yt-crop .plyr__video-wrapper,
+  .custom-video-wrapper.mobile-yt-crop .plyr__video-embed {
+    overflow: hidden !important;
+  }
+  .custom-video-wrapper.mobile-yt-crop:not(.plyr--fullscreen-active) .plyr__video-embed iframe,
+  .custom-video-wrapper.mobile-yt-crop:not(.plyr--fullscreen-active) iframe {
+    position: absolute !important;
+    top: -35% !important;
+    height: 168% !important;
+    width: 100% !important;
+    left: 0 !important;
+    pointer-events: none !important;
+  }
 }
 
 /* Print Styles for Certificate Generation */

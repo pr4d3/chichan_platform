@@ -9,7 +9,33 @@ export default function AuthLayout({
     children: React.ReactNode;
 }) {
     const pathname = usePathname();
-    const isLogin = pathname === '/login';
+
+    const getHeaderInfo = () => {
+        if (pathname === '/login') {
+            return {
+                title: 'Khởi đầu Hành trình',
+                subtitle: 'Đăng nhập vào hệ thống',
+            };
+        }
+        if (pathname === '/forgot-password') {
+            return {
+                title: 'Khôi phục Mật khẩu',
+                subtitle: 'Lấy lại quyền truy cập vào tài khoản',
+            };
+        }
+        if (pathname === '/reset-password') {
+            return {
+                title: 'Đặt lại Mật khẩu',
+                subtitle: 'Thiết lập mật khẩu mới cho tài khoản',
+            };
+        }
+        return {
+            title: 'Khởi đầu Hành trình',
+            subtitle: 'Tạo tài khoản mới',
+        };
+    };
+
+    const header = getHeaderInfo();
 
     return (
         <div className="bg-surface text-on-surface min-h-screen w-full flex flex-col lg:flex-row p-4 lg:p-6 gap-6 font-sans antialiased overflow-x-hidden">
@@ -33,9 +59,9 @@ export default function AuthLayout({
                 <div className="w-full max-w-md bg-white rounded-none p-6 lg:p-8 flex flex-col gap-5 lg:gap-6 border border-outline-variant/30 shadow-depth-2">
                     {/* Branding */}
                     <div className="text-center mb-2">
-                        <h2 className="text-2xl font-extrabold text-primary">Khởi đầu Hành trình</h2>
+                        <h2 className="text-2xl font-extrabold text-primary">{header.title}</h2>
                         <p className="text-sm text-on-surface-variant mt-2">
-                            {isLogin ? 'Đăng nhập vào hệ thống' : 'Tạo tài khoản mới'}
+                            {header.subtitle}
                         </p>
                     </div>
 
