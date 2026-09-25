@@ -4,6 +4,7 @@ import React from 'react';
 import { usePathname } from 'next/navigation';
 import Header from '@/app/(public)/_components/Header';
 import Footer from '@/app/(public)/_components/Footer';
+import MobileBottomNav from '@/app/(public)/_components/MobileBottomNav';
 
 export default function MainLayout({
     children,
@@ -13,7 +14,6 @@ export default function MainLayout({
     const pathname = usePathname();
     // Ẩn Header và Footer hoàn toàn trên phòng chơi game mô phỏng (/game/[sessionId])
     const isGameRoom = pathname?.startsWith('/game/') && pathname !== '/game';
-    const isGame = pathname?.startsWith('/game');
 
     if (isGameRoom) {
         return <>{children}</>;
@@ -22,10 +22,11 @@ export default function MainLayout({
     return (
         <div className="flex min-h-screen flex-col bg-background text-on-background">
             <Header />
-            <main className="flex-grow">
+            <main className="flex-grow pb-16 md:pb-0">
                 {children}
             </main>
             <Footer />
+            <MobileBottomNav />
         </div>
     );
 }

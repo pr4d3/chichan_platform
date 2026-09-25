@@ -246,9 +246,9 @@ export function QuizPlayer({
   const isLocked = countdownSeconds > 0 || (quiz.is_locked && !quiz.has_passed);
 
   return (
-    <div className="w-full max-w-3xl mx-auto my-8 bg-white/90 backdrop-blur-md rounded-3xl border border-white shadow-md p-6 sm:p-10 space-y-8 animate-fade-in">
+    <div className="w-full max-w-3xl mx-auto my-3 sm:my-8 bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl border border-white shadow-md p-4 sm:p-8 md:p-10 space-y-6 sm:space-y-8 animate-fade-in">
       {/* Quiz Header & Coursera Anti-Spam Policy Bar */}
-      <div className="space-y-4 border-b border-outline-variant/30 pb-6">
+      <div className="space-y-3 sm:space-y-4 border-b border-outline-variant/30 pb-4 sm:pb-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
@@ -284,11 +284,11 @@ export function QuizPlayer({
         )}
 
         {/* Anti-spam Attempt Badge Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-surface-container-lowest border border-outline-variant/20 text-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 p-3 rounded-xl sm:rounded-2xl bg-surface-container-lowest border border-outline-variant/20 text-xs">
           <div className="flex items-center gap-2 text-on-surface-variant">
-            <ClockCountdown size={16} weight="duotone" className="text-amber-600" />
+            <ClockCountdown size={16} weight="duotone" className="text-amber-600 shrink-0" />
             <span>
-              Chính sách thử lại: Tối đa <strong>{quiz.max_attempts} lần</strong> (Thời gian chờ: {quiz.cooldown_minutes} phút)
+              Chính sách thử lại: Tối đa <strong>{quiz.max_attempts} lần</strong> (Chờ: {quiz.cooldown_minutes}p)
             </span>
           </div>
 
@@ -349,7 +349,7 @@ export function QuizPlayer({
             return (
               <div
                 key={question.id}
-                className="p-6 rounded-3xl bg-surface-container-lowest border border-outline-variant/30 shadow-xs space-y-4 transition-all"
+                className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-surface-container-lowest border border-outline-variant/30 shadow-xs space-y-3 sm:space-y-4 transition-all"
               >
                 {/* Question Label & Text */}
                 <div className="space-y-1.5">
@@ -537,7 +537,7 @@ export function QuizPlayer({
                 loading={submitting}
                 onClick={handleSubmit}
                 icon={<SealCheck size={18} weight="bold" />}
-                className="px-8 py-3.5 shadow-md"
+                className="w-full sm:w-auto px-8 py-3.5 shadow-md"
               >
                 <span>{submitting ? "Đang chấm điểm..." : "Nộp bài kiểm tra"}</span>
               </Button>

@@ -57,3 +57,25 @@ class StandardResponse(BaseModel):
     success: bool
     message: Optional[str] = None
     data: Optional[Any] = None
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class VerifyResetTokenRequest(BaseModel):
+    token: str
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=6)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password_rules(cls, v: str) -> str:
+        if " " in v or "\t" in v or "\n" in v:
+            raise ValueError("Mật khẩu không được chứa khoảng trắng.")
+        has_letter = any(c.isalpha() for c in v)
+        has_digit = any(c.isdigit() for c in v)
+        if not has_letter or not has_digit:
+            raise ValueError("Mật khẩu phải chứa cả chữ cái và chữ số.")
+        return v
+

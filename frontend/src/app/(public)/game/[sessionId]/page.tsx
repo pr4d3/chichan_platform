@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { getApiBaseUrl } from "@/lib/runtime-config";
@@ -704,6 +705,9 @@ export default function GamePlayPage() {
 
     try {
       const token = api.getToken();
+      if (!token) {
+        throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+      }
       // Base URL giải quyết lúc runtime — luồng SSE giữ nguyên đường đi trực tiếp
       // browser → Render, không qua Vercel Function (tránh bị cắt/buffer stream).
       const BASE_URL = await getApiBaseUrl();
@@ -721,6 +725,10 @@ export default function GamePlayPage() {
       );
 
       if (!response.ok) {
+        if (response.status === 401) {
+          api.clearAuth();
+          throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        }
         const errData = await response.json().catch(() => ({}));
         throw new Error(errData.detail || "Có lỗi xảy ra khi truyền tin");
       }
@@ -1127,7 +1135,14 @@ export default function GamePlayPage() {
                 />
                 <span className="truncate font-medium">{error}</span>
               </div>
-              {lastFailedMessage && (
+              {error.includes("đăng nhập") ? (
+                <Link
+                  href="/login"
+                  className="px-3 py-1 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] shrink-0 transition-all cursor-pointer shadow-xs inline-block"
+                >
+                  Đăng nhập lại
+                </Link>
+              ) : lastFailedMessage ? (
                 <button
                   type="button"
                   onClick={() => handleSendMessage(lastFailedMessage)}
@@ -1135,7 +1150,7 @@ export default function GamePlayPage() {
                 >
                   Thử lại
                 </button>
-              )}
+              ) : null}
             </div>
           )}
 

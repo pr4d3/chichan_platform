@@ -19,3 +19,10 @@ async def delete_session(db: AsyncSession, refresh_token: str) -> bool:
         await db.commit()
         return True
     return False
+
+async def delete_all_user_sessions(db: AsyncSession, user_id) -> bool:
+    from sqlalchemy import delete
+    await db.execute(delete(UserSession).where(UserSession.user_id == user_id))
+    await db.commit()
+    return True
+

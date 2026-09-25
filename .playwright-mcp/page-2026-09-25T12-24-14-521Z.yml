@@ -1,0 +1,124 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "ChiChan" [ref=e5] [cursor=pointer]:
+          - /url: /
+        - button "Mở menu" [ref=e13] [cursor=pointer]
+    - main [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]:
+          - generic [ref=e19]:
+            - heading "Góc Học Tập" [level=1] [ref=e20]
+            - paragraph [ref=e21]: Bài giảng do giáo viên đăng tải, học sinh hoàn thành như một bài giảng trên lớp. Tích hợp E-learning trực quan và kiểm tra đánh giá chuẩn hóa.
+          - generic [ref=e22]:
+            - button "Tất cả" [ref=e23] [cursor=pointer]
+            - button "Dành cho Học sinh" [ref=e24] [cursor=pointer]
+            - button "Dành cho Phụ huynh" [ref=e25] [cursor=pointer]
+        - generic [ref=e27]:
+          - heading "Bài học trực tuyến" [level=2] [ref=e28]
+          - generic [ref=e33]: 0 bài giảng có sẵn
+        - generic [ref=e113]:
+          - generic [ref=e115]:
+            - 'heading "Tìm Hiểu Thêm: Nghiên Cứu & Bài Báo Uy Tín" [level=2] [ref=e116]'
+            - paragraph [ref=e117]: Các bài báo khoa học, cẩm nang tâm lý và nghiên cứu được trích dẫn nguồn uy tín từ UNICEF, Bộ GD&ĐT và Bộ Y tế, giúp cả Học sinh và Phụ huynh chủ động tra cứu, mở rộng kiến thức.
+          - generic [ref=e118]:
+            - generic [ref=e119]:
+              - generic [ref=e120]:
+                - generic [ref=e121]:
+                  - generic [ref=e122]: Tâm lý & Gia đình
+                  - generic [ref=e123]: Nguồn thẩm định
+                - heading "Nghệ Thuật Trò Chuyện Cùng Con Tuổi Dậy Thì" [level=3] [ref=e126]
+                - paragraph [ref=e127]: "Trích dẫn: UNICEF Việt Nam & Bộ Giáo dục và Đào tạo (2023)"
+                - paragraph [ref=e128]: Hướng dẫn cha mẹ cách phá vỡ rào cản e ngại, đặt câu hỏi mở và lắng nghe không phán xét khi con chia sẻ về những thay đổi tâm sinh lý lứa tuổi và các thắc mắc giới tính.
+                - generic [ref=e129]:
+                  - generic [ref=e130]: "#Đối thoại cởi mở"
+                  - generic [ref=e131]: "#Tâm lý tuổi dậy thì"
+                  - generic [ref=e132]: "#Gia đình đồng hành"
+              - generic [ref=e133]:
+                - generic [ref=e134]: Phục vụ nghiên cứu & đối thoại gia đình
+                - button "Đọc chi tiết" [ref=e135] [cursor=pointer]
+            - generic [ref=e139]:
+              - generic [ref=e140]:
+                - generic [ref=e141]:
+                  - generic [ref=e142]: An toàn học đường
+                  - generic [ref=e143]: Nguồn thẩm định
+                - heading "Bảo Vệ Học Sinh Trước Rủi Ro & Quấy Rối Không Gian Mạng" [level=3] [ref=e146]
+                - paragraph [ref=e147]: "Trích dẫn: Cục Trẻ em & Save the Children (Báo cáo Nghiên cứu An toàn số)"
+                - paragraph [ref=e148]: Phân tích các phương thức quấy rối trực tuyến, tình huống gạ gẫm hình ảnh nhạy cảm và quy tắc bảo mật thông tin cá nhân giúp học sinh tự bảo vệ bản thân.
+                - generic [ref=e149]:
+                  - generic [ref=e150]: "#An toàn mạng"
+                  - generic [ref=e151]: "#Ranh giới cá nhân"
+                  - generic [ref=e152]: "#Phòng chống xâm hại"
+              - generic [ref=e153]:
+                - generic [ref=e154]: Phục vụ nghiên cứu & đối thoại gia đình
+                - button "Đọc chi tiết" [ref=e155] [cursor=pointer]
+            - generic [ref=e159]:
+              - generic [ref=e160]:
+                - generic [ref=e161]:
+                  - generic [ref=e162]: Y khoa & Sinh lý
+                  - generic [ref=e163]: Nguồn thẩm định
+                - heading "Chăm Sóc Sức Khỏe Sinh Sản Vị Thành Niên & Vệ Sinh Thể Chất" [level=3] [ref=e166]
+                - paragraph [ref=e167]: "Trích dẫn: Vụ Sức khỏe Bà mẹ - Trẻ em, Bộ Y tế"
+                - paragraph [ref=e168]: Kiến thức chuẩn y khoa về những biến đổi sinh học trong giai đoạn dậy thì, hướng dẫn chăm sóc cơ thể đúng cách và phòng tránh các bệnh lý học đường.
+                - generic [ref=e169]:
+                  - generic [ref=e170]: "#Y khoa vị thành niên"
+                  - generic [ref=e171]: "#Vệ sinh cá nhân"
+                  - generic [ref=e172]: "#Cơ thể dậy thì"
+              - generic [ref=e173]:
+                - generic [ref=e174]: Phục vụ nghiên cứu & đối thoại gia đình
+                - button "Đọc chi tiết" [ref=e175] [cursor=pointer]
+            - generic [ref=e179]:
+              - generic [ref=e180]:
+                - generic [ref=e181]:
+                  - generic [ref=e182]: Mô hình NCKH
+                  - generic [ref=e183]: Nguồn thẩm định
+                - heading "Mô Hình Phối Hợp Nhà Trường - Gia Đình Trong Công Tác GDGT" [level=3] [ref=e186]
+                - paragraph [ref=e187]: "Trích dẫn: Nhóm Nghiên cứu Khoa học THPT Giồng Ông Tố (2026)"
+                - paragraph [ref=e188]: Đề xuất giải pháp trang web học tập trực tuyến tích hợp AI mô phỏng nhằm giảm thiểu rào cản tâm lý tiếp cận giáo dục giới tính cho học sinh THPT.
+                - generic [ref=e189]:
+                  - generic [ref=e190]: "#NCKH Giồng Ông Tố"
+                  - generic [ref=e191]: "#E-learning"
+                  - generic [ref=e192]: "#Gamification"
+              - generic [ref=e193]:
+                - generic [ref=e194]: Phục vụ nghiên cứu & đối thoại gia đình
+                - button "Đọc chi tiết" [ref=e195] [cursor=pointer]
+    - contentinfo [ref=e199]:
+      - generic [ref=e200]:
+        - generic [ref=e201]:
+          - link "ChiChan Education" [ref=e202] [cursor=pointer]:
+            - /url: /
+          - paragraph [ref=e207]: © 2026 ChiChan - Đề tài NCKH THPT Giồng Ông Tố. Đồng hành cùng HS, PH và Nhà trường.
+        - generic [ref=e208]:
+          - heading "Pháp lý & Điều khoản" [level=4] [ref=e209]
+          - link "Chính sách bảo mật" [ref=e210] [cursor=pointer]:
+            - /url: "#"
+          - link "Điều khoản sử dụng" [ref=e211] [cursor=pointer]:
+            - /url: "#"
+        - generic [ref=e212]:
+          - heading "Khám phá" [level=4] [ref=e213]
+          - link "Nhóm NCKH THPT Giồng Ông Tố" [ref=e214] [cursor=pointer]:
+            - /url: /about
+          - link "Góc học tập" [ref=e215] [cursor=pointer]:
+            - /url: /courses
+          - link "Góc giải trí (Trò chơi AI) MỚI" [ref=e216] [cursor=pointer]:
+            - /url: /game
+            - generic [ref=e217]: Góc giải trí (Trò chơi AI)
+            - generic [ref=e218]: MỚI
+          - link "Góc trò chuyện" [ref=e219] [cursor=pointer]:
+            - /url: /forum
+    - navigation "Thanh điều hướng di động" [ref=e220]:
+      - generic [ref=e221]:
+        - link "Trang chủ" [ref=e222] [cursor=pointer]:
+          - /url: /
+        - link "Học tập" [ref=e228] [cursor=pointer]:
+          - /url: /courses
+        - link "AI Giải trí" [ref=e234] [cursor=pointer]:
+          - /url: /game
+          - generic [ref=e235]: AI
+          - generic [ref=e240]: Giải trí
+        - link "Hỏi đáp" [ref=e241] [cursor=pointer]:
+          - /url: /forum
+        - link "Tài khoản" [ref=e247] [cursor=pointer]:
+          - /url: /login
+  - button "Open Next.js Dev Tools" [ref=e258] [cursor=pointer]

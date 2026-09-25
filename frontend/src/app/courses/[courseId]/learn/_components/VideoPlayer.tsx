@@ -55,6 +55,41 @@ export function VideoPlayer({
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
 
+  // Suppress Plyr unmount race-condition error (upstream issue #1449 / #1793)
+  useEffect(() => {
+    const handleGlobalError = (event: ErrorEvent) => {
+      const msg = event?.message || "";
+      if (
+        msg.includes("Cannot destructure property 'wrapper' of 'this.elements'") ||
+        (msg.includes("'wrapper'") && msg.includes("this.elements"))
+      ) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return true;
+      }
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const reason = event?.reason;
+      const msg = typeof reason === "string" ? reason : reason?.message || "";
+      if (
+        msg.includes("Cannot destructure property 'wrapper' of 'this.elements'") ||
+        (msg.includes("'wrapper'") && msg.includes("this.elements"))
+      ) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    };
+
+    window.addEventListener("error", handleGlobalError, true);
+    window.addEventListener("unhandledrejection", handleUnhandledRejection, true);
+
+    return () => {
+      window.removeEventListener("error", handleGlobalError, true);
+      window.removeEventListener("unhandledrejection", handleUnhandledRejection, true);
+    };
+  }, []);
+
   // Standard Plyr initialization for YouTube, Vimeo, and MP4 Video
   useEffect(() => {
     if (media.isIframeEmbed || media.platform === "NOTEBOOKLM" || media.platform === "AUDIO") {
@@ -64,19 +99,10 @@ export function VideoPlayer({
     let isMounted = true;
 
     async function initPlayer() {
-      if (!containerRef.current) return;
+      if (!containerRef.current || !isMounted) return;
 
-      if (playerRef.current) {
-        try {
-          const prev = playerRef.current;
-          playerRef.current = null;
-          if (prev && typeof prev.destroy === "function") {
-            prev.destroy();
-          }
-        } catch (e) {
-          // ignore
-        }
-      }
+      // Prevent double initialization
+      if (playerRef.current) return;
 
       const targetElement = containerRef.current.querySelector(
         "video, div[data-plyr-provider]"
@@ -153,14 +179,21 @@ export function VideoPlayer({
           },
         });
 
-        // Patch player instance against Plyr's unmount destructuring bug
         if (player) {
           const originalDestroy = player.destroy.bind(player);
           player.destroy = () => {
             try {
-              if (player.elements && player.elements.container) {
-                originalDestroy();
+              if (player.elements) {
+                const savedWrapper = player.elements.wrapper || document.createElement("div");
+                setTimeout(() => {
+                  try {
+                    if (player && !player.elements) {
+                      player.elements = { wrapper: savedWrapper, container: savedWrapper };
+                    }
+                  } catch (e) {}
+                }, 190);
               }
+              originalDestroy();
             } catch (e) {}
           };
         }
@@ -177,13 +210,29 @@ export function VideoPlayer({
         };
 
         player.on("ready", disableCaptions);
-        player.on("play", disableCaptions);
-        player.on("playing", disableCaptions);
+        player.on("play", () => {
+          disableCaptions();
+          setIsPlaying(true);
+        });
+        player.on("playing", () => {
+          disableCaptions();
+          setIsPlaying(true);
+        });
+        player.on("pause", () => {
+          setIsPlaying(false);
+        });
+        player.on("timeupdate", () => {
+          try {
+            setCurrentTime(player.currentTime || 0);
+            setDuration(player.duration || 0);
+          } catch (e) {}
+        });
 
         playerRef.current = player;
 
         if (onEnded) {
           player.on("ended", () => {
+            setIsPlaying(false);
             onEnded();
           });
         }
@@ -259,7 +308,7 @@ export function VideoPlayer({
   // 1. Iframe Embed Media (Google Drive, Facebook, TikTok, Loom, Dailymotion, Generic)
   if (media.isIframeEmbed && media.embedUrl) {
     return (
-      <div className="w-full h-full aspect-video bg-black rounded-none border border-outline-variant/30 overflow-hidden relative group flex flex-col items-center justify-center">
+      <div className="w-full h-full max-h-[calc(100vh-210px)] bg-black rounded-none border border-outline-variant/30 overflow-hidden relative group flex flex-col items-center justify-center">
         <iframe
           src={media.embedUrl}
           className="w-full h-full border-0 rounded-none"
@@ -274,7 +323,7 @@ export function VideoPlayer({
   // 2. NotebookLM Notebook Share Link
   if (media.platform === "NOTEBOOKLM") {
     return (
-      <div className="w-full h-full aspect-video bg-[#121316] text-white rounded-none border border-outline-variant/30 flex flex-col items-center justify-center p-8 text-center relative select-none">
+      <div className="w-full h-full max-h-[calc(100vh-210px)] min-h-[360px] bg-[#121316] text-white rounded-none border border-outline-variant/30 flex flex-col items-center justify-center p-8 text-center relative select-none">
         <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 text-white font-bold text-xs uppercase tracking-wider mb-4 border border-white/20">
           <Sparkle size={16} weight="fill" className="text-emerald-400" />
           <span>Google NotebookLM</span>
@@ -301,7 +350,7 @@ export function VideoPlayer({
     const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
     return (
-      <div className="w-full h-full aspect-video bg-[#0f1412] text-white rounded-none border border-outline-variant/30 flex flex-col justify-between p-6 sm:p-8 relative select-none overflow-hidden">
+      <div className="w-full h-full max-h-[calc(100vh-210px)] min-h-[360px] bg-[#0f1412] text-white rounded-none border border-outline-variant/30 flex flex-col justify-between p-6 sm:p-8 relative select-none overflow-hidden">
         <audio
           ref={audioRef}
           src={media.originalUrl}
@@ -444,7 +493,9 @@ export function VideoPlayer({
   return (
     <div
       ref={containerRef}
-      className="custom-video-wrapper w-full aspect-video bg-black rounded-none overflow-hidden border border-outline-variant/30 relative select-none group"
+      className={`custom-video-wrapper w-full aspect-video bg-black rounded-none overflow-hidden border border-outline-variant/30 relative select-none group ${
+        media.platform === "YOUTUBE" ? "mobile-yt-crop" : ""
+      }`}
     >
       {media.platform === "YOUTUBE" && media.id ? (
         <div

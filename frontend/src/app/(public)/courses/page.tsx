@@ -130,10 +130,10 @@ export default function CoursesPage() {
 
         {/* Filters - Only displayed for Guests / Admins / Instructors */}
         {!isParent && !isChild && (
-          <div className="flex gap-1 p-1 rounded-none bg-surface-container-low border border-outline-variant/30">
+          <div className="flex gap-1 p-1 rounded-xl bg-surface-container-low border border-outline-variant/30 overflow-x-auto no-scrollbar w-full sm:w-auto">
             <button
               onClick={() => setFilter("ALL")}
-              className={`px-5 py-2 rounded-none text-xs font-bold transition-all cursor-pointer ${
+              className={`flex-1 sm:flex-initial px-4 sm:px-5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap text-center ${
                 filter === "ALL"
                   ? "bg-primary text-white shadow-depth-1"
                   : "text-on-surface-variant hover:text-primary hover:bg-white/50"
@@ -144,7 +144,7 @@ export default function CoursesPage() {
 
             <button
               onClick={() => setFilter("CHILD")}
-              className={`px-5 py-2 rounded-none text-xs font-bold transition-all cursor-pointer ${
+              className={`flex-1 sm:flex-initial px-4 sm:px-5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap text-center ${
                 filter === "CHILD"
                   ? "bg-primary text-white shadow-depth-1"
                   : "text-on-surface-variant hover:text-primary hover:bg-white/50"
@@ -155,7 +155,7 @@ export default function CoursesPage() {
 
             <button
               onClick={() => setFilter("PARENT")}
-              className={`px-5 py-2 rounded-none text-xs font-bold transition-all cursor-pointer ${
+              className={`flex-1 sm:flex-initial px-4 sm:px-5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap text-center ${
                 filter === "PARENT"
                   ? "bg-primary text-white shadow-depth-1"
                   : "text-on-surface-variant hover:text-primary hover:bg-white/50"

@@ -30,6 +30,17 @@ class Settings(BaseSettings):
     AI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-3.6-flash"
 
+    # Email / SMTP (Quên mật khẩu & Thông báo)
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = ""
+    SMTP_FROM_NAME: str = "ChiChan Education"
+    SMTP_TLS: bool = True
+    FRONTEND_URL: str = "http://localhost:3000"
+    PASSWORD_RESET_EXPIRE_MINUTES: int = 15
+
     # SQL logging của SQLAlchemy (bật qua ECHO=true khi cần debug, mặc định tắt)
     ECHO: bool = False
 

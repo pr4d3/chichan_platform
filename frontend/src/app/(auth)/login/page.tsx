@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
-import { WarningCircle } from "@phosphor-icons/react";
+import { WarningCircle, Eye, EyeSlash } from "@phosphor-icons/react";
+
+const REMEMBER_LOGIN_KEY = "chichan_remember_login";
 
 export default function LoginPage() {
   const { login, loading } = useAuth();
@@ -15,7 +17,27 @@ export default function LoginPage() {
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Khôi phục thông tin đăng nhập đã ghi nhớ khi tải trang
+  useEffect(() => {
+    try {
+      const savedData = localStorage.getItem(REMEMBER_LOGIN_KEY);
+      if (savedData) {
+        const parsed = JSON.parse(savedData);
+        if (parsed?.usernameOrEmail) {
+          setUsernameOrEmail(parsed.usernameOrEmail);
+        }
+        if (parsed?.password) {
+          setPassword(parsed.password);
+        }
+        setRememberMe(true);
+      }
+    } catch {
+      // Bỏ qua lỗi nếu dữ liệu localStorage hỏng
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,12 +50,33 @@ export default function LoginPage() {
       });
 
       if (res.success) {
+        // Lưu hoặc xóa thông tin ghi nhớ tùy theo checkbox
+        if (rememberMe) {
+          localStorage.setItem(
+            REMEMBER_LOGIN_KEY,
+            JSON.stringify({
+              usernameOrEmail: usernameOrEmail.trim(),
+              password,
+            })
+          );
+        } else {
+          localStorage.removeItem(REMEMBER_LOGIN_KEY);
+        }
+
         showToast("Đăng nhập thành công!", "success");
         router.push("/");
       }
     } catch (err: any) {
       const errMsg = err.message || "Sai thông tin đăng nhập";
       setError(errMsg);
+    }
+  };
+
+  const handleRememberMeChange = (checked: boolean) => {
+    setRememberMe(checked);
+    if (!checked) {
+      // Nếu người dùng bỏ tích, xóa ngay thông tin đã lưu trong máy
+      localStorage.removeItem(REMEMBER_LOGIN_KEY);
     }
   };
 
@@ -46,13 +89,15 @@ export default function LoginPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form onSubmit={handleSubmit} method="POST" action="#" className="flex flex-col gap-5">
         {/* Username/Email Input Container */}
         <div className="relative">
           <input
             id="username"
+            name="username"
             type="text"
             required
+            autoComplete="username"
             placeholder=" "
             className="peer block w-full px-5 pt-[22px] pb-[10px] rounded-none bg-white border border-outline-variant/60 focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none transition-colors text-sm text-on-surface placeholder:text-transparent"
             value={usernameOrEmail}
@@ -70,10 +115,12 @@ export default function LoginPage() {
         <div className="relative">
           <input
             id="password"
-            type="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
             required
+            autoComplete="current-password"
             placeholder=" "
-            className="peer block w-full px-5 pt-[22px] pb-[10px] rounded-none bg-white border border-outline-variant/60 focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none transition-colors text-sm text-on-surface placeholder:text-transparent"
+            className="peer block w-full px-5 pt-[22px] pb-[10px] pr-12 rounded-none bg-white border border-outline-variant/60 focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none transition-colors text-sm text-on-surface placeholder:text-transparent"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -83,26 +130,38 @@ export default function LoginPage() {
           >
             Mật khẩu
           </label>
+          {/* Nút bật/tắt hiển thị mật khẩu */}
+          <button
+            type="button"
+            onClick={() => setShowPassword((prev) => !prev)}
+            className="absolute right-4 top-[18px] text-on-surface-variant/70 hover:text-primary focus:outline-none transition-colors"
+            tabIndex={-1}
+            aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+          >
+            {showPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
+          </button>
         </div>
 
         <div className="flex items-center justify-between mt-2 px-1">
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
             <input
+              id="remember_me"
+              name="remember_me"
               type="checkbox"
               className="rounded-none border-outline-variant accent-primary focus:ring-primary w-4 h-4 bg-white cursor-pointer"
               checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
+              onChange={(e) => handleRememberMeChange(e.target.checked)}
             />
             <span className="text-xs text-on-surface-variant font-medium">
               Ghi nhớ đăng nhập
             </span>
           </label>
-          <a
+          <Link
             className="text-xs font-semibold text-primary hover:underline hover:text-primary-container transition-colors"
-            href="#"
+            href="/forgot-password"
           >
             Quên mật khẩu?
-          </a>
+          </Link>
         </div>
 
         <button
