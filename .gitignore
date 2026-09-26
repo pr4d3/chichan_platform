@@ -27,6 +27,7 @@ next-env.d.ts
 !.env.example
 
 # Tool/editor/OS
+.playwright-mcp/
 .claude/
 .vscode/
 .idea/
