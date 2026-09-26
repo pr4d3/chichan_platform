@@ -23,6 +23,7 @@ import {
   Trash,
   Fire,
   Clock,
+  ShieldCheck,
 } from "@phosphor-icons/react";
 
 type SortOption = "newest" | "most_comments" | "most_likes" | "most_views";
@@ -907,7 +908,11 @@ export default function ForumPage() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
+                        <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-on-surface-variant/60 font-medium select-none" title="Hệ thống tự động lọc và loại bỏ từ ngữ thô tục để bảo vệ không gian học đường">
+                          <ShieldCheck size={14} weight="fill" className="text-primary" />
+                          <span>Kiểm duyệt tự động</span>
+                        </span>
                         <button
                           type="button"
                           onClick={() => {

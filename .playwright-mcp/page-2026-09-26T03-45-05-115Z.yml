@@ -1,0 +1,571 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - banner [ref=f1e3]:
+      - generic [ref=f1e4]:
+        - link "ChiChan" [ref=f1e5] [cursor=pointer]:
+          - /url: /
+        - navigation [ref=f1e12]:
+          - link "Trang Chủ" [ref=f1e13] [cursor=pointer]:
+            - /url: /
+          - link "Góc Học Tập" [ref=f1e14] [cursor=pointer]:
+            - /url: /courses
+          - link "Góc Giải Trí MỚI" [ref=f1e15] [cursor=pointer]:
+            - /url: /game
+            - text: Góc Giải Trí
+            - generic [ref=f1e19]: MỚI
+          - link "Góc Trò Chuyện" [ref=f1e20] [cursor=pointer]:
+            - /url: /forum
+          - link "Về Chúng Tôi" [ref=f1e21] [cursor=pointer]:
+            - /url: /about
+        - generic [ref=f1e22]:
+          - link "Đăng nhập" [ref=f1e23] [cursor=pointer]:
+            - /url: /login
+          - link "Đăng ký" [ref=f1e24] [cursor=pointer]:
+            - /url: /register
+    - main [ref=f1e25]:
+      - main [ref=f1e26]:
+        - generic [ref=f1e28]:
+          - generic [ref=f1e29]:
+            - generic [ref=f1e30]: Sở GD&ĐT TP. Hồ Chí Minh
+            - generic [ref=f1e33]: Đề tài NCKH 2026 – 2027 • Khoa học Xã hội & Hành vi
+            - generic [ref=f1e34]: Trường THPT Giồng Ông Tố
+          - generic [ref=f1e35]:
+            - heading "Thực Trạng Tiếp Cận Thông Tin Giáo Dục Giới Tính Của Học Sinh THPT Trên Môi Trường Số Và Xây Dựng Nền Tảng Tương Tác ChiChan" [level=1] [ref=f1e36]
+            - paragraph [ref=f1e38]: TIẾP CẬN DỄ – THỰC HÀNH AN TOÀN – ĐỒNG HÀNH BỀN VỮNG
+          - paragraph [ref=f1e41]:
+            - text: Công trình nghiên cứu khoa học xuất phát từ chính những câu hỏi ngập ngừng tuổi mới lớn của học sinh phổ thông. Đề tài khảo sát thực chứng trên
+            - strong [ref=f1e42]: 401 học sinh THPT tại TP.HCM
+            - text: ", chỉ ra những khoảng trống thông tin và đề xuất mô hình giải pháp công nghệ số ChiChan giúp gắn kết bền chặt tam giác"
+            - strong [ref=f1e43]: Học sinh — Nhà trường — Gia đình
+            - text: .
+          - generic [ref=f1e44]:
+            - generic [ref=f1e45]:
+              - heading "1. Tính Mới" [level=2] [ref=f1e50]
+              - paragraph [ref=f1e51]: Kết hợp E-learning với AI Roleplay đo thanh cảm xúc (0–100) và kiểm duyệt tự động bảo vệ an toàn.
+            - generic [ref=f1e52]:
+              - heading "2. Tính Khoa Học" [level=2] [ref=f1e57]
+              - paragraph [ref=f1e58]: Số liệu điều tra UNFPA & Bộ Y tế (chỉ 26.8% có kiến thức toàn diện HIV); chuẩn CSE của UNESCO/WHO.
+            - generic [ref=f1e59]:
+              - heading "3. Tính Thực Tiễn" [level=2] [ref=f1e64]
+              - paragraph [ref=f1e65]: Cung cấp giáo trình số hóa sẵn sàng cho tiết sinh hoạt lớp, giảm tải soạn giảng cho giáo viên bộ môn.
+            - generic [ref=f1e66]:
+              - heading "4. Tính Cộng Đồng" [level=2] [ref=f1e71]
+              - paragraph [ref=f1e72]: Xóa bỏ rào cản e ngại, bảo vệ quyền riêng tư tuyệt đối và đồng hành tâm lý cùng cha mẹ học sinh.
+          - generic [ref=f1e73]:
+            - generic [ref=f1e74]:
+              - generic [ref=f1e75]:
+                - paragraph [ref=f1e76]: NHÂN SỰ THỰC HIỆN ĐỀ TÀI
+                - heading "Đội Ngũ Thực Hiện & Cố Vấn Dự Án" [level=2] [ref=f1e77]
+              - generic [ref=f1e78]: Sư phạm • Khảo sát nghiên cứu • Biên kịch kịch bản • Công nghệ số
+            - generic [ref=f1e79]:
+              - generic [ref=f1e80]:
+                - generic [ref=f1e121]:
+                  - heading "Thầy Trần Thiện Trí" [level=3] [ref=f1e122]
+                  - paragraph [ref=f1e123]: Giáo viên hướng dẫn
+                  - paragraph [ref=f1e124]: GV Toán • Cố vấn phương pháp luận & Sư phạm
+                  - paragraph [ref=f1e125]: THPT Giồng Ông Tố, TP.HCM
+                - paragraph [ref=f1e127]: "\"Giáo dục giới tính không phải là vẽ đường cho hươu chạy, mà là thắp đèn soi rọi cho các em đi đúng đường trong sự an toàn và hiểu biết.\""
+              - generic [ref=f1e128]:
+                - generic [ref=f1e174]:
+                  - heading "Nguyễn Lê Khánh Dung" [level=3] [ref=f1e175]
+                  - paragraph [ref=f1e176]: Đồng tác giả nghiên cứu
+                  - paragraph [ref=f1e177]: Lớp 12A9 • Phụ trách khảo sát & Phân tích số liệu
+                  - paragraph [ref=f1e178]: THPT Giồng Ông Tố, TP.HCM
+                - paragraph [ref=f1e180]: "\"Tụi mình muốn tạo nên một nơi mà bạn bè có thể thoải mái tìm hiểu về chính cơ thể mình mà không phải ngại ngùng hay sợ bị phán xét.\""
+              - generic [ref=f1e181]:
+                - generic [ref=f1e223]:
+                  - heading "Đinh Tuệ Chi" [level=3] [ref=f1e224]
+                  - paragraph [ref=f1e225]: Đồng tác giả nghiên cứu
+                  - paragraph [ref=f1e226]: Lớp 12A9 • Biên kịch kịch bản tình huống nhập vai
+                  - paragraph [ref=f1e227]: THPT Giồng Ông Tố, TP.HCM
+                - paragraph [ref=f1e229]: "\"Nếu đã từng rèn luyện phản xạ từ chối cùng AI trong môi trường giả lập an toàn, khi gặp tình huống thực tế ngoài đời các bạn sẽ tự tin bảo vệ mình.\""
+              - generic [ref=f1e230]:
+                - generic [ref=f1e270]:
+                  - heading "Đàm Lê Tuấn Anh" [level=3] [ref=f1e271]
+                  - paragraph [ref=f1e272]: Kỹ thuật & Công nghệ
+                  - paragraph [ref=f1e273]: Kỹ sư phần mềm • Kiến trúc sư hệ thống
+                  - paragraph [ref=f1e274]: Đại học FPT
+                - paragraph [ref=f1e276]: "\"Công nghệ mang sứ mệnh kết nối, biến những kiến thức khoa học thành trải nghiệm tương tác trực quan, an toàn và dễ tiếp cận cho mọi bạn trẻ.\""
+        - generic [ref=f1e277]:
+          - generic [ref=f1e278]:
+            - generic [ref=f1e279]:
+              - paragraph [ref=f1e280]: PHẦN 2 • MINH CHỨNG THỰC CHỨNG
+              - heading "Thực Trạng Khảo Sát 401 Học Sinh THPT Tại TP.HCM" [level=2] [ref=f1e281]
+              - paragraph [ref=f1e282]: "Dữ liệu tương tác thực nghiệm: Mỗi luận điểm khoa học đi kèm biểu đồ Recharts trực quan sắc nét, rê chuột xem chi tiết số lượng & tỷ lệ."
+            - link "Biểu Mẫu Khảo Sát Gốc (Google Drive)" [ref=f1e283] [cursor=pointer]:
+              - /url: https://drive.google.com/file/d/14oaojW0qOVguagjcQbRW155HrMdFcP-B/view?usp=sharing
+          - generic [ref=f1e288]:
+            - generic [ref=f1e289]:
+              - generic [ref=f1e290]:
+                - generic [ref=f1e291]: LUẬN ĐIỂM 01
+                - generic [ref=f1e292]: Khảo sát mức độ tiếp cận
+              - heading "Tiếp cận GDGT tại trường học còn rất hạn chế và ngắt quãng" [level=3] [ref=f1e293]
+              - paragraph [ref=f1e294]:
+                - text: Dù nội dung giáo dục giới tính đã được lồng ghép trong chương trình phổ thông, việc triển khai tại các trường vẫn chưa đồng đều. Số liệu khảo sát 401 học sinh cho thấy có tới
+                - strong [ref=f1e295]: 36,4% học sinh chưa từng học hoặc chỉ tiếp cận rất ít
+                - text: ", trong khi"
+                - strong [ref=f1e296]: 40,9% chỉ dừng ở mức cơ bản
+                - text: . Tổng cộng gần
+                - strong [ref=f1e297]: 77.3% học sinh
+                - text: chưa được trang bị đầy đủ kiến thức hệ thống.
+              - generic [ref=f1e298]:
+                - strong [ref=f1e299]: "Kết luận thực tế:"
+                - text: Phần lớn học sinh đang trải qua giai đoạn dậy thì với một "khoảng trống" kiến thức sinh học và tâm lý lớn vì thiếu các tiết chuyên đề định kỳ.
+            - generic [ref=f1e300]:
+              - generic [ref=f1e301]:
+                - generic [ref=f1e302]: "Biểu đồ 2.1.1: Mức độ tiếp cận GDGT tại trường học"
+                - button "Ảnh gốc đề cương" [ref=f1e307] [cursor=pointer]
+              - generic [ref=f1e310]:
+                - application [ref=f1e314]
+                - generic [ref=f1e315]:
+                  - generic [ref=f1e318]:
+                    - text: "Có, ở mức cơ bản:"
+                    - strong [ref=f1e319]: 40.9%
+                  - generic [ref=f1e322]:
+                    - text: "Có, khá đầy đủ:"
+                    - strong [ref=f1e323]: 23%
+                  - generic [ref=f1e326]:
+                    - text: "Có, rất ít:"
+                    - strong [ref=f1e327]: 19%
+                  - generic [ref=f1e330]:
+                    - text: "Chưa bao giờ:"
+                    - strong [ref=f1e331]: 17.1%
+              - generic [ref=f1e333]:
+                - generic [ref=f1e334]: Chỉ số nổi bật
+                - text: 36.4% Chưa từng học hoặc ít tiếp cận • 40.9% Chỉ dừng ở mức cơ bản
+          - generic [ref=f1e338]:
+            - generic [ref=f1e339]:
+              - generic [ref=f1e340]:
+                - generic [ref=f1e341]: LUẬN ĐIỂM 02
+                - generic [ref=f1e342]: Kênh tìm kiếm thông tin
+              - heading "Học sinh tìm kiếm thông tin từ đâu khi trường học thiếu hụt?" [level=3] [ref=f1e343]
+              - paragraph [ref=f1e344]:
+                - text: Khi không nhận được giải đáp thỏa đáng từ lớp học, học sinh buộc phải tự tìm kiếm. Kết quả khảo sát chỉ ra
+                - strong [ref=f1e345]: 73,1% học sinh tìm qua Mạng xã hội
+                - text: (Facebook, TikTok...) — đây là nguồn thông tin tự do, không kiểm chứng và tiềm ẩn rủi ro sai lệch lớn nhất. Trong khi đó, nguồn chính thống từ chuyên gia y tế chỉ chiếm
+                - strong [ref=f1e346]: 33–35%
+                - text: .
+              - generic [ref=f1e347]:
+                - strong [ref=f1e348]: "Hệ quả đáng lo ngại:"
+                - text: Các bạn trẻ dễ bị dẫn dắt bởi trào lưu giật gân, những mẹo tránh thai truyền miệng nguy hiểm hoặc hiểu lầm về bệnh lây truyền qua đường tình dục (STI).
+            - generic [ref=f1e349]:
+              - generic [ref=f1e350]:
+                - generic [ref=f1e351]: "Biểu đồ 2.1.2: Các nguồn thông tin được học sinh sử dụng (%)"
+                - button "Ảnh gốc đề cương" [ref=f1e356] [cursor=pointer]
+              - application [ref=f1e362]:
+                - generic [ref=f1e373]:
+                  - generic [ref=f1e374]:
+                    - generic [ref=f1e375]: 0%
+                    - generic [ref=f1e377]: 25%
+                    - generic [ref=f1e379]: 50%
+                    - generic [ref=f1e381]: 75%
+                    - generic [ref=f1e383]: 100%
+                  - generic [ref=f1e385]:
+                    - generic [ref=f1e386]: Mạng xã hội (TikTok, FB...)
+                    - generic [ref=f1e388]: Gia đình (Cha mẹ, ngườithân)
+                    - generic [ref=f1e390]: Giáo viên / Nhân viên trường
+                    - generic [ref=f1e392]: Bạn bè, anh chị cùng tranglứa
+                    - generic [ref=f1e394]: Sách giáo khoa, tài liệuchuẩn
+                    - generic [ref=f1e396]: Website / Ứng dụng giáo dục
+                    - generic [ref=f1e398]: Sách, báo, tạp chí in
+                    - generic [ref=f1e400]: Cơ sở y tế, phòng khámchuyên gia
+              - generic [ref=f1e403]:
+                - generic [ref=f1e404]: Kênh áp đảo
+                - text: 73.1% Học sinh tự tìm qua Mạng xã hội • Cơ sở y tế chỉ đạt 35.4%
+          - generic [ref=f1e407]:
+            - generic [ref=f1e408]:
+              - generic [ref=f1e409]:
+                - generic [ref=f1e410]: LUẬN ĐIỂM 03
+                - generic [ref=f1e411]: Ngộ nhận nhận thức
+              - 'heading "Nghịch lý tự đánh giá: Thiếu kiến thức nhưng vẫn nghĩ mình hiểu đủ" [level=3] [ref=f1e412]'
+              - paragraph [ref=f1e413]:
+                - text: "Một phát hiện tâm lý rất đặc biệt: dù tiếp cận chủ yếu qua kênh phi chính thức, có tới"
+                - strong [ref=f1e414]: 53,6% học sinh tự tin đánh giá mình hiểu biết ở mức Khá và Đầy đủ
+                - text: "(mức 4: 24,4%; mức 5: 29,2%), và 36,9% đánh giá mức trung bình. Chỉ có"
+                - strong [ref=f1e415]: 9,5% học sinh
+                - text: tự nhận mình còn hạn chế kiến thức.
+              - generic [ref=f1e416]:
+                - strong [ref=f1e417]: "Nghịch lý tâm lý:"
+                - text: Việc thiếu thước đo chuẩn mực khiến nhiều bạn trẻ ngộ nhận những "lời đồn" hay video ngắn trên mạng là kiến thức chuẩn y khoa, dẫn đến tâm lý chủ quan khi xử lý các tình huống xâm hại hay quan hệ tình dục không an toàn.
+            - generic [ref=f1e418]:
+              - generic [ref=f1e419]:
+                - generic [ref=f1e420]: "Biểu đồ 2.1.3: Mức độ tự đánh giá hiểu biết của bản thân (%)"
+                - button "Ảnh gốc đề cương" [ref=f1e425] [cursor=pointer]
+              - application [ref=f1e431]:
+                - generic [ref=f1e442]:
+                  - generic [ref=f1e443]:
+                    - generic [ref=f1e444]: Mức 1
+                    - generic [ref=f1e446]: Mức 2
+                    - generic [ref=f1e448]: Mức 3
+                    - generic [ref=f1e450]: Mức 4
+                    - generic [ref=f1e452]: Mức 5
+                  - generic [ref=f1e454]:
+                    - generic [ref=f1e455]: 0%
+                    - generic [ref=f1e457]: 15%
+                    - generic [ref=f1e459]: 30%
+                    - generic [ref=f1e461]: 45%
+              - generic [ref=f1e464]:
+                - generic [ref=f1e465]: Tự tin ngộ nhận
+                - text: 53.6% Học sinh tự tin hiểu biết Khá & Đầy đủ dù thiếu kênh kiểm chứng
+          - generic [ref=f1e469]:
+            - generic [ref=f1e470]:
+              - generic [ref=f1e471]:
+                - generic [ref=f1e472]: LUẬN ĐIỂM 04
+                - generic [ref=f1e473]: Rào cản tâm lý & Phỏng vấn sâu
+              - heading "Rào cản tâm lý và sự né tránh ngập ngừng từ người lớn" [level=3] [ref=f1e474]
+              - paragraph [ref=f1e475]:
+                - text: "Tâm lý e ngại, sợ bị đánh giá và sợ bạn bè trêu chọc là nguyên nhân cao nhất (84.5% đồng thuận) khiến học sinh không dám hỏi. Khảo sát cũng ghi nhận thực tế đáng suy ngẫm:"
+                - strong [ref=f1e476]: 60% phụ huynh né tránh
+                - text: khi con hỏi về tình dục, và 27% trả lời giấu giếm, lảng tránh sang chuyện khác.
+              - generic [ref=f1e477]:
+                - generic [ref=f1e478]: "Trích dẫn phỏng vấn sâu trực tiếp:"
+                - generic [ref=f1e479]:
+                  - generic [ref=f1e480]:
+                    - strong [ref=f1e481]: "Học sinh (12A9):"
+                    - text: "\"Tụi em rất sợ hỏi rồi bị thầy cô hay bố mẹ nghĩ là hư hỏng, vẽ đường cho hươu chạy.\""
+                  - generic [ref=f1e482]:
+                    - strong [ref=f1e483]: "Giáo viên:"
+                    - text: "\"Không chuyên trách thì rất ngại giải thích sâu vì sợ dùng từ ngữ không đúng chuẩn mực.\""
+                  - generic [ref=f1e484]:
+                    - strong [ref=f1e485]: "Phụ huynh:"
+                    - text: "\"Nhiều khi con hỏi bất ngờ quá, tôi lúng túng không biết nói sao cho hợp độ tuổi con.\""
+            - generic [ref=f1e486]:
+              - generic [ref=f1e487]:
+                - generic [ref=f1e488]: "Biểu đồ 2.1.4: Nguyên nhân dẫn đến khó khăn khi tiếp cận GDGT (%)"
+                - button "Ảnh gốc đề cương" [ref=f1e493] [cursor=pointer]
+              - application [ref=f1e499]:
+                - generic [ref=f1e510]:
+                  - generic [ref=f1e511]:
+                    - generic [ref=f1e512]: 0%
+                    - generic [ref=f1e514]: 25%
+                    - generic [ref=f1e516]: 50%
+                    - generic [ref=f1e518]: 75%
+                    - generic [ref=f1e520]: 100%
+                  - generic [ref=f1e522]:
+                    - generic [ref=f1e523]: Tâm lý e ngại, sợ bị trêuchọc
+                    - generic [ref=f1e525]: Chưa được giảng dạythường xuyên
+                    - generic [ref=f1e527]: Thiếu tài liệu chính thống,dễ hiểu
+                    - generic [ref=f1e529]: Rào cản từ phụ huynh nétránh
+                    - generic [ref=f1e531]: Khó phân biệt tin giả trênmạng
+              - generic [ref=f1e534]:
+                - generic [ref=f1e535]: Rào cản gia đình & Tâm lý
+                - text: 84.5% E ngại bị trêu chọc • 60% Phụ huynh né tránh khi con đặt câu hỏi
+          - generic [ref=f1e539]:
+            - generic [ref=f1e540]:
+              - generic [ref=f1e541]:
+                - generic [ref=f1e542]: LUẬN ĐIỂM 05
+                - generic [ref=f1e543]: Nhận thức & Nhu cầu thực tế
+              - 'heading "Tầm quan trọng bức thiết: Học sinh khao khát được học bài bản" [level=3] [ref=f1e544]'
+              - paragraph [ref=f1e545]:
+                - text: Trái ngược với định kiến cho rằng học sinh THPT không quan tâm hoặc lơ là, có tới
+                - strong [ref=f1e546]: 93,3% học sinh
+                - text: khẳng định giáo dục giới tính là Quan trọng và Rất quan trọng. Riêng tỷ lệ chọn mức Rất quan trọng (mức 5/5) chiếm áp đảo
+                - strong [ref=f1e547]: 74,3%
+                - text: ; chỉ có 6,7% chọn mức 1–3.
+              - generic [ref=f1e548]:
+                - strong [ref=f1e549]: "Thông điệp rõ ràng:"
+                - text: Nhu cầu của các em là hoàn toàn trong sáng, lành mạnh và cấp thiết. Vấn đề không nằm ở người học, mà nằm ở việc chúng ta chưa mang đến cho các em một công cụ học tập phù hợp với hơi thở thời đại số.
+            - generic [ref=f1e550]:
+              - generic [ref=f1e551]:
+                - generic [ref=f1e552]: "Biểu đồ 2.1.5: Tầm quan trọng của việc triển khai GDGT"
+                - button "Ảnh gốc đề cương" [ref=f1e557] [cursor=pointer]
+              - generic [ref=f1e560]:
+                - application [ref=f1e564]
+                - generic [ref=f1e565]:
+                  - generic [ref=f1e568]:
+                    - text: "Rất quan trọng:"
+                    - strong [ref=f1e569]: 74.3%
+                  - generic [ref=f1e572]:
+                    - text: "Khá quan trọng:"
+                    - strong [ref=f1e573]: 19%
+                  - generic [ref=f1e576]:
+                    - text: "Trung lập:"
+                    - strong [ref=f1e577]: 5%
+                  - generic [ref=f1e580]:
+                    - text: "Ít / Không quan trọng:"
+                    - strong [ref=f1e581]: 1.7%
+              - generic [ref=f1e583]:
+                - generic [ref=f1e584]: Đồng thuận áp đảo
+                - text: 93.3% Khẳng định GDGT Rất quan trọng • 74.3% Đánh giá cấp thiết tối đa
+          - generic [ref=f1e587]:
+            - generic [ref=f1e588]:
+              - generic [ref=f1e589]:
+                - generic [ref=f1e590]:
+                  - generic [ref=f1e591]: LUẬN ĐIỂM 06
+                  - generic [ref=f1e592]: Kỳ vọng giải pháp công nghệ
+                - 'heading "Nhu cầu về môi trường số: 83.3% cần không gian cởi mở và nền tảng trực tuyến" [level=3] [ref=f1e593]'
+                - paragraph [ref=f1e594]:
+                  - text: Khi được hỏi về giải pháp hiệu quả,
+                  - strong [ref=f1e595]: 83,3% học sinh mong muốn xây dựng môi trường cởi mở
+                  - text: ", không định kiến;"
+                  - strong [ref=f1e596]: 59,9% đề xuất phát triển tài liệu số, video và website học tập
+                  - text: . Đặc biệt, có tới
+                  - strong [ref=f1e597]: 64,6% học sinh đánh giá website trực tuyến là rất cần thiết
+                  - text: (39,4% đánh giá cấp thiết mức tối đa).
+                - generic [ref=f1e598]:
+                  - strong [ref=f1e599]: "Luận cứ sáng lập:"
+                  - text: Hai con số 83.3% và 64.6% chính là căn cứ thực chứng vững chắc nhất thúc đẩy nhóm tác giả bắt tay xây dựng nền tảng ChiChan.
+              - generic [ref=f1e600]:
+                - generic [ref=f1e601]:
+                  - generic [ref=f1e602]: "Biểu đồ 2.1.7: Mức độ cần thiết của Website (%)"
+                  - button "Ảnh gốc" [ref=f1e607] [cursor=pointer]
+                - generic [ref=f1e610]:
+                  - application [ref=f1e614]
+                  - generic [ref=f1e615]:
+                    - generic [ref=f1e618]:
+                      - text: "Rất cần thiết:"
+                      - strong [ref=f1e619]: 39.4%
+                    - generic [ref=f1e622]:
+                      - text: "Trung lập:"
+                      - strong [ref=f1e623]: 29.4%
+                    - generic [ref=f1e626]:
+                      - text: "Khá cần thiết:"
+                      - strong [ref=f1e627]: 25.2%
+                    - generic [ref=f1e630]:
+                      - text: "Ít / Không cần:"
+                      - strong [ref=f1e631]: 5.9%
+            - generic [ref=f1e632]:
+              - generic [ref=f1e633]:
+                - generic [ref=f1e634]: "Biểu đồ 2.1.6: Giải pháp tiếp cận GDGT hiệu quả hơn (%)"
+                - button "Ảnh gốc đề cương" [ref=f1e639] [cursor=pointer]
+              - application [ref=f1e645]:
+                - generic [ref=f1e656]:
+                  - generic [ref=f1e657]:
+                    - generic [ref=f1e658]: 0%
+                    - generic [ref=f1e660]: 25%
+                    - generic [ref=f1e662]: 50%
+                    - generic [ref=f1e664]: 75%
+                    - generic [ref=f1e666]: 100%
+                  - generic [ref=f1e668]:
+                    - generic [ref=f1e669]: Môi trường phù hợp, khôngkỳ thị
+                    - generic [ref=f1e671]: Phát triển website, tài liệuvideo
+                    - generic [ref=f1e673]: Phối hợp Gia đình - Nhàtrường
+                    - generic [ref=f1e675]: Hướng dẫn kỹ năng tự bảovệ
+                    - generic [ref=f1e677]: Tập huấn phương pháp chogiáo viên
+                    - generic [ref=f1e679]: Tăng thời lượng tiết họcđịnh kỳ
+              - generic [ref=f1e682]:
+                - generic [ref=f1e683]: Cơ sở ra đời ChiChan
+                - text: 83.3% Chọn môi trường số không kỳ thị • 64.6% Cần Website giáo dục trực tuyến
+          - generic [ref=f1e686]:
+            - generic [ref=f1e687]:
+              - generic [ref=f1e688]:
+                - generic [ref=f1e689]: LUẬN ĐIỂM 07
+                - generic [ref=f1e690]: Nguyện vọng học đường
+              - 'heading "Kỳ vọng của học sinh: Kiến thức chuẩn xác, đối thoại cởi mở và game mô phỏng" [level=3] [ref=f1e691]'
+              - paragraph [ref=f1e692]:
+                - text: "Học sinh kỳ vọng nhà trường cải tiến phương pháp giáo dục:"
+                - strong [ref=f1e693]: 67,8% mong cung cấp kiến thức đầy đủ, chính xác
+                - text: ;
+                - strong [ref=f1e694]: 64,8% cần môi trường hỏi đáp cởi mở
+                - text: ;
+                - strong [ref=f1e695]: 61,3% yêu cầu nội dung gắn liền thực tế
+                - text: và
+                - strong [ref=f1e696]: 52,4% mong muốn tăng cường hoạt động tương tác, tình huống mô phỏng
+                - text: .
+              - generic [ref=f1e697]:
+                - strong [ref=f1e698]: "Định hướng thiết kế ChiChan:"
+                - text: Đây chính là 4 tiêu chí cốt lõi định hình nên cấu trúc bài giảng và tính năng trò chơi AI nhập vai của nền tảng.
+            - generic [ref=f1e699]:
+              - generic [ref=f1e700]:
+                - generic [ref=f1e701]: "Biểu đồ 2.1.8: Mong muốn của học sinh đối với nhà trường (%)"
+                - button "Ảnh gốc đề cương" [ref=f1e706] [cursor=pointer]
+              - application [ref=f1e712]:
+                - generic [ref=f1e723]:
+                  - generic [ref=f1e724]:
+                    - generic [ref=f1e725]: 0%
+                    - generic [ref=f1e727]: 25%
+                    - generic [ref=f1e729]: 50%
+                    - generic [ref=f1e731]: 75%
+                    - generic [ref=f1e733]: 100%
+                  - generic [ref=f1e735]:
+                    - generic [ref=f1e736]: Kiến thức chuẩn xác, đầyđủ
+                    - generic [ref=f1e738]: Hỏi đáp cởi mở, khôngphán xét
+                    - generic [ref=f1e740]: Nội dung gắn liền thực tế
+                    - generic [ref=f1e742]: Kiến thức cảm xúc, tìnhyêu, SKSS
+                    - generic [ref=f1e744]: Tăng game tương tác, thảoluận
+                    - generic [ref=f1e746]: Kênh tư vấn riêng tư ẩndanh
+              - generic [ref=f1e749]:
+                - generic [ref=f1e750]: Tiêu chí hàng đầu
+                - text: 67.8% Kiến thức chuẩn xác • 64.8% Hỏi đáp cởi mở • 52.4% Game nhập vai
+        - generic [ref=f1e755]:
+          - generic [ref=f1e756]:
+            - paragraph [ref=f1e757]: PHẦN 3 • LỜI GIẢI ĐÁP
+            - 'heading "Hệ Sinh Thái ChiChan: Giải Pháp Toàn Diện Cho Học Đường" [level=2] [ref=f1e758]'
+            - paragraph [ref=f1e759]: Đáp ứng trọn vẹn 7 bài toán khảo sát thực tế bằng 3 giải pháp công nghệ số hóa đột phá, đồng hành cùng học sinh, giáo viên và phụ huynh.
+          - generic [ref=f1e760]:
+            - generic [ref=f1e761]:
+              - generic [ref=f1e762]:
+                - generic [ref=f1e767]:
+                  - text: Giải pháp 01
+                  - heading "Môi Trường Học Tập & AI Role-Playing" [level=3] [ref=f1e768]
+                - paragraph [ref=f1e769]:
+                  - text: Học sinh được nhập vai vào các tình huống thực tế (từ chối lời mời nhạy cảm, nhận diện quấy rối, giữ ranh giới an toàn). Người chơi tự do đưa ra lựa chọn,
+                  - strong [ref=f1e770]: Thanh cảm xúc (0–100) biến thiên liên tục
+                  - text: theo từng câu trả lời. Đặc biệt, hệ thống tích hợp
+                  - strong [ref=f1e771]: màng lọc tự động chặn từ ngữ vi phạm
+                  - text: chuẩn mực đạo đức và pháp luật (hiện cảnh báo đỏ).
+              - generic [ref=f1e772]:
+                - generic [ref=f1e773]: "Cơ sở khoa học quốc tế:"
+                - paragraph [ref=f1e774]:
+                  - text: •
+                  - strong [ref=f1e775]: "McKenney (2025):"
+                  - text: Role-play giúp tăng vượt bậc kỹ năng tự khẳng định (self-assertion).
+                - paragraph [ref=f1e776]:
+                  - text: •
+                  - strong [ref=f1e777]: "Meta-analysis (2024):"
+                  - text: Gamification giảm 15% quan hệ sớm; SMD thái độ = 0.95.
+                - paragraph [ref=f1e778]:
+                  - text: •
+                  - strong [ref=f1e779]: "Fu & Li (2025):"
+                  - text: Tác động thực nghiệm lớn (Effect Size = 0.818) đối với rèn luyện kỹ năng sống.
+            - generic [ref=f1e780]:
+              - generic [ref=f1e781]:
+                - generic [ref=f1e786]:
+                  - text: Giải pháp 02
+                  - heading "Hỗ Trợ Nhà Trường & Giảm Tải Cho Giáo Viên" [level=3] [ref=f1e787]
+                - paragraph [ref=f1e788]: "Cung cấp hệ thống 10 khóa học chuẩn y khoa và hướng dẫn CSE (UNESCO): từ thay đổi sinh học tuổi dậy thì, phòng tránh bệnh STI, biện pháp tránh thai đến tình bạn, tình yêu lành mạnh. Mỗi chủ đề có sẵn video chính thống và ngân hàng câu hỏi trắc nghiệm ôn tập ngắn, giúp thầy cô sử dụng trực tiếp trong các tiết sinh hoạt lớp mà không mất công soạn giáo án."
+              - generic [ref=f1e789]:
+                - generic [ref=f1e790]: "Đa nền tảng linh hoạt:"
+                - paragraph [ref=f1e791]: Tương thích hoàn hảo trên điện thoại, máy tính bảng và máy tính để bàn, hỗ trợ học sinh tự học tại nhà liên tục.
+            - generic [ref=f1e792]:
+              - generic [ref=f1e793]:
+                - generic [ref=f1e798]:
+                  - text: Giải pháp 03
+                  - heading "Kết Nối Gia Đình & Bảo Mật Tuyệt Đối" [level=3] [ref=f1e799]
+                - paragraph [ref=f1e800]:
+                  - text: Xây dựng diễn đàn trao đổi có kiểm duyệt trước an toàn.
+                  - strong [ref=f1e801]: Admin tuyệt đối không có quyền theo dõi hoặc biết danh tính tài khoản học sinh
+                  - text: ", bảo vệ quyền riêng tư 100%. Cung cấp chuyên mục kiến thức dành riêng cho cha mẹ thấu hiểu tâm lý lứa tuổi dậy thì."
+              - generic [ref=f1e802]:
+                - generic [ref=f1e803]: "Đường dây nóng khẩn cấp:"
+                - paragraph [ref=f1e806]:
+                  - text: •
+                  - strong [ref=f1e807]: "Tổng đài 111:"
+                  - text: Bảo vệ trẻ em Quốc gia (Miễn phí 24/7)
+                - paragraph [ref=f1e808]:
+                  - text: •
+                  - strong [ref=f1e809]: "CSAGA & BV Từ Dũ:"
+                  - text: Tư vấn sức khỏe sinh sản & phòng chống xâm hại
+                - paragraph [ref=f1e810]:
+                  - text: •
+                  - strong [ref=f1e811]: "Take It Down:"
+                  - text: Công cụ gỡ bỏ hình ảnh nhạy cảm
+        - generic [ref=f1e812]:
+          - generic [ref=f1e813]:
+            - paragraph [ref=f1e814]: PHẦN 4 • TỔNG KẾT BÁO CÁO
+            - heading "Kết Luận Của Nhóm Nghiên Cứu" [level=2] [ref=f1e815]
+            - paragraph [ref=f1e816]: "Thực trạng triển khai giáo dục giới tính tại trường học vẫn còn nhiều rào cản từ định kiến xã hội, thời lượng eo hẹp và sự e ngại của người lớn. Số liệu khảo sát 401 học sinh đã khẳng định nhu cầu tiếp cận kiến thức của các em là vô cùng bức thiết. Sự ra đời của nền tảng tương tác ChiChan chính là câu trả lời toàn diện: tích hợp công nghệ AI mô phỏng an toàn, số hóa bài giảng chuẩn y khoa và tạo lập cầu nối thấu cảm giữa gia đình, nhà trường và học sinh, hiện thực hóa mục tiêu:"
+            - paragraph [ref=f1e818]: TIẾP CẬN DỄ – THỰC HÀNH AN TOÀN – ĐỒNG HÀNH BỀN VỮNG
+          - generic [ref=f1e819]:
+            - heading "Bảng Tra Cứu Thuật Ngữ Viết Tắt Trong Báo Cáo" [level=3] [ref=f1e824]
+            - table [ref=f1e826]:
+              - rowgroup [ref=f1e827]:
+                - row [ref=f1e828]:
+                  - columnheader "Ký hiệu" [ref=f1e829]
+                  - columnheader "Thuật ngữ đầy đủ & Định nghĩa khoa học" [ref=f1e830]
+              - rowgroup [ref=f1e831]:
+                - row [ref=f1e832]:
+                  - cell "GDGT" [ref=f1e833]
+                  - cell "Giáo dục giới tính" [ref=f1e834]
+                - row [ref=f1e835]:
+                  - cell "GDGTTD" [ref=f1e836]
+                  - cell "Giáo dục giới tính toàn diện (Comprehensive Sexuality Education - CSE)" [ref=f1e837]
+                - row [ref=f1e838]:
+                  - cell "SKSS" [ref=f1e839]
+                  - cell "Sức khỏe sinh sản" [ref=f1e840]
+                - row [ref=f1e841]:
+                  - cell "SKTD" [ref=f1e842]
+                  - cell "Sức khỏe tình dục" [ref=f1e843]
+                - row [ref=f1e844]:
+                  - cell "THPT" [ref=f1e845]
+                  - cell "Trung học phổ thông" [ref=f1e846]
+                - row [ref=f1e847]:
+                  - cell "SMD" [ref=f1e848]
+                  - cell "Standardized Mean Difference (Hiệu số trung bình chuẩn hóa trong phân tích meta)" [ref=f1e849]
+                - row [ref=f1e850]:
+                  - cell "ES" [ref=f1e851]
+                  - cell "Effect Size (Kích thước hiệu ứng / Mức độ ảnh hưởng thực nghiệm)" [ref=f1e852]
+          - generic [ref=f1e853]:
+            - heading "Danh Mục Tài Liệu Tham Khảo Chính Thức" [level=3] [ref=f1e858]
+            - generic [ref=f1e859]:
+              - generic [ref=f1e860]:
+                - generic [ref=f1e861]:
+                  - paragraph [ref=f1e862]: AMAZE.org (Tổ chức Quốc tế)
+                  - paragraph [ref=f1e863]: Nền tảng giáo dục trực tuyến miễn phí cung cấp kiến thức giáo dục giới tính và sức khỏe sinh sản dành cho trẻ vị thành niên, phụ huynh và giáo viên.
+                - link "Nguồn tài liệu" [ref=f1e864] [cursor=pointer]:
+                  - /url: https://amaze.org/
+              - generic [ref=f1e867]:
+                - generic [ref=f1e868]:
+                  - paragraph [ref=f1e869]: UNFPA Việt Nam - Báo cáo quốc gia về thanh niên Việt Nam
+                  - paragraph [ref=f1e870]: Điều tra quốc gia về sức khỏe sinh sản, sức khỏe tình dục thanh thiếu niên Việt Nam (Bộ Y tế & Quỹ Dân số Liên Hợp Quốc).
+                - link "Nguồn tài liệu" [ref=f1e871] [cursor=pointer]:
+                  - /url: https://vietnam.unfpa.org/vi/publications/b%C3%A1o-c%C3%A1o-v%E1%BB%81-thanh-ni%C3%AAn-vi%E1%BB%87t-nam-2015-2018
+              - generic [ref=f1e874]:
+                - generic [ref=f1e875]:
+                  - paragraph [ref=f1e876]: Tổng hội Y học Việt Nam - Giáo dục giới tính và tình dục toàn diện cho học sinh
+                  - paragraph [ref=f1e877]: Thực trạng, khoảng trống và một số khuyến nghị sư phạm y tế học đường (Tạp chí Y học Việt Nam).
+                - link "Nguồn tài liệu" [ref=f1e878] [cursor=pointer]:
+                  - /url: https://tapchiyhocvietnam.vn/index.php/vmj/article/view/3573
+              - generic [ref=f1e881]:
+                - generic [ref=f1e882]:
+                  - paragraph [ref=f1e883]: Báo Tuổi Trẻ - Giáo dục giới tính trong bối cảnh hiện nay
+                  - paragraph [ref=f1e884]: Khảo sát thực tế về tâm lý né tránh của phụ huynh và sự e ngại của học sinh trước các vấn đề sức khỏe giới tính.
+                - link "Nguồn tài liệu" [ref=f1e885] [cursor=pointer]:
+                  - /url: https://tuoitre.vn/giaoduc/giao-duc-gioi-tinh-trong-boi-canh-hien-nay-108926802.htm
+              - generic [ref=f1e888]:
+                - generic [ref=f1e889]:
+                  - paragraph [ref=f1e890]: Bộ GD&ĐT - Chương trình Giáo dục Phổ thông tổng thể 2018
+                  - paragraph [ref=f1e891]: Thông tư số 32/2018/TT-BGDĐT về phát triển năng lực, phẩm chất, kỹ năng sống và trách nhiệm cá nhân cho học sinh phổ thông.
+                - link "Nguồn tài liệu" [ref=f1e892] [cursor=pointer]:
+                  - /url: https://luatvietnam.vn/giao-duc/thong-tu-32-2018-tt-bgddt-ban-hanh-chuong-trinh-giao-duc-pho-thong-moi-169745-d1.html
+        - generic [ref=f1e897]:
+          - generic [ref=f1e898]:
+            - generic [ref=f1e899]:
+              - paragraph [ref=f1e900]: KẾT NỐI HỌC THUẬT
+              - heading "Đóng Góp Ý Kiến Cho Đề Tài" [level=2] [ref=f1e901]
+            - paragraph [ref=f1e902]: Nhóm nghiên cứu trân trọng đón nhận mọi ý kiến đóng góp chuyên môn, phản biện khoa học từ quý thầy cô giáo, các bậc phụ huynh và chuyên gia y tế để tiếp tục hoàn thiện nền tảng ChiChan.
+            - generic [ref=f1e903]:
+              - generic [ref=f1e909]:
+                - generic [ref=f1e910]: Email đề tài
+                - text: contact@chichan.edu.vn
+              - generic [ref=f1e916]:
+                - generic [ref=f1e917]: Hotline liên hệ
+                - text: +84 99 9999 9999
+          - generic [ref=f1e918]:
+            - generic [ref=f1e919]:
+              - generic [ref=f1e920]: Họ và tên của bạn *
+              - textbox "Họ tên hoặc cơ quan công tác" [ref=f1e921]
+            - generic [ref=f1e922]:
+              - generic [ref=f1e923]: Địa chỉ Email *
+              - textbox "name@example.com" [ref=f1e924]
+            - generic [ref=f1e925]:
+              - generic [ref=f1e926]: Ý kiến đóng góp / Phản biện *
+              - textbox "Chia sẻ nhận định, góp ý về phương pháp nghiên cứu hoặc các bài học..." [ref=f1e927]
+            - button "Gửi Đóng Góp Học Thuật" [ref=f1e928] [cursor=pointer]
+    - contentinfo [ref=f1e929]:
+      - generic [ref=f1e930]:
+        - generic [ref=f1e931]:
+          - link "ChiChan Education" [ref=f1e932] [cursor=pointer]:
+            - /url: /
+          - paragraph [ref=f1e937]: © 2026 ChiChan - Đề tài NCKH THPT Giồng Ông Tố. Đồng hành cùng HS, PH và Nhà trường.
+        - generic [ref=f1e938]:
+          - heading "Pháp lý & Điều khoản" [level=4] [ref=f1e939]
+          - link "Chính sách bảo mật" [ref=f1e940] [cursor=pointer]:
+            - /url: "#"
+          - link "Điều khoản sử dụng" [ref=f1e941] [cursor=pointer]:
+            - /url: "#"
+        - generic [ref=f1e942]:
+          - heading "Khám phá" [level=4] [ref=f1e943]
+          - link "Nhóm NCKH THPT Giồng Ông Tố" [ref=f1e944] [cursor=pointer]:
+            - /url: /about
+          - link "Góc học tập" [ref=f1e945] [cursor=pointer]:
+            - /url: /courses
+          - link "Góc giải trí (Trò chơi AI) MỚI" [ref=f1e946] [cursor=pointer]:
+            - /url: /game
+            - generic [ref=f1e947]: Góc giải trí (Trò chơi AI)
+            - generic [ref=f1e948]: MỚI
+          - link "Góc trò chuyện" [ref=f1e949] [cursor=pointer]:
+            - /url: /forum
+  - button "Open Next.js Dev Tools" [ref=f1e955] [cursor=pointer]
+  - alert [ref=f1e959]
+  - generic [aria-hidden] [ref=f1e960]: Kiến thức chuẩn xác, đầy đủ

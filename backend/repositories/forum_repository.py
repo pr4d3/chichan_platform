@@ -305,3 +305,32 @@ async def update_comments_status(db: AsyncSession, comment_ids: list[UUID], stat
     )
     await db.execute(stmt)
     await db.commit()
+
+# Tự động xoá nội dung thô tục (profanity auto-clean)
+async def get_published_post_texts(db: AsyncSession) -> list:
+    """Lấy (id, title, content) của các bài viết đang PUBLISHED — chỉ chọn cột cần thiết,
+    không nạp graph ORM (author/category/comments) để quét rẻ hơn."""
+    result = await db.execute(
+        select(ForumPost.id, ForumPost.title, ForumPost.content)
+        .where(ForumPost.status == "PUBLISHED")
+    )
+    return result.all()
+
+async def get_published_comment_texts(db: AsyncSession) -> list:
+    """Lấy (id, content) của các bình luận đang PUBLISHED."""
+    result = await db.execute(
+        select(ForumComment.id, ForumComment.content)
+        .where(ForumComment.status == "PUBLISHED")
+    )
+    return result.all()
+
+async def update_posts_status(db: AsyncSession, post_ids: list[UUID], status: str, moderated_by: Optional[UUID]) -> None:
+    if not post_ids:
+        return
+    stmt = (
+        update(ForumPost)
+        .where(ForumPost.id.in_(post_ids))
+        .values(status=status, moderated_by=moderated_by)
+    )
+    await db.execute(stmt)
+    await db.commit()

@@ -124,3 +124,12 @@ async def moderate_comment(comment_id: UUID, mod_data: CommentModerateAction, cu
         success=True,
         message="Đã cập nhật trạng thái bình luận thành công"
     )
+
+@router.post("/api/v1/admin/forum/clean-profanity", status_code=status.HTTP_200_OK, dependencies=[Depends(RoleGuard(["ADMIN"]))])
+async def clean_profanity(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    result = await forum_service.auto_clean_profane_content(db, moderator_id=current_user.id)
+    return {
+        "success": True,
+        "message": "Đã quét toàn bộ diễn đàn và tự động xoá nội dung chứa từ ngữ thô tục",
+        "data": result
+    }

@@ -8,6 +8,7 @@ from sqlalchemy import delete
 from core.database import engine, AsyncSessionLocal
 from core.config import settings, validate_settings
 from models.session import UserSession
+from services import forum_service
 from routers import auth_router, user_router, course_router, forum_router, dashboard_router, general_router, roleplay_router, admin_router, quiz_router
 
 
@@ -17,6 +18,9 @@ logger = logging.getLogger(__name__)
 
 # Chu kỳ dọn dẹp user_sessions hết hạn: 6 giờ
 SESSION_CLEANUP_INTERVAL_SECONDS = 6 * 3600
+
+# Chu kỳ quét tự động nội dung diễn đàn thô tục: 12 giờ
+PROFANITY_CLEANUP_INTERVAL_SECONDS = 12 * 3600
 
 async def expired_sessions_cleanup_loop():
     """Vòng lặp nền: xóa các user_sessions đã hết hạn (refresh token hết hạn) mỗi 6 giờ
@@ -36,6 +40,24 @@ async def expired_sessions_cleanup_loop():
         except Exception:
             logger.exception("Lỗi khi dọn dẹp user_sessions hết hạn.")
 
+async def profane_forum_content_cleanup_loop():
+    """Vòng lặp nền: quét và tự động xoá (status='DELETED') các bài viết/bình luận
+    đang hiển thị có từ ngữ thô tục — quét ngay khi khởi động rồi lặp lại mỗi 12 giờ,
+    để dọn cả nội dung cũ tồn tại trước khi bộ lọc ra đời."""
+    while True:
+        try:
+            async with AsyncSessionLocal() as db:
+                result = await forum_service.auto_clean_profane_content(db)
+                logger.info(
+                    f"Quét nội dung diễn đàn: xoá {result['cleaned_posts']} bài viết, "
+                    f"{result['cleaned_comments']} bình luận chứa từ ngữ thô tục."
+                )
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("Lỗi khi quét nội dung diễn đàn thô tục.")
+        await asyncio.sleep(PROFANITY_CLEANUP_INTERVAL_SECONDS)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Logic chạy khi khởi động server
@@ -45,17 +67,17 @@ async def lifespan(app: FastAPI):
     # mục "critical" thành raise RuntimeError để fail-loud ngay khi khởi động.
     for level, message in validate_settings():
         getattr(logger, level, logger.warning)(message)
-    # Tác vụ nền dọn dẹp user_sessions hết hạn mỗi 6 giờ
+    # Tác vụ nền: dọn dẹp user_sessions hết hạn mỗi 6 giờ + quét nội dung thô tục mỗi 12 giờ
     cleanup_task = asyncio.create_task(expired_sessions_cleanup_loop())
+    profanity_task = asyncio.create_task(profane_forum_content_cleanup_loop())
     yield
     # Logic chạy khi tắt server
     logger.info("Shutting down API...")
-    # Hủy sạch task dọn dẹp trước khi đóng pool kết nối
-    cleanup_task.cancel()
-    try:
-        await cleanup_task
-    except asyncio.CancelledError:
-        logger.info("Đã dừng tác vụ dọn dẹp user_sessions hết hạn.")
+    # Hủy sạch các task dọn dẹp trước khi đóng pool kết nối
+    for task in (cleanup_task, profanity_task):
+        task.cancel()
+    await asyncio.gather(cleanup_task, profanity_task, return_exceptions=True)
+    logger.info("Đã dừng các tác vụ dọn dẹp nền.")
     await engine.dispose()
 
 app = FastAPI(

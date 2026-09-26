@@ -31,6 +31,6 @@ export const BRAND_CONFIG = {
   defaultSurveyUrl: "https://forms.gle/research_feedback",
 
   // Bản quyền footer
-  copyright: `© ${new Date().getFullYear()} ChiChan - Đề tài NCKH THPT Giồng Ông Tố. Đồng hành cùng HS, PH và Nhà trường.`,
+  copyright: `© ${new Date().getFullYear()} ChiChan - Đề tài NCKH của học sinh THPT Giồng Ông Tố.`,
 };
 

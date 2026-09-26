@@ -18,7 +18,6 @@ import {
   ChatsCircle,
   PhoneCall,
   EnvelopeSimple,
-  MapPin,
   CheckCircle,
   FileText,
   Quotes,
@@ -1099,16 +1098,6 @@ export default function AboutPage() {
                   <div>
                     <span className="text-xs text-on-surface-variant uppercase font-bold block">Hotline liên hệ</span>
                     <span className="font-semibold text-on-surface">{BRAND_CONFIG.phone}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 bg-surface-container text-primary flex items-center justify-center rounded-none border border-outline-variant/30 shrink-0">
-                    <MapPin size={22} weight="duotone" />
-                  </div>
-                  <div>
-                    <span className="text-xs text-on-surface-variant uppercase font-bold block">Cơ quan thực hiện</span>
-                    <span className="font-semibold text-on-surface">Trường THPT Giồng Ông Tố, TP. Hồ Chí Minh</span>
                   </div>
                 </div>
               </div>

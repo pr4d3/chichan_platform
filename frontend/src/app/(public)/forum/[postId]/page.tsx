@@ -22,6 +22,7 @@ import {
   PaperPlaneTilt,
   ArrowElbowDownRight,
   ChartBar,
+  ShieldCheck,
 } from "@phosphor-icons/react";
 
 interface CommentAuthor {
@@ -620,7 +621,11 @@ export default function PostDetailPage() {
                     className="w-full text-xs sm:text-sm bg-transparent border-0 resize-none focus:outline-none placeholder:text-on-surface-variant/40 text-on-surface"
                   />
 
-                  <div className="flex justify-end pt-1">
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[11px] text-on-surface-variant/60 flex items-center gap-1 font-medium select-none" title="Hệ thống tự động lọc và loại bỏ từ ngữ thô tục để bảo vệ không gian học đường">
+                      <ShieldCheck size={14} weight="fill" className="text-primary" />
+                      <span>Kiểm duyệt tự động</span>
+                    </span>
                     <Button
                       type="submit"
                       size="sm"

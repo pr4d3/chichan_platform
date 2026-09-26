@@ -7,6 +7,7 @@ from uuid import UUID
 import base64
 from datetime import datetime, timezone
 from typing import Optional
+from core.profanity import validate_content_clean, check_profanity
 
 def format_author_info(author, is_anonymous: bool, current_user_id: Optional[UUID] = None):
     if not author:
@@ -230,6 +231,10 @@ async def toggle_post_like(db: AsyncSession, user_id: UUID, post_id: UUID):
     }
 
 async def create_new_post(db: AsyncSession, author_id: UUID, post_data: PostCreate):
+    # Kiểm duyệt từ ngữ thô tục trong tiêu đề và nội dung bài viết
+    validate_content_clean(post_data.title, "Tiêu đề bài viết")
+    validate_content_clean(post_data.content, "Nội dung bài viết")
+
     category = await forum_repository.get_category_by_id(db, post_data.category_id)
     if not category:
         raise HTTPException(status_code=400, detail="Category not found.")
@@ -252,6 +257,9 @@ async def create_new_post(db: AsyncSession, author_id: UUID, post_data: PostCrea
     }
 
 async def create_new_comment(db: AsyncSession, author_id: UUID, post_id: UUID, comment_data: CommentCreate):
+    # Kiểm duyệt từ ngữ thô tục trong bình luận
+    validate_content_clean(comment_data.content, "Nội dung bình luận")
+
     post = await forum_repository.get_post_by_id(db, post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Không tìm thấy bài viết.")
@@ -360,3 +368,32 @@ async def moderate_comment_status(db: AsyncSession, admin_id: UUID, comment_id: 
         "status": target_status,
         "moderated_by": admin_id
     }
+
+async def auto_clean_profane_content(db: AsyncSession, moderator_id: Optional[UUID] = None) -> dict:
+    """
+    Quét tự động và xoá (status='DELETED') mọi bài viết / bình luận đang PUBLISHED
+    có chứa từ ngữ thô tục trong CSDL.
+    moderator_id=None nghĩa là quét định kỳ bởi hệ thống (không ghi nhận người kiểm duyệt).
+    """
+    profane_post_ids = []
+    for post_id, title, content in await forum_repository.get_published_post_texts(db):
+        has_bad_title, _ = check_profanity(title)
+        has_bad_content, _ = check_profanity(content)
+        if has_bad_title or has_bad_content:
+            profane_post_ids.append(post_id)
+
+    profane_comment_ids = []
+    for comment_id, content in await forum_repository.get_published_comment_texts(db):
+        has_bad, _ = check_profanity(content)
+        if has_bad:
+            profane_comment_ids.append(comment_id)
+
+    await forum_repository.update_posts_status(db, profane_post_ids, "DELETED", moderator_id)
+    await forum_repository.update_comments_status(db, profane_comment_ids, "DELETED", moderator_id)
+
+    return {
+        "cleaned_posts": len(profane_post_ids),
+        "cleaned_comments": len(profane_comment_ids),
+        "message": f"Đã quét và tự động xoá {len(profane_post_ids)} bài viết và {len(profane_comment_ids)} bình luận có từ ngữ thô tục."
+    }
+
