@@ -1,4 +1,4 @@
-# Frontend — SexEd Platform
+# Frontend — ChiChan Platform
 
 Next.js 16 (App Router) + Tailwind v4. Toàn bộ trang là client component; quy ước chi tiết xem `CLAUDE.md` ở repo root.
 

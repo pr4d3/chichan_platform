@@ -1,145 +1,209 @@
-# SexEd Platform 🌱
+# ChiChan Platform
 
-> Học về giới tính không có gì phải ngại — hỏi thẳng, học cho chắc, luyện trước khi gặp thật.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Next.js 16](https://img.shields.io/badge/Frontend-Next.js%2016-black.svg?logo=next.js&logoColor=white)](https://nextjs.org)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![PostgreSQL & pgvector](https://img.shields.io/badge/Database-Supabase%20%2B%20pgvector-3ECF8E.svg?logo=supabase&logoColor=white)](https://supabase.com)
+[![Google Gemini](https://img.shields.io/badge/AI-Google%20Gemini-4285F4.svg?logo=google&logoColor=white)](https://ai.google.dev/)
 
-Một nền tảng e-learning tiếng Việt về giáo dục giới tính, làm trong khuôn khổ đề tài NCKH
-THPT Giồng Ông Tố: **khóa học** có video + quiz + chứng chỉ, **diễn đàn** ẩn danh có kiểm
-duyệt, và một phòng **roleplay với AI** để luyện phản xạ trước các tình huống nhạy cảm
-thật sự — tất cả trong một monorepo Next.js + FastAPI.
+> *Sex education shouldn't be awkward — ask directly, learn properly, and practice before facing real-world situations.*
 
----
-
-## 📖 Chuyện bắt đầu từ một câu hỏi không dám hỏi
-
-Tuổi teen có hàng nghìn câu hỏi về cơ thể, relationship, và những thứ trường lớp ngại giảng.
-Google thì ra đủ thứ — phần lớn không phù hợp lứa tuổi, còn lại thì sai. Hỏi người lớn thì
-ngại. Im lặng thì nguy.
-
-Bọn mình muốn một chỗ **an toàn** để:
-
-- **Học** bài bản: khóa học ngắn gọn, có video, quiz kiểm tra, học xong nhận chứng chỉ.
-- **Hỏi** không sợ: diễn đàn cho phép đăng ẩn danh, phía có admin kiểm duyệt để không
-  ai bị hỏi han thái quá.
-- **Luyện** trước khi gặp thật: đây là phần "cháy" nhất — bạn vào phòng chat với AI đóng
-  vai người thật (người lạ trên mạng chủ động nhắn tin, kẻ xấu tống tiền ảnh nhạy cảm,
-  bác sĩ tư vấn...). Trả lời đúng cách thì điểm lên, sai thì nhân vật phản ứng theo —
-  giống game nhập vai, nhưng mỗi quyết định đều là kỹ năng sống còn.
-
-AI ở đây là Google Gemini, stream từng chữ kèm cảm xúc + điểm số, và tra cứu tri thức
-RAG (pgvector) để trả lời có cơ sở chứ không bịa.
+ChiChan is an open-source e-learning and behavioral simulation platform for sex education and digital self-defense, built within a scientific research initiative at **Giong Ong To High School**.
 
 ---
 
-## 🎓 Học được gì sau đợt cày này?
+## Origin: A Question We Were Afraid to Ask
 
-Project nhỏ nhưng "du đi" đủ loại vết. Những bài học xương máu, ai làm sản phẩm thật
-sẽ gặp sớm muộn:
+Adolescents have thousands of questions about their changing bodies, relationships, and the sensitive topics that school curricula often avoid. Turning to search engines returns a flood of search results — most of it age-inappropriate, and much of it flat-out misleading. Asking parents feels embarrassing. Staying silent, however, is dangerous.
 
-1. **Đừng tin `NEXT_PUBLIC_*`.** Next.js + Turbopack nhúng giá trị đó vào bundle NGAY LÚC
-   BUILD — kiểm chứng thực nghiệm thì **cả server chunk cũng bị inline**. Build ở đâu,
-   môi trường đó "đóng băng" vĩnh viễn. Giải pháp: resolve URL API lúc runtime qua một
-   route handler `/api/app-config`, kèm script guard fail build nếu có ai tái diễn.
-2. **LLM stream × DB connection là cặp bài trùng.** Endpoint chat trả `StreamingResponse`
-   nhưng nhận vào session **factory** chứ không phải session của request — nếu không,
-   connection PostgreSQL bị giữ mở suốt 1-2 phút trong khi Gemini... gõ chữ.
-3. **N+1 và list không giới hạn giết app từ từ.** Feed diễn đàn đếm comment từng bài một,
-   mọi list `.all()` không LIMIT. Sửa bằng 1 `GROUP BY` + phân trang — nhưng ngày deploy
-   bundle cũ vẫn đang chạy ngoài kia, nên cần **compat shim**: không truyền `limit` thì
-   trả đúng shape cũ y hệt.
-4. **bcrypt trên event loop = đóng băng cả server.** Hash mật khẩu chuyển sang
-   `asyncio.to_thread`, event loop thở lại.
-5. **Schema drift là có thật, không phải truyền thuyết.** Live database có bảng + cột mà
-   `schema.sql` không hề biết (quyết định ALTER tay lúc nửa đêm = nợ kỹ thuật). Xử lý: script
-   idempotent (backfill → guard → `SET NOT NULL`), verify bằng introspection so models ↔
-   live. Migration tool (Alembic) thì để dành — viết rõ điều kiện đủ mới adopt trong docs.
-6. **Route group rỗng chỉ là trang trí.** Một group `(learning)` không có `layout.tsx`
-   không tạo ra bất kỳ chrome nào — nó chỉ làm path dài thêm 2 cấp. Dọn xong tree mới thấy.
-7. **Xóa gì cũng phải có chứng cứ.** 4 ảnh NPC trông "không ai dùng" — hóa ra database
-   đang giữ URL của chúng trong `ai_scenarios.npc_avatar_url`. Grep trước khi `rm`,
-   luôn luôn.
+We set out to create a genuine **safe haven** to:
 
-Chi tiết đầy đủ: [`docs/refactor_maintainability_scale.md`](docs/refactor_maintainability_scale.md)
-và [`docs/refactor_env_independent_build.md`](docs/refactor_env_independent_build.md).
+- **Learn properly**: Structured, bite-sized modular video lessons paired with interactive quizzes and automated certificates of completion.
+- **Ask without fear**: An anonymous community forum with human moderation queues and profanity filtering, ensuring teenagers can ask honest questions without fear of judgment, exposure, or harassment.
+- **Practice before facing reality**: The heart and soul of the platform — an interactive AI roleplay simulator. Users step into realistic chat scenarios: navigating unsolicited messages from online strangers, de-escalating cyber extortion and sextortion threats, or consulting a virtual adolescent physician. Make the right choices and your safety score climbs; make a misstep, and the character reacts realistically. It feels like an RPG, but every decision trains real-world, life-saving reflexes.
+
+Under the hood, **Google Gemini** powers the experience with token-by-token streaming, structured emotion tagging, and real-time decision scoring. Crucially, all medical guidance is grounded through a **pgvector (RAG)** knowledge base to ensure advice is strictly factual, never hallucinated.
 
 ---
 
-## 🛠️ Kim chỉ nam kỹ thuật
+## System Architecture
 
-| Thành phần | Công nghệ |
+```mermaid
+flowchart TD
+    subgraph Client ["Client Layer (Next.js 16 App Router)"]
+        UI["Web Interface (Tailwind CSS v4)"]
+        ConfigResolver["Runtime Config Resolver (/api/app-config)"]
+    end
+
+    subgraph CoreBackend ["Backend Layer (FastAPI Async)"]
+        Router["API Routers"]
+        Service["Services (Validation & Business Rules)"]
+        Repo["Repositories (SQLAlchemy 2.0 Async)"]
+        SSEHandler["SSE Stream Controller"]
+    end
+
+    subgraph External ["Data & Intelligence Layer"]
+        Supabase[("Supabase PostgreSQL + pgvector")]
+        Gemini["Google Gemini API (google-genai)"]
+    end
+
+    UI -->|"Standard API Calls (JWT Bearer)"| Router
+    UI -->|"Direct SSE Streaming (Bypasses serverless timeout)"| SSEHandler
+    ConfigResolver -.->|"Injects API base URL at runtime"| UI
+
+    Router --> Service
+    Service --> Repo
+    Repo -->|"Async Connection Pool"| Supabase
+
+    SSEHandler -->|"768-dim Vector Search"| Supabase
+    SSEHandler -->|"Prompt + RAG Context"| Gemini
+    Gemini -->|"Token Stream + Structured Scoring"| SSEHandler
+```
+
+---
+
+## Battle-Tested Engineering Insights
+
+This codebase reflects solutions to non-trivial production challenges encountered during development:
+
+1. **Decoupling Build Time from Runtime Config (`NEXT_PUBLIC_*` Pitfall)**  
+   *Problem:* Next.js with Turbopack inlines `NEXT_PUBLIC_*` variables during compilation across both client bundles and server chunks. Building the container once and deploying across staging/production resulted in frozen, unchangeable API URLs.  
+   *Resolution:* Implemented a runtime configuration endpoint (`/api/app-config`) consumed dynamically by the client, guarded by pre-commit build checks.
+
+2. **Decoupling Long-Lived LLM Streams from Database Sessions**  
+   *Problem:* Chat completions stream via Server-Sent Events (SSE). Injecting a standard request-scoped database session held PostgreSQL connections active for 1–2 minutes while tokens were generated, exhausting the connection pool.  
+   *Resolution:* Refactored to pass an `AsyncSession` factory, acquiring and releasing database connections only during transient I/O phases (e.g., initial vector retrieval and final transcript persistence).
+
+3. **Eliminating Unbounded Feed Queries & N+1 Bottlenecks**  
+   *Problem:* Forum feeds suffered from unindexed full-table scans and per-post comment count queries.  
+   *Resolution:* Migrated to `GROUP BY` aggregates with keyset/cursor pagination. Implemented backward-compatible response shims to prevent breaking legacy client builds.
+
+4. **Async Event-Loop Offloading for CPU-Bound Operations**  
+   *Problem:* Synchronous password hashing via `bcrypt` stalled FastAPI's single asyncio event loop under concurrent registration spikes.  
+   *Resolution:* Routed CPU-heavy cryptographic operations to worker thread pools via `asyncio.to_thread`.
+
+5. **Mitigating Schema Drift Without Heavy ORM Overhead**  
+   *Problem:* Production schema alterations created disparities with version-controlled SQL files.  
+   *Resolution:* Built an idempotent migration runner pattern (`backfill` → `guard` → `constrain`) validated through automated introspection checks comparing SQLAlchemy metadata against live instances.
+
+6. **Direct SSE Routing for Serverless Deployments**  
+   *Problem:* Edge/Serverless function execution timeouts on frontend hosts severed long-running AI roleplay conversations.  
+   *Resolution:* SSE streams connect directly from browser clients to the backend host (Render), bypassing frontend proxy timeouts while maintaining JWT authorization.
+
+---
+
+## Tech Stack
+
+| Domain | Technology |
 |---|---|
-| Backend | FastAPI (async) · SQLAlchemy 2.0 + asyncpg · JWT (python-jose) |
-| Database | Supabase PostgreSQL + **pgvector** (RAG 768-dim) |
-| AI | Google Gemini (`google-genai`): embedding + streaming chat có structured output |
-| Frontend | Next.js 16 (App Router, Turbopack) · Tailwind v4 (CSS-first) · Phosphor Icons · Plyr |
-| Deploy | Backend → Render · Frontend → Vercel · DB → Supabase |
+| **Backend** | FastAPI, SQLAlchemy 2.0 (asyncpg), Pydantic v2, Python-Jose |
+| **Frontend** | Next.js 16 (App Router, Turbopack), Tailwind CSS v4, Phosphor Icons, Plyr |
+| **Database & Vector** | Supabase PostgreSQL, `pgvector` (768-dimensional embeddings) |
+| **AI & Inference** | Google Gemini (`google-genai`), Structured Output, SSE Streaming |
+| **Infrastructure** | Render (API Engine), Vercel (Static/SSR Edge), Supabase Cloud (Data) |
 
-### Cấu trúc monorepo
+---
+
+## Monorepo Layout
 
 ```
 chichan/
-├── backend/     # FastAPI: routers → services → repositories → models (+ schemas, core)
-├── frontend/    # Next.js 16 App Router — README riêng có sơ đồ src/ chi tiết
-├── database/    # schema.sql + seed.sql + script migrate chạy tay (apply_*.py, không Alembic)
-├── docs/        # spec theo phase + tài liệu refactor + deployment
-└── scratch/     # script debug ad-hoc — không commit
+├── backend/
+│   ├── api/             # Route handlers & endpoints
+│   ├── core/            # Database engine, configuration, security
+│   ├── models/          # SQLAlchemy ORM definitions
+│   ├── repositories/    # Encapsulated database operations
+│   ├── schemas/         # Pydantic validation schemas
+│   └── services/        # Domain logic, AI orchestration, profanity filtering
+├── frontend/
+│   ├── src/app/         # App router pages, route groups, layouts
+│   ├── src/components/  # Modular UI elements, video players, chat widgets
+│   ├── src/context/     # State providers (AuthContext, ToastContext)
+│   └── src/lib/         # Runtime API client, configuration loaders
+├── database/            # DDL definitions (schema.sql, seed.sql, migrations)
+├── docs/                # Feature specifications, audits, and deployment runbooks
+└── scratch/             # Ignored local debug scripts
 ```
 
-### Chạy thử
+---
 
-Backend (cần `backend/.env` — copy từ `backend/.env.example` rồi điền):
+## Local Development Setup
 
-```powershell
+### Prerequisites
+
+- Python 3.11 or later
+- Node.js 20 LTS or later
+- PostgreSQL instance with `pgvector` enabled (or Supabase project)
+
+### 1. Backend Service
+
+```bash
 cd backend
+
+# Create and activate virtual environment
+python -m venv venv
+# Windows (PowerShell):
+.\venv\Scripts\Activate.ps1
+# Unix/macOS:
+source venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
-python -m uvicorn main:app --reload   # Swagger UI tại /docs
+
+# Configure environment
+cp .env.example .env
+# Update DATABASE_URL, SECRET_KEY, and AI_API_KEY in .env
+
+# Start application
+python -m uvicorn main:app --reload
 ```
+API documentation is available locally at `http://127.0.0.1:8000/docs`.
 
-Frontend (không cần file env nào để dev):
+### 2. Frontend Application
 
-```powershell
+```bash
 cd frontend
+
+# Install package dependencies
 npm install
-npm run dev   # http://localhost:3000
+
+# Start development server
+npm run dev
 ```
-
-### Ba quyết định kiến trúc đáng nhớ
-
-- **Backend phân tầng cứng**: `routers → services → repositories → models`. Router mỏng,
-  service giữ validation, repository giữ query + commit. Toàn bộ async, UI copy/message
-  tiếng Việt.
-- **URL API resolve lúc runtime, không lúc build**: client gọi `/api/app-config` lấy base
-  URL → một bản build chạy mọi môi trường. Riêng stream chat SSE đi thẳng browser → Render,
-  không qua Vercel Function (Function sẽ cắt stream dài).
-- **Frontend không có server state**: mọi trang là client component, dữ liệu qua `api.ts`,
-  state local + 2 context (Auth, Toast). Đơn giản mà đủ dùng.
+The client interface is accessible at `http://localhost:3000`.
 
 ---
 
-## 📚 Tài liệu kỹ thuật
+## Documentation Index
 
-| Tài liệu | Nội dung |
-|---|---|
-| [`docs/overview.md`](docs/overview.md) | Tổng quan dự án, kiến trúc RBAC, roadmap |
-| `docs/phase1_database/` → `docs/phase4_ai_roleplay/` | Spec từng feature theo phase (đọc trước khi implement) |
-| [`docs/refactor_maintainability_scale.md`](docs/refactor_maintainability_scale.md) | Audit 3 chiều + đợt refactor scale (index, N+1, pagination, async) + debt còn lại |
-| [`docs/refactor_env_independent_build.md`](docs/refactor_env_independent_build.md) | Tách env khỏi build — cơ chế runtime config + các bẫy Next 16 |
-| [`docs/deployment/render.md`](docs/deployment/render.md) | Deploy backend lên Render từng bước |
-| [`docs/deployment/vercel.md`](docs/deployment/vercel.md) | Deploy frontend lên Vercel + checklist nghiệm thu end-to-end |
-| [`database/schema.sql`](database/schema.sql) | Full schema 22 bảng (tham chiếu) |
+- [Project Overview & Specification](docs/overview.md)
+- [Maintainability & Scaling Post-Mortem](docs/refactor_maintainability_scale.md)
+- [Runtime Environment Independence Guide](docs/refactor_env_independent_build.md)
+- [Backend Deployment Runbook (Render)](docs/deployment/render.md)
+- [Frontend Deployment Runbook (Vercel)](docs/deployment/vercel.md)
+- [Database Schema Reference](database/schema.sql)
 
 ---
 
-## 🤝 Quy ước
+## Contribution Guidelines
 
-- Commit tiếng Anh theo Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`); branch `dev` → merge `main` là tự deploy cả hai đầu.
-- Comments, UI copy, message API, AI prompt — tiếng Việt hết.
-- `scratch/` không commit; `.env` tuyệt đối không commit (mẫu là `backend/.env.example`).
+- **Commit Format**: All commits must adhere to [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `chore:`, `refactor:`).
+- **Branch Strategy**: Branch from and PR into `dev`. Production releases are cut by merging `dev` into `main`.
+- **Localization Boundary**: Codebase artifacts (code, documentation, PRs, comments) remain in English. User-facing strings, curriculum materials, and AI personas are localized in Vietnamese.
+- **Security**: Never commit `.env` files or hardcode credentials.
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 
 <div align="center">
 
-*Kiến thức là Sức mạnh.* 🌿
-Đề tài NCKH — THPT Giồng Ông Tố
+**Giong Ong To High School — Scientific Research Initiative**  
+*Knowledge is Empowerment.*
 
 </div>

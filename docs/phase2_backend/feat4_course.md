@@ -174,7 +174,7 @@
     "course_title": "Giáo dục giới tính tuổi dậy thì toàn diện",
     "completed_at": "2025-01-22T15:40:00Z",
     "outro_content": "Chúc mừng bạn đã xuất sắc hoàn thành toàn bộ khóa học! Hy vọng những kiến thức khoa học này sẽ là hành trang vững chắc giúp bạn tự tin bảo vệ và thấu hiểu bản thân.",
-    "research_survey_url": "https://forms.gle/research_feedback_sexed"
+    "research_survey_url": "https://forms.gle/research_feedback_chichan"
   }
 }
 ```

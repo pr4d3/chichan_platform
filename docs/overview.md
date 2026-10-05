@@ -1,12 +1,12 @@
-# PROJECT OVERVIEW: VIETNAMESE SEX EDUCATION WEB PLATFORM
+# PROJECT OVERVIEW: CHICHAN PLATFORM
 
-_(Dự án Nghiên cứu Khoa học về Giáo dục Giới tính tại Việt Nam)_
+_(Dự án Nghiên cứu Khoa học về Giáo dục Giới tính tại Việt Nam — THPT Giồng Ông Tố)_
 
 ---
 
 ## 1. GIỚI THIỆU TỔNG QUAN (PROJECT VISION)
 
-- **Tên dự án (Tạm thời):** SexEd Platform (Nền tảng Giáo dục Giới tính Trực tuyến).
+- **Tên dự án:** ChiChan Platform (Nền tảng Giáo dục Giới tính & Phòng vệ Số Trực tuyến).
 - **Mục tiêu:** Xây dựng một nền tảng học tập trực tuyến (e-learning) chuẩn mực, thân thiện, khoa học, giúp phổ biến kiến thức giáo dục giới tính cho người Việt Nam và xóa bỏ rào cản e ngại.
 - **Đối tượng thụ hưởng:**
   - **Trẻ em / Vị thành niên (`STUDENT_CHILD`):** Tiếp cận kiến thức sinh lý tuổi dậy thì trực quan, an toàn và rèn luyện kỹ năng tự bảo vệ bản thân qua các tình huống mô phỏng.

@@ -174,19 +174,19 @@ async def get_course_outro(db: AsyncSession, user_id: UUID, course_id: UUID):
     course = await course_repository.get_course_by_id(db, course_id)
     student = await user_repository.get_user_by_id(db, str(user_id))
 
-    # Format unique certificate code: e.g. SEXED-ABC123XY
+    # Format unique certificate code: e.g. CHICHAN-ABC123XY
     cert_hash = str(enrollment.id).replace("-", "")[:8].upper()
-    cert_code = f"SEXED-{cert_hash}"
+    cert_code = f"CHICHAN-{cert_hash}"
 
     return {
         "course_id": course.id,
         "course_title": course.title,
-        "student_name": student.full_name if student else "Học viên SexED",
-        "instructor_name": course.instructor.full_name if course.instructor else "Ban Chuyên Môn SexED",
+        "student_name": student.full_name if student else "Học viên ChiChan",
+        "instructor_name": course.instructor.full_name if course.instructor else "Ban Chuyên Môn ChiChan",
         "completed_at": enrollment.completed_at,
         "certificate_code": cert_code,
         "outro_content": course.outro_content or "Chúc mừng bạn đã hoàn thành khóa học!",
-        "research_survey_url": "https://forms.gle/research_feedback_sexed"
+        "research_survey_url": "https://forms.gle/research_feedback_chichan"
     }
 
 # Course Management
