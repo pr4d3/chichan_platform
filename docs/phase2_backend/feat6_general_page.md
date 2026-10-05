@@ -124,7 +124,7 @@
       {
         "name": "Nhóm Nghiên cứu Khoa học",
         "role": "Tác giả & Phát triển Nền tảng",
-        "contact": "research.sexed@example.edu.vn"
+        "contact": "research.chichan@example.edu.vn"
       }
     ]
   }
