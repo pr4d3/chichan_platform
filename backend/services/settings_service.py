@@ -90,9 +90,9 @@ async def get_about_us_data(db: AsyncSession):
         try:
             authors = json.loads(authors_setting.value_content)
         except:
-            authors = [{"name": "Nhóm Nghiên cứu Khoa học", "role": "Tác giả & Phát triển Nền tảng", "contact": "research.sexed@example.edu.vn"}]
+            authors = [{"name": "Nhóm Nghiên cứu Khoa học", "role": "Tác giả & Phát triển Nền tảng", "contact": "research.chichan@example.edu.vn"}]
     else:
-        authors = [{"name": "Nhóm Nghiên cứu Khoa học", "role": "Tác giả & Phát triển Nền tảng", "contact": "research.sexed@example.edu.vn"}]
+        authors = [{"name": "Nhóm Nghiên cứu Khoa học", "role": "Tác giả & Phát triển Nền tảng", "contact": "research.chichan@example.edu.vn"}]
         
     return {
         "research_title": title_setting.value_content if title_setting else "Nghiên cứu và Ứng dụng Nền tảng E-learning trong Phổ biến Kiến thức Giáo dục Giới tính tại Việt Nam",

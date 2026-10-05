@@ -61,7 +61,7 @@ async def profane_forum_content_cleanup_loop():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Logic chạy khi khởi động server
-    logger.info("Starting up SexEd Platform Backend API...")
+    logger.info("Starting up ChiChan Platform Backend API...")
     # Kiểm tra cấu hình runtime: hiện chỉ WARN để không làm sập deploys hiện có.
     # TODO(phase-3): sau một chu kỳ deploy sạch (không còn log critical), chuyển các
     # mục "critical" thành raise RuntimeError để fail-loud ngay khi khởi động.
@@ -81,8 +81,8 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 app = FastAPI(
-    title="SexEd Platform API",
-    description="Backend API for Vietnamese Sex Education Web Platform",
+    title="ChiChan Platform API",
+    description="Backend API for ChiChan Educational Platform",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -121,7 +121,7 @@ app.add_middleware(
 
 @app.get("/", tags=["Health Check"])
 async def root():
-    return {"message": "Welcome to SexEd Platform API", "status": "OK"}
+    return {"message": "Welcome to ChiChan Platform API", "status": "OK"}
 
 @app.get("/health", tags=["Health Check"])
 async def health():

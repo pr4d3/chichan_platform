@@ -1,5 +1,5 @@
 -- ============================================================================
--- PROJECT: SEXED PLATFORM (EDUSEX VN)
+-- PROJECT: CHICHAN PLATFORM
 -- SUPABASE FULL SEED SCRIPT (DATA + ACCOUNTS + COURSES + FORUM + SETTINGS)
 -- Password for all seed accounts: 123456
 -- ============================================================================
@@ -75,7 +75,7 @@ VALUES (
         'a0000000-0000-0000-0000-000000000001',
         1,
         'admin',
-        'admin@edusex.vn',
+        'admin@chichan.vn',
         '$2b$12$wUFmsMz9qzVOisDjoVIkUe09FbhpOpt0zq9AtynI9iqyGyFr7oe6.',
         'Quản Trị Viên Hệ Thống',
         'ACTIVE'
@@ -85,7 +85,7 @@ VALUES (
         'b0000000-0000-0000-0000-000000000002',
         2,
         'dr_lananh',
-        'lananh@edusex.vn',
+        'lananh@chichan.vn',
         '$2b$12$wUFmsMz9qzVOisDjoVIkUe09FbhpOpt0zq9AtynI9iqyGyFr7oe6.',
         'TS. BS. Nguyễn Lan Anh',
         'ACTIVE'
@@ -95,7 +95,7 @@ VALUES (
         'c0000000-0000-0000-0000-000000000003',
         3,
         'phuhuynh_mai',
-        'parent@edusex.vn',
+        'parent@chichan.vn',
         '$2b$12$wUFmsMz9qzVOisDjoVIkUe09FbhpOpt0zq9AtynI9iqyGyFr7oe6.',
         'Trần Thị Mai',
         'ACTIVE'
@@ -105,7 +105,7 @@ VALUES (
         'd0000000-0000-0000-0000-000000000004',
         4,
         'hocsinh_minh',
-        'child@edusex.vn',
+        'child@chichan.vn',
         '$2b$12$wUFmsMz9qzVOisDjoVIkUe09FbhpOpt0zq9AtynI9iqyGyFr7oe6.',
         'Nguyễn Tuấn Minh',
         'ACTIVE'
@@ -127,7 +127,7 @@ VALUES (
         'FEMALE',
         '1990-01-01',
         '0901234567',
-        'Ban Quản trị & Điều phối Nghiên cứu Khoa học EduSex VN'
+        'Ban Quản trị & Điều phối Nghiên cứu Khoa học ChiChan Platform'
     ),
     (
         'b1000000-0000-0000-0000-000000000002',
@@ -486,13 +486,13 @@ INSERT INTO site_settings (id, key_name, value_content, description)
 VALUES (
         1,
         'platform_name',
-        'EduSex VN',
+        'ChiChan Platform',
         'Tên nền tảng giáo dục'
     ),
     (
         2,
         'contact_email',
-        'hotro@edusex.vn',
+        'hotro@chichan.vn',
         'Email hỗ trợ học viên và phụ huynh'
     ),
     (

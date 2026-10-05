@@ -292,7 +292,7 @@ export default function CourseCertificatePage() {
           <a
             href={
               certData.research_survey_url ||
-              "https://forms.gle/research_feedback_sexed"
+              "https://forms.gle/research_feedback_chichan"
             }
             target="_blank"
             rel="noopener noreferrer"
