@@ -1,121 +1,97 @@
-# FEATURE 03: INSTRUCTOR DASHBOARD (FRONTEND UI/UX SPECS)
+# Feature Specification 03: Instructor Dashboard (Frontend UI/UX)
 
 ---
 
-## 1. MỤC TIÊU VÀ PHẠM VI
+## 1. Scope & Technical Objectives
 
-- Xây dựng giao diện **Bảng điều khiển Giảng viên / Nghiên cứu viên (Instructor Dashboard)** chuyên nghiệp, trực quan và hiện đại.
-- Cung cấp cái nhìn toàn diện về hiệu quả giảng dạy thông qua các thẻ chỉ số (KPIs Cards).
-- Hỗ trợ Giảng viên:
-  - Quản lý danh sách các khóa học do mình phụ trách.
-  - Theo dõi danh sách học viên, tiến độ hoàn thành bài học chi tiết của từng người phục vụ việc thu thập số liệu nghiên cứu khoa học.
-- **Bảo vệ quyền truy cập:** Chỉ tài khoản có vai trò `INSTRUCTOR` hoặc `ADMIN` mới được phép truy cập.
+- Deliver an analytical workspace for **Educators and Scientific Researchers** holding `INSTRUCTOR` or `ADMIN` roles.
+- Present cohort engagement metrics through high-level KPI tiles.
+- Support educators in:
+  - Authoring and organizing educational curricula.
+  - Inspecting cohort rosters and unit-level completion metrics to evaluate sex education interventions.
+- **Route Authorization:** Enforced via route guards; non-privileged roles are redirected to their designated landing views.
 
 ---
 
-## 2. CẤU TRÚC ĐỊNH TUYẾN (NEXT.JS APP ROUTER)
+## 2. Next.js Routing Architecture
 
 ```text
 frontend/src/app/
-├── (dashboard)/
-│   ├── layout.tsx                      # Dashboard Layout (Sidebar cố định bên trái + Header + Main Area)
-│   └── dashboard/
-│       ├── page.tsx                    # Trang Tổng quan số liệu & Quản lý khóa học (/dashboard)
-│       └── students/
-│           └── page.tsx                # Trang Theo dõi chi tiết học viên theo khóa (/dashboard/students)
-└── components/dashboard/
-    ├── MetricCard.tsx                  # Thẻ thống kê chỉ số KPI
-    ├── CourseTable.tsx                 # Bảng danh sách khóa học của Giảng viên
-    └── StudentProgressTable.tsx        # Bảng theo dõi tiến độ chi tiết của học viên
+└── (dashboard)/
+    ├── layout.tsx                      # Dashboard Shell (Collapsible Sidebar + Topbar + Content Canvas)
+    └── dashboard/
+        ├── page.tsx                    # Overview KPIs & Course Authoring (/dashboard)
+        ├── students/
+        │   └── page.tsx                # Granular Cohort Progress Tracker (/dashboard/students)
+        └── users/
+            └── page.tsx                # User Management & Role Provisioning (/dashboard/users - ADMIN Only)
 ```
 
 ---
 
-## 3. THIẾT KẾ GIAO DIỆN & TRẢI NGHIỆM NGƯỜI DÙNG (UI/UX DESIGN)
+## 3. UI/UX Interface Specifications
 
-### 3.1. Bố cục chung Dashboard (`(dashboard)/layout.tsx`)
+### 3.1. Dashboard Shell Layout (`(dashboard)/layout.tsx`)
 
-- **Sidebar bên trái (Thanh điều hướng):**
-  - Logo nền tảng.
-  - Menu điều hướng:
-    - 📊 _Tổng quan (Overview)_ $\rightarrow$ `/dashboard`
-    - 📚 _Khóa học của tôi (My Courses)_ $\rightarrow$ `/dashboard#courses`
-    - 👥 _Theo dõi Học viên (Students)_ $\rightarrow$ `/dashboard/students`
-    - ➕ _Tạo khóa học mới_ (Nút nổi bật) $\rightarrow$ Mở modal tạo khóa học
-- **Header phía trên:**
-  - Thông tin Giảng viên: Tên, Avatar, Badge `Giảng viên`.
-  - Nút quay lại "Giao diện Học viên" hoặc "Trang chủ".
-
----
-
-### 3.2. Trang Tổng quan (`/dashboard`)
-
-#### A. Hàng Thẻ chỉ số thống kê (KPIs Metric Cards Grid - 4 Thẻ):
-
-1. **Tổng số Khóa học:** Con số lớn (VD: `5`), Icon cuốn sách, màu nền xanh dương nhạt.
-2. **Tổng lượt Học viên:** Con số lớn (VD: `142`), Icon nhóm người, màu nền xanh lá nhạt.
-3. **Học viên đã Hoàn thành:** Con số lớn (VD: `68`), Icon huy hiệu/tốt nghiệp.
-4. **Tỷ lệ Hoàn thành TB:** Con số lớn (VD: `47.9%`), Icon biểu đồ tiến độ.
-
-#### B. Bảng Quản lý Khóa học (Course Management Table):
-
-Bảng hiển thị các khóa học do Giảng viên phụ trách với các cột:
-
-- **Tên khóa học:** Tên in đậm kèm đường link xem nhanh trang Intro.
-- **Đối tượng:** Badge màu sắc: `Phụ huynh` hoặc `Trẻ nhỏ` hoặc `Cả hai`.
-- **Số bài học:** (VD: `10 bài`).
-- **Lượt học viên:** (VD: `85 học viên`).
-- **Trạng thái:** Badge `Đã xuất bản` (Xanh lá) hoặc `Bản nháp` (Xám).
-- **Thao tác (Action Dropdown):**
-  - _Xem chi tiết học viên_ (Chuyển sang trang Students).
-  - _Chỉnh sửa khóa học / Quản lý bài giảng_.
-  - _Xóa khóa học_.
+- **Fixed Sidebar Navigation:**
+  - Platform brand identity.
+  - Navigation anchors:
+    - *Overview* $\rightarrow$ `/dashboard`
+    - *Students* $\rightarrow$ `/dashboard/students`
+    - *Users* (Admin Only) $\rightarrow$ `/dashboard/users`
+    - *Create New Course* (Prominent Action Trigger)
+- **Top Bar:**
+  - Instructor Profile: Avatar, Name, and Role Badge.
+  - Return links: "Switch to Learner View" or "Home".
 
 ---
 
-### 3.3. Trang Theo dõi Học viên (`/dashboard/students`)
+### 3.2. Overview Dashboard (`/dashboard`)
 
-#### A. Bộ chọn Khóa học (Course Selector):
+#### A. Metric Cards Grid (4 KPI Tiles):
+1. **Total Courses Authored:** Large numerical value, book icon, subtle indigo background.
+2. **Total Learner Enrollments:** Large numerical value, cohort icon, subtle emerald background.
+3. **Graduated Learners:** Large numerical value, graduation cap icon, subtle amber background.
+4. **Mean Completion Rate:** Percentage metric (e.g., `47.9%`), trend chart icon.
 
-- Dropdown (Shadcn `Select`): Chọn khóa học cần xem danh sách học viên (Mặc định chọn khóa học đầu tiên).
-
-#### B. Bảng Theo dõi Tiến độ Học viên (Student Progress Table):
-
-Bảng chi tiết phục vụ việc phân tích dữ liệu nghiên cứu khoa học:
-
-- **Học viên:** Avatar nhỏ + Họ tên + Email.
-- **Vai trò:** Badge `Học viên - Phụ huynh` hoặc `Học viên - Trẻ nhỏ`.
-- **Ngày tham gia:** Ngày bắt đầu học (VD: `10/01/2025`).
-- **Tiến độ (%):** Thanh Mini Progress Bar trực quan kèm con số (VD: `60% - 6/10 bài`).
-- **Trạng thái:**
-  - `Đang học` (Badge vàng nhạt).
-  - `Đã hoàn thành` (Badge xanh lá kèm ngày hoàn tất).
-
----
-
-## 4. DANH MỤC SHADCN/UI COMPONENTS SỬ DỤNG
-
-| Component                                                | Mục đích sử dụng                                                                        |
-| :------------------------------------------------------- | :-------------------------------------------------------------------------------------- |
-| `Card`, `CardHeader`, `CardTitle`, `CardContent`         | Thiết kế các thẻ thống kê chỉ số KPIs                                                   |
-| `Table`, `TableHeader`, `TableRow`, `TableCell`          | Bảng hiển thị danh sách khóa học và danh sách học viên                                  |
-| `Select`, `SelectTrigger`, `SelectContent`, `SelectItem` | Dropdown chọn khóa học để lọc danh sách học viên                                        |
-| `Badge`                                                  | Hiển thị đối tượng mục tiêu (`PARENT`/`CHILD`) và trạng thái (`PUBLISHED`, `COMPLETED`) |
-| `Progress`                                               | Mini progress bar hiển thị tiến độ % của học viên ngay trong bảng                       |
-| `DropdownMenu`                                           | Menu thao tác 3 chấm (Sửa, Xóa, Xem) cho từng hàng trong bảng                           |
-| `Button`                                                 | Nút "Tạo khóa học mới", "Xuất báo cáo dữ liệu"                                          |
+#### B. Course Portfolio Table:
+Displays authored courses with key columns:
+- **Title:** Bold typography with preview link.
+- **Target Demographic:** Color-coded badges (`Parent`, `Student`, `Both`).
+- **Lesson Count:** Total units (e.g., `10 lessons`).
+- **Enrollment Count:** Total students enrolled.
+- **Publication Status:** `Published` (Green) or `Draft` (Slate).
+- **Actions Menu:**
+  - *Inspect Student Roster* (Navigates to `/dashboard/students`).
+  - *Edit Curriculum / Manage Lesson Units*.
+  - *Delete Course*.
 
 ---
 
-## 5. LUỒNG DỮ LIỆU & TƯƠNG TÁC API (FRONTEND DATA FLOW)
+### 3.3. Cohort Progress Tracker (`/dashboard/students`)
 
-```
-[Giảng viên truy cập /dashboard]
-        ⬇
-[Middleware xác thực Role = 'INSTRUCTOR' hoặc 'ADMIN']
-        ⬇
-[Gọi song song các API Dashboard]
-    ├── 1. GET /api/v1/instructor/dashboard/overview (Đổ vào 4 Card KPI)
-    ├── 2. GET /api/v1/instructor/dashboard/courses (Đổ vào Bảng Khóa học)
-    └── 3. GET /api/v1/instructor/dashboard/courses/{id}/students (Đổ vào Bảng Học viên)
-```
+#### A. Course Filter Selector:
+Dropdown select enabling educators to switch between active curricula (defaults to the first course).
+
+#### B. Student Progress Table:
+Presents empirical telemetry for scientific research analysis:
+- **Learner:** Avatar, Full Name, and Registered Email.
+- **Role Code:** Demographic badge (`Parent` vs. `Student`).
+- **Enrollment Date:** Initial course start timestamp.
+- **Progress Gauge:** Mini progress bar accompanied by percentage and unit counter (e.g., `60% (6/10)`).
+- **Graduation Status:**
+  - `In Progress` (Amber badge).
+  - `Completed` (Green badge with completion timestamp).
+
+---
+
+## 4. UI Components & Tokens
+
+| Component | Purpose / Usage |
+| :--- | :--- |
+| `Card`, `CardHeader`, `CardTitle`, `CardContent` | KPI metric cards and summary tiles |
+| `Table`, `TableHeader`, `TableRow`, `TableCell` | Course portfolio and student roster tables |
+| `Badge` | Publication flags and completion states |
+| `Progress` / Gauge primitives | Compact progress bars embedded in data rows |
+| `Select`, `SelectTrigger`, `SelectContent` | Course filter dropdown |
+| `Dialog`, `DialogContent` | Modal dialogs for course creation and syllabus editing |

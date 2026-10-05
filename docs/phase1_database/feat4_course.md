@@ -1,87 +1,85 @@
-# FEATURE DOC 04: COURSE & CONTENT MANAGEMENT (KHÓA HỌC & BÀI GIẢNG)
+# Feature Specification 04: Course & Content Management (Database)
 
 ---
 
-## 1. MỤC TIÊU VÀ PHẠM VI
+## 1. Scope & Technical Objectives
 
-- Quản lý cấu trúc nội dung giáo dục giới tính từ tổng quan đến chi tiết: **Khóa học (Course)** $\rightarrow$ **Bài học (Lesson)**.
-- Hỗ trợ luồng trải nghiệm học tập chuẩn 3 trang: **Intro $\rightarrow$ Learning $\rightarrow$ Outro**.
-- Quản lý cơ chế gắn nhãn đối tượng mục tiêu (**Target Audience**): `Dành cho Phụ huynh`, `Dành cho Trẻ nhỏ`, hoặc `Cả hai`.
-
----
-
-## 2. QUY TẮC NGHIỆP VỤ (BUSINESS LOGIC)
-
-### 2.1. Phân loại đối tượng học tập (Target Audience Filtering)
-
-Khi Giảng viên tạo/sửa khóa học, bắt buộc phải chọn 1 trong 3 nhãn đối tượng (`target_audience`):
-
-1. `PARENT`: Khóa học chỉ hiển thị và cho phép tài khoản `STUDENT_PARENT` tham gia.
-2. `CHILD`: Khóa học chỉ hiển thị và cho phép tài khoản `STUDENT_CHILD` tham gia.
-3. `BOTH`: Khóa học mở cho cả hai đối tượng.
-
-_(Lưu ý: `ADMIN` và `INSTRUCTOR` luôn có quyền truy cập toàn bộ khóa học để kiểm duyệt)._
-
-### 2.2. Luồng trải nghiệm 3 trang của Khóa học
-
-1. **Trang 1: Giới thiệu khóa học (Course Intro Page)**
-   - Hiển thị thông tin tổng quan: Tên khóa, ảnh bìa, mô tả, giảng viên phụ trách, đối tượng hướng đến, đề cương danh sách các bài học.
-   - Nút hành động: "Bắt đầu học" (Tạo bản ghi vào `course_enrollments` nếu chưa tham gia $\rightarrow$ Điều hướng sang trang Learning).
-2. **Trang 2: Học tập chính (Course Learning Page)**
-   - Không gian học tập: Hiển thị thanh danh mục bài học (Sidebar) và khu vực nội dung bài học đang chọn (Video / Tài liệu đọc / Hình ảnh minh họa).
-   - Nút hành động: "Đánh dấu hoàn thành bài học" (Cập nhật `lesson_progress`).
-   - Điều hướng: Tự động chuyển tiếp sang bài học tiếp theo.
-3. **Trang 3: Tổng kết khóa học (Course Outro Page)**
-   - Điều kiện mở: Chỉ xuất hiện khi học viên đã hoàn thành 100% tất cả các bài học trong khóa.
-   - Nội dung hiển thị: Lời chúc mừng, thông điệp cốt lõi/tổng kết kiến thức của khóa học, khảo sát/dặn dò nghiên cứu khoa học.
-   - Nút hành động: "Quay về trang cá nhân" hoặc "Khám phá khóa học khác".
+- Model educational structures from coarse to granular: **Course** $\rightarrow$ **Lesson Units**.
+- Support the standardized 3-step learning journey: **Intro $\rightarrow$ Learning Player $\rightarrow$ Outro**.
+- Enforce audience targeting: `PARENT`, `CHILD`, or `BOTH`.
 
 ---
 
-## 3. THIẾT KẾ DATABASE SCHEMA (PHASE 1)
+## 2. Business Logic
 
-### 3.1. Bảng `courses` (Danh mục Khóa học)
+### 2.1. Target Audience Segmentation
 
-_Lưu thông tin tổng quan của khóa học và nội dung trang Intro/Outro._
+When creating or modifying courses, instructors specify a targeted audience (`target_audience`):
+1. `PARENT`: Exclusively accessible to `STUDENT_PARENT` accounts.
+2. `CHILD`: Exclusively accessible to `STUDENT_CHILD` accounts.
+3. `BOTH`: Universal curriculum open to all learners.
 
-| Tên trường (Field)  | Kiểu dữ liệu (Data Type) | Ràng buộc (Constraints)              | Ý nghĩa / Ghi chú                                            |
-| :------------------ | :----------------------- | :----------------------------------- | :----------------------------------------------------------- |
-| `id`                | BigInteger / UUID        | Primary Key                          | Khóa chính khóa học                                          |
-| `instructor_id`     | BigInteger / UUID        | Foreign Key -> `users(id)`, Not Null | Giảng viên tạo/phụ trách                                     |
-| `title`             | String (Varchar 255)     | Not Null                             | Tên khóa học                                                 |
-| `slug`              | String (Varchar 255)     | Unique, Not Null                     | Đường dẫn thân thiện (VD: `giao-duc-gioi-tinh-tuoi-day-thi`) |
-| `short_description` | String (Varchar 500)     | Nullable                             | Mô tả ngắn gọn (hiển thị thẻ preview)                        |
-| `description`       | Text                     | Nullable                             | Mô tả chi tiết (Nội dung trang Intro)                        |
-| `thumbnail_url`     | String (Varchar 500)     | Nullable                             | Ảnh đại diện của khóa học                                    |
-| `target_audience`   | String (Varchar 20)      | Not Null, Default: `BOTH`            | Phân loại: `PARENT`, `CHILD`, `BOTH`                         |
-| `outro_content`     | Text                     | Nullable                             | Nội dung tổng kết hiển thị ở trang Outro                     |
-| `is_published`      | Boolean                  | Not Null, Default: `false`           | Trạng thái xuất bản khóa học                                 |
-| `created_at`        | Timestamp                | Not Null, Default: Current Time      | Thời gian tạo                                                |
-| `updated_at`        | Timestamp                | Not Null, Default: Current Time      | Thời gian cập nhật gần nhất                                  |
+*(Privileged `ADMIN` and `INSTRUCTOR` roles maintain unrestricted access across all curricula for verification and review).*
 
----
+### 2.2. Three-Step Course Experience Flow
 
-### 3.2. Bảng `lessons` (Danh mục Bài học chi tiết)
-
-_Lưu nội dung bài học cụ thể cho trang Learning._
-
-| Tên trường (Field) | Kiểu dữ liệu (Data Type) | Ràng buộc (Constraints)                                | Ý nghĩa / Ghi chú                        |
-| :----------------- | :----------------------- | :----------------------------------------------------- | :--------------------------------------- |
-| `id`               | BigInteger / UUID        | Primary Key                                            | Khóa chính bài học                       |
-| `course_id`        | BigInteger / UUID        | Foreign Key -> `courses(id)`, Not Null, Cascade Delete | Thuộc khóa học nào                       |
-| `title`            | String (Varchar 255)     | Not Null                                               | Tên bài học                              |
-| `content_type`     | String (Varchar 20)      | Not Null, Default: `HYBRID`                            | Định dạng: `VIDEO`, `TEXT`, `HYBRID`     |
-| `video_url`        | String (Varchar 500)     | Nullable                                               | Link video bài giảng (nếu có)            |
-| `content_body`     | Text / LongText          | Nullable                                               | Nội dung văn bản/hình ảnh giáo dục       |
-| `order_index`      | Integer                  | Not Null, Default: 1                                   | Thứ tự sắp xếp của bài học trong khóa    |
-| `duration_minutes` | Integer                  | Nullable                                               | Thời lượng ước tính để hoàn thành (phút) |
-| `created_at`       | Timestamp                | Not Null, Default: Current Time                        | Thời gian tạo                            |
-| `updated_at`       | Timestamp                | Not Null, Default: Current Time                        | Thời gian cập nhật                       |
+1. **Course Intro Page (`/courses/[courseId]/intro`):**
+   - High-level overview: Title, banner image, syllabus outline, targeted audience, author biography.
+   - Primary Action: "Start Learning" (Creates a record in `course_enrollments` if not already enrolled, then navigates to the learning player).
+2. **Learning Player (`/courses/[courseId]/learn`):**
+   - Distraction-free environment: Sidebar syllabus outline and active lesson view (video lecture, rich text, diagrams).
+   - Primary Action: "Mark Lesson Completed" (Updates `lesson_progress`).
+   - Auto-advance: Seamless transition to subsequent lesson units upon completion.
+3. **Course Outro Page (`/courses/[courseId]/certificate`):**
+   - Unlock Threshold: Accessible strictly upon achieving 100% completion across all course lesson units.
+   - Contents: Congratulations banner, core knowledge synthesis, scientific study feedback survey, and downloadable certificate.
 
 ---
 
-## 4. QUAN HỆ VÀ RÀNG BUỘC (RELATIONSHIPS)
+## 3. Database Schema Design
 
-1. **`users` (Instructor) - `courses` (1 - N):** Một giảng viên có thể tạo nhiều khóa học.
-2. **`courses` - `lessons` (1 - N):** Một khóa học bao gồm nhiều bài học. Khi xóa khóa học, toàn bộ bài học thuộc khóa đó sẽ bị xóa (`Cascade Delete`).
-3. **`lessons` - `lesson_progress` (1 - N):** Một bài học sẽ có nhiều lượt đánh dấu hoàn thành từ các học viên khác nhau.
+### 3.1. Table: `courses` (Course Metadata & Syllabus)
+
+Persists high-level curriculum details and Intro/Outro copy.
+
+| Field Name | Data Type | Constraints | Description / Usage |
+| :--- | :--- | :--- | :--- |
+| `id` | BigInteger / UUID | Primary Key | Unique course identifier |
+| `instructor_id` | BigInteger / UUID | Foreign Key -> `users(id)`, Not Null | Authoring instructor |
+| `title` | String (Varchar 255) | Not Null | Course title |
+| `slug` | String (Varchar 255) | Unique, Not Null | URL-safe slug (e.g. `puberty-health-and-safety`) |
+| `short_description` | String (Varchar 500) | Nullable | Preview card summary |
+| `description` | Text | Nullable | Comprehensive course overview (Intro view) |
+| `thumbnail_url` | String (Varchar 500) | Nullable | Course card banner URI |
+| `target_audience` | String (Varchar 20) | Not Null, Default: `BOTH` | Segmentation: `PARENT`, `CHILD`, `BOTH` |
+| `outro_content` | Text | Nullable | Graduation synthesis message (Outro view) |
+| `is_published` | Boolean | Not Null, Default: `false` | Publication visibility state |
+| `created_at` | Timestamp | Not Null, Default: Current Time | Creation timestamp |
+| `updated_at` | Timestamp | Not Null, Default: Current Time | Last update timestamp |
+
+---
+
+### 3.2. Table: `lessons` (Detailed Lesson Units)
+
+Stores instructional units delivered within the learning player.
+
+| Field Name | Data Type | Constraints | Description / Usage |
+| :--- | :--- | :--- | :--- |
+| `id` | BigInteger / UUID | Primary Key | Unique lesson identifier |
+| `course_id` | BigInteger / UUID | Foreign Key -> `courses(id)`, Not Null, Cascade Delete | Parent course |
+| `title` | String (Varchar 255) | Not Null | Lesson title |
+| `content_type` | String (Varchar 20) | Not Null, Default: `HYBRID` | Media format: `VIDEO`, `TEXT`, `HYBRID` |
+| `video_url` | String (Varchar 500) | Nullable | Video lecture URI |
+| `content_body` | Text / LongText | Nullable | Lesson text, diagrams, and educational explanations |
+| `order_index` | Integer | Not Null, Default: 1 | Lesson sequence order within syllabus |
+| `duration_minutes` | Integer | Nullable | Estimated completion time in minutes |
+| `created_at` | Timestamp | Not Null, Default: Current Time | Creation timestamp |
+| `updated_at` | Timestamp | Not Null, Default: Current Time | Last update timestamp |
+
+---
+
+## 4. Entity Relationships & Invariants
+
+1. **`users` (Instructor) → `courses` (1 : N):** An instructor can author multiple distinct courses.
+2. **`courses` → `lessons` (1 : N):** A course comprises ordered lesson units. Deleting a course cascades to delete all associated lesson records.
+3. **`lessons` → `lesson_progress` (1 : N):** Each lesson accumulates completion records from multiple student accounts.

@@ -1,120 +1,123 @@
-# AI ROLEPLAY & CONTEXT ENGINE ARCHITECTURE (AI SERVICE SPECS)
+# AI Roleplay & Context Engine Architecture (AI Service Specs)
 
 ---
 
-## 1. TỔNG QUAN KIẾN TRÚC HỆ THỐNG
+## 1. System Overview
 
-- **Dịch vụ:** AI Roleplay & RAG Microservice chuyên biệt cho Giáo dục Giới tính.
-- **Giao thức truyền tải:** **Server-Sent Events (SSE)** trên nền tảng **Python (FastAPI)** giúp streaming dữ liệu thời gian thực mượt mà.
-- **Mục tiêu kỹ thuật:**
-  - Nhập vai tuyệt đối (Zero Out-of-character), triệt tiêu hiện tượng nói dài dòng hoặc ảo giác.
-  - Quản lý ngữ cảnh động (Dynamic Context Engine) kết hợp trí nhớ trượt (Sliding Window + Summary).
-  - Ép kiểu phản hồi đầu ra bằng **JSON Schema (Structured Outputs)** để kiểm soát các chỉ số tâm lý/an toàn của màn chơi.
+- **Service Scope:** Specialized AI Roleplay & Retrieval-Augmented Generation (RAG) engine designed for interactive digital sex education, anti-grooming training, and empathetic communication practice.
+- **Transport Protocol:** **Server-Sent Events (SSE)** running on **Python FastAPI** for real-time, low-latency token streaming.
+- **Core Engineering Objectives:**
+  - **Zero Out-of-Character (OOC) Drift:** Strict adherence to calibrated personas; eliminates conversational hallucination and robotic lecturing.
+  - **Dynamic Context Engine:** Combines static character lore, domain knowledge retrieval via pgvector, a sliding window of recent conversation turns, and background memory summarization.
+  - **Structured Schema Enforcement:** Enforces JSON Schema structured outputs from Google Gemini to dynamically track psychological metrics, emotion states, and scenario win/loss triggers.
 
 ---
 
-## 2. SƠ ĐỒ ĐỘNG CƠ NGỮ CẢNH & BỘ NHỚ (DYNAMIC CONTEXT ENGINE)
+## 2. Dynamic Context Engine Architecture
 
+```text
+┌────────────────────────────────────────────────────────┐
+│ Global World Lore & Scientific Knowledge (RAG)        │
+│ - Puberty anatomy, child protection laws, 5-finger rule│
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌───────────────────────────┐  ┌───────────────────────────┐  ┌───────────────────────────┐
+│ Character Profile         │  │ Dynamic Context Engine    │  │ Short-Term Memory Buffer  │
+│ - Persona & boundaries    │  │ - Context aggregation     │  │ - 4–6 recent dialog turns │
+│ - Motivations & defenses  │  │ - Prompt synthesis        │  │ - Rolling recent_summary  │
+└───────────────────────────┘  └─────────────┬─────────────┘  └───────────────────────────┘
+                                             │
+                                             ▼
+                               ┌───────────────────────────┐
+                               │ LLM Inference Request     │
+                               │ - Temperature: 0.5–0.65   │
+                               │ - Max tokens: 120–150     │
+                               └─────────────┬─────────────┘
+                                             │
+                                             ▼
+                               ┌───────────────────────────┐
+                               │ Structured JSON Output    │
+                               │ - dialogue, action        │
+                               │ - emotion, score_change   │
+                               │ - trigger_event           │
+                               └───────────────────────────┘
 ```
-┌──────────────────────────────────────────────┐
-│ Global World Lore & Medical Knowledge (RAG)  │
-│ - Kiến thức y khoa / Quy tắc an toàn 5 ngón  │
-└──────────────────────┬───────────────────────┘
-                       ▼
-┌───────────────────────┐  ┌─────────────────────────┐  ┌───────────────────────┐
-│ Character Profile     │  │ Dynamic Context Engine  │  │ Short-term Chat       │
-│ - Tính cách, mục tiêu │  │ - Tổng hợp & ráp Prompt │  │ - 4-6 tin nhắn gần    │
-│ - Persona & Rào cản   │  │                         │  │ - recent_summary      │
-└───────────────────────┘  └────────────┬────────────┘  └───────────────────────┘
-                                        ▼
-                             ┌─────────────────────────┐
-                             │ LLM Request + Schema    │
-                             │ (temperature: 0.5-0.7)  │
-                             │ (max_tokens: 120-150)   │
-                             └────────────┬────────────┘
-                                          ▼
-                             ┌─────────────────────────┐
-                             │ Structured JSON Output  │
-                             │ - dialogue, action      │
-                             │ - emotion, score_change │
-                             │ - trigger_event         │
-                             └─────────────────────────┘
-```
 
 ---
 
-## 3. CHI TIẾT CÁC THÀNH PHẦN CỐT LÕI
+## 3. Core Engine Components
 
-### 3.1. World State, Lorebook & RAG (Tri thức nền tảng)
+### 3.1. World Lore & Domain Knowledge (pgvector RAG)
 
-- **Bản chất:** Lưu trữ kho kiến thức cố định về giáo dục giới tính (Giải phẫu sinh lý tuổi dậy thì, Luật trẻ em, Quy tắc phòng chống xâm hại mạng).
-- **Cơ chế nạp:** Khi người chơi nhắc đến một chủ đề cụ thể (VD: "mộng tinh", "gửi ảnh nhạy cảm", "bí mật vùng kín"), cơ chế RAG nhẹ sẽ truy xuất 1–2 đoạn kiến thức/quy tắc chuẩn xác nhất để nạp vào Context nhằm đảm bảo AI trả lời đúng chuẩn khoa học.
+- **Knowledge Domain:** Medical facts on adolescent puberty, reproductive anatomy, legal definitions of cyber harassment, and child protection standards.
+- **Retrieval Mechanism:** When user input triggers relevant semantic indicators (e.g., nocturnal emissions, unsolicited explicit photo requests, body shaming), the RAG retriever extracts top-K relevant chunks (cosine similarity on 768-dimensional embeddings) to ground the model's responses in verified medical science.
 
-### 3.2. Quản lý Bộ nhớ Ngắn hạn (Sliding Window + Summary)
+### 3.2. Short-Term Memory Management (Sliding Window & Rolling Summaries)
 
-Để giữ độ dài hội thoại trong ngưỡng tối ưu token và tránh làm loãng vai diễn:
+To maintain token efficiency and prevent conversational degradation:
+- **Sliding Window:** Retains the **4 to 6 most recent message turns** as raw text.
+- **Rolling Summary (`recent_summary`):** When dialogue extends beyond the window threshold, an asynchronous background task consolidates older turns into a concise 2–3 sentence synopsis (e.g., *"The student firmly declined sharing their home address, demonstrating high vigilance"*).
 
-- **Sliding Window:** Chỉ giữ lại **4–6 lượt tin nhắn (Turns)** gần nhất dưới dạng raw text.
-- **Rolling Summary (`recent_summary`):** Khi hội thoại vượt quá 6 tin nhắn, một tiến trình nền sẽ tóm tắt các sự kiện cũ thành **2–3 câu ngắn gọn** (VD: _"Người chơi đã từ chối gửi ảnh đại diện lần 1, thể hiện sự cảnh giác"_).
+### 3.3. Scenario Metric Tracking & State Machine
 
-### 3.3. Quản lý Trạng thái Nhân vật & Màn chơi (NPC & Game State)
-
-Hệ thống theo dõi các chỉ số định lượng theo thời gian thực:
-
-- `safety_score` (0 - 100): Điểm an toàn / Kỹ năng nhận diện nguy cơ (Phòng 1).
-- `openness_score` (0 - 100): Mức độ cởi mở tâm sự (Phòng 2).
-- `trust_score` (0 - 100): Mức độ tin tưởng của con đối với cha mẹ (Phòng 3).
-- `current_emotion`: Trạng thái cảm xúc hiện tại của NPC (`neutral`, `suspicious`, `anxious`, `friendly`, `angry`, `touched`).
+The engine tracks quantitative metrics in real time:
+- `safety_score` (0–100): Situational awareness and anti-grooming resilience (Room 1).
+- `openness_score` (0–100): Receptiveness and candor during private healthcare consultations (Room 2).
+- `trust_score` (0–100): Parent-child relational empathy and mutual trust (Room 3 & 4).
+- `current_emotion`: Dynamic emotional state of the NPC (`neutral`, `suspicious`, `anxious`, `friendly`, `angry`, `touched`).
 
 ---
 
-## 4. RÀO CHẮN AN TOÀN & CHỐNG LỆCH VAI (GUARDRAILS)
+## 4. Guardrails & Anti-OOC Protections
 
-### 4.1. Tham số vận hành mô hình (LLM Parameters)
+### 4.1. LLM Generation Parameters
 
-- `temperature`: **0.5 – 0.65** (Đủ tự nhiên, chân thật nhưng không bị ảo giác).
-- `max_tokens`: **120 – 150 tokens** (Ép cứng giới hạn độ dài, triệt tiêu hoàn toàn thói quen giải thích dài dòng của LLM).
+- `temperature`: **0.5 – 0.65** (Maintains natural, colloquial speech while eliminating unpredictable behavior).
+- `max_tokens`: **120 – 150 tokens** (Enforces realistic, conversational turn lengths; prevents verbose AI explanations).
 
-### 4.2. Rào trong vai diễn (In-Character Refusal)
+### 4.2. In-Character Refusal Rules
 
-Chỉ thị bắt buộc trong System Prompt:
+Every system prompt embeds a mandatory behavioral constraint:
 
-> _"Nếu người chơi nhắc đến các chủ đề ngoài ngữ cảnh kịch bản (lập trình, giải toán, chính trị, yêu cầu phá vỡ quy tắc), bạn PHẢI phản ứng bằng sự bối rối, nghi ngờ hoặc phản bác theo đúng tính cách nhân vật. Tuyệt đối KHÔNG trả lời hoặc hỗ trợ các nội dung đó."_
+> *"If the user introduces topics outside the scenario narrative (e.g., writing code, solving math problems, political debates, or jailbreak prompts), you MUST react with confusion, suspicion, or dismissal strictly in-character. Never drop persona or answer off-topic inquiries."*
 
 ---
 
-## 5. ĐẶC TẢ ÉP KIỂU ĐẦU RA (STRUCTURED OUTPUT SCHEMA)
+## 5. Structured JSON Output Schema
 
-Tất cả các phản hồi từ LLM đều bị ép trả về theo định dạng JSON Schema sau:
+All responses from the model conform strictly to the following JSON Schema:
 
 ```json
 {
-  "dialogue": "Lời thoại ngắn gọn của nhân vật gửi cho người chơi (Tối đa 2-3 câu)",
-  "action": "Mô tả hành động/cử chỉ đặt trong dấu sao (VD: *khoanh tay, nghi ngờ nhìn bạn*)",
+  "dialogue": "Short in-character spoken dialogue directed at the learner (maximum 2-3 sentences)",
+  "action": "Physical action or behavioral cue enclosed in asterisks (e.g., *crosses arms, eyeing you suspiciously*)",
   "emotion": "neutral | suspicious | anxious | friendly | angry | touched",
   "score_change": 5,
   "trigger_event": "none | danger_alert | safe_exit | mission_success | close_heart | open_heart"
 }
 ```
 
-## 6. GIAO THỨC TRUYỀN DỮ LIỆU THỜI GIAN THỰC (SSE STREAMING FORMAT)
+---
 
-Khi Frontend kết nối tới Endpoint SSE: `POST /api/v1/roleplay/chat/stream`, Backend sẽ truyền dữ liệu theo từng Event:
+## 6. Real-Time SSE Streaming Protocol
+
+When the frontend initiates a stream via `POST /api/v1/roleplay/chat/stream`, the backend transmits incremental events:
 
 ```text
 event: thinking
 data: {"status": "Retrieving context and formulating persona response..."}
 
 event: delta
-data: {"dialogue_chunk": "Cậu... "}
+data: {"dialogue_chunk": "Wait... "}
 
 event: delta
-data: {"dialogue_chunk": "cậu vừa nói gì cơ?"}
+data: {"dialogue_chunk": "what did you just say?"}
 
 event: complete
 data: {
-  "dialogue": "Cậu... cậu vừa nói gì cơ? Sao lại hỏi tớ mấy thứ kỳ lạ đấy?",
-  "action": "*lùi lại một bước, ánh mắt cảnh giác*",
+  "dialogue": "Wait... what did you just say? Why are you asking me such weird questions?",
+  "action": "*takes a step back, looking visibly guarded*",
   "emotion": "suspicious",
   "score_change": -5,
   "current_score": 75,
@@ -122,23 +125,29 @@ data: {
 }
 ```
 
-# 7. QUY TRÌNH XỬ LÝ 1 LƯỢT TIN NHẮN (END-TO-END PIPELINE)
+---
 
-```
-[1. User gửi tin nhắn mới]
-           ⬇
+## 7. End-to-End Processing Pipeline
+
+```text
+[1. User Dispatches Message]
+             │
+             ▼
 [2. State Manager]
-    ├── Nạp System Prompt + Persona nhân vật
-    ├── Nạp recent_summary + 4 tin nhắn gần nhất
-    └── (RAG) Nạp tri thức/quy tắc an toàn liên quan
-           ⬇
-[3. LLM Processing]
-    └── Gọi LLM (temp=0.6, max_tokens=150, response_format=JSON)
-           ⬇
-[4. Backend Parser & State Update]
-    ├── Cập nhật Score (+/- score_change) vào Session
-    ├── Cập nhật Emotion hiện tại
-    └── Kiểm tra trigger_event (Nếu đạt ngưỡng -> Kích hoạt màn kết thúc)
-           ⬇
-[5. SSE Emitter] ──► Truyền JSON Payload về cho Frontend render biểu cảm & điểm
+     ├── Ingests Persona System Prompt & Character Guardrails
+     ├── Loads recent_summary + sliding window of last 4-6 turns
+     └── (RAG) Retrieves top-K medical/safety guidelines via pgvector
+             │
+             ▼
+[3. LLM Inference (Google Gemini)]
+     └── Generates response conforming to Structured Output Schema
+             │
+             ▼
+[4. Parser & Atomic State Mutation]
+     ├── Atomically mutates current_score in ai_sessions table
+     ├── Updates NPC emotion state
+     └── Evaluates trigger_event (e.g., auto-completes session if win/loss threshold reached)
+             │
+             ▼
+[5. SSE Emitter] ──► Streams token chunks and final state payload to client interface
 ```

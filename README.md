@@ -27,6 +27,28 @@ Under the hood, **Google Gemini** powers the experience with token-by-token stre
 
 ---
 
+## Demo Preview
+
+| [Live Web Application](https://chichan.vercel.app) | [Interactive API Documentation](http://127.0.0.1:8000/docs) | [HD Video Walkthrough](docs/assets/videos/chichan_demo_walkthrough.webm) |
+|---|---|---|
+
+### AI Roleplay Simulation in Action
+
+<div align="center">
+  <img src="docs/assets/demo-roleplay.gif" alt="AI Roleplay Simulation Demo" width="800" style="border: 1px solid #e2e8f0; border-radius: 4px;" />
+  <p><em>Live token-by-token SSE streaming, structured emotion changes, and dynamic safety score tracking.</em></p>
+</div>
+
+### Platform Interface Gallery
+
+| Modern Landing Page | E-Learning Course Catalog |
+|:---:|:---:|
+| ![Landing Page](docs/assets/screenshots/01_hero_landing.png) | ![Courses Catalog](docs/assets/screenshots/03_courses_catalog.png) |
+| **Interactive AI Roleplay Room** | **Anonymous Moderated Community Forum** |
+| ![AI Roleplay Room](docs/assets/screenshots/08_ai_roleplay_responded.png) | ![Community Forum](docs/assets/screenshots/07_community_forum.png) |
+
+---
+
 ## System Architecture
 
 ```mermaid

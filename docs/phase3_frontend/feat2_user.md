@@ -1,118 +1,96 @@
-# FEATURE 02: USER PROFILE & PROGRESS TRACKING (FRONTEND UI/UX SPECS)
+# Feature Specification 02: User Profile & Progress Tracking (Frontend UI/UX)
 
 ---
 
-## 1. MỤC TIÊU VÀ PHẠM VI
+## 1. Scope & Technical Objectives
 
-- Xây dựng giao diện **Trang cá nhân (User Profile)** trực quan, thân thiện cho mọi tài khoản.
-- Cung cấp không gian theo dõi **Tiến độ học tập (Learning Progress)** chuyên nghiệp cho Học viên:
-  - Hiển thị danh sách khóa học đang theo học kèm thanh % tiến độ trực quan.
-  - Phân loại rõ ràng các khóa học `Đang học` và `Đã hoàn thành`.
-  - Cung cấp nút điều hướng nhanh: "Tiếp tục học" (quay lại đúng bài đang dang dở) hoặc "Xem tổng kết" (nếu đã xong 100%).
+- Deliver an intuitive, personalized **User Profile** page accessible to all authenticated users.
+- Provide a dedicated **Learning Progress** tracking workspace for learners:
+  - Visual course cards annotated with completion percentage gauges.
+  - Granular state filtering (`In Progress` vs. `Completed`).
+  - Context-aware navigation triggers: "Continue Learning" (resumes current lesson) or "View Outro & Certificate" (upon 100% completion).
 
 ---
 
-## 2. CẤU TRÚC ĐỊNH TUYẾN (NEXT.JS APP ROUTER)
+## 2. Next.js Routing Architecture
 
 ```text
 frontend/src/app/
-├── (main)/
-│   └── profile/
-│       ├── page.tsx                    # Trang Profile tổng thể (/profile)
-│       └── components/
-│           ├── ProfileInfoCard.tsx     # Thẻ hiển thị & chỉnh sửa thông tin cá nhân
-│           ├── CourseProgressList.tsx  # Danh sách khóa học và thanh tiến độ
-│           └── EditProfileModal.tsx    # Modal/Dialog cập nhật hồ sơ
+└── (public)/
+    └── profile/
+        ├── page.tsx                    # Profile root route (/profile)
+        └── components/
+            ├── ProfileInfoCard.tsx     # Account details view & edit modal
+            ├── CourseProgressList.tsx  # Enrolled course gallery & progress gauges
+            └── EditProfileModal.tsx    # Modal dialog for profile mutations
 ```
 
 ---
 
-## 3. THIẾT KẾ GIAO DIỆN & TRẢI NGHIỆM NGƯỜI DÙNG (UI/UX DESIGN)
+## 3. UI/UX Interface Specifications
 
-### 3.1. Bố cục tổng thể trang Profile (`/profile`)
+### 3.1. Profile Shell Layout (`/profile`)
 
-Trang được chia thành 2 phần chính:
+Divided into two primary sections:
 
-1. **Header cá nhân (Profile Hero):**
-   - Ảnh đại diện lớn (Avatar) kèm nút icon máy ảnh để đổi ảnh.
-   - Họ và tên, Email.
-   - **Huy hiệu vai trò (Role Badge):**
-     - `Phụ huynh` (Badge màu xanh dương/Pastel Blue).
-     - `Học sinh` (Badge màu xanh lá/Pastel Green).
-     - `Giảng viên` (Badge màu cam/Pastel Orange).
-     - `Quản trị viên` (Badge màu tím/Pastel Purple).
-2. **Khu vực Nội dung chính (Sử dụng Shadcn `Tabs`):**
-   - **Tab 1: "Khóa học của tôi" (Mặc định cho Học viên)**.
-   - **Tab 2: "Thông tin tài khoản" (Chỉnh sửa hồ sơ)**.
-
----
-
-### 3.2. Tab 1: "Khóa học của tôi" (My Learning Progress)
-
-#### A. Bộ lọc trạng thái (Filter Buttons):
-
-- `Tất cả` | `Đang học` (`IN_PROGRESS`) | `Đã hoàn thành` (`COMPLETED`).
-
-#### B. Thẻ Khóa học Tiến độ (Course Progress Card Item):
-
-Mỗi khóa học được hiển thị dưới dạng một Card ngang hoặc lưới (Grid Card):
-
-- **Ảnh Thumbnail:** Bo góc mềm mại.
-- **Tiêu đề khóa học:** In đậm, dễ đọc.
-- **Thanh tiến độ (Progress Bar):**
-  - Thanh đo màu gradient xanh lá/xanh dương.
-  - Con số hiển thị: `40%` kèm thông số chi tiết: `Đã hoàn thành 4/10 bài học`.
-- **Huy hiệu trạng thái (Status Badge):**
-  - Màu vàng nhạt: `Đang học`.
-  - Màu xanh lá: `Đã hoàn thành`.
-- **Nút hành động (Action CTA Button):**
-  - Nếu `status = IN_PROGRESS` $\rightarrow$ Nút Primary: **"Tiếp tục học"** (Click vào sẽ tự động điều hướng đến trang `/courses/[id]/learn`).
-  - Nếu `status = COMPLETED` $\rightarrow$ Nút Outline: **"Xem tổng kết & Đánh giá"** (Click vào để mở trang Outro `/courses/[id]/outro`).
-
-#### C. Trạng thái chưa có khóa học (Empty State):
-
-- Nếu học viên chưa đăng ký khóa nào: Hiển thị hình minh họa dễ thương kèm thông điệp _"Bạn chưa tham gia khóa học nào"_ và nút kêu gọi _"Khám phá khóa học ngay"_ (Dẫn về trang chủ).
+1. **Profile Hero Header:**
+   - Large user avatar with click-to-upload action.
+   - Full Name and Registered Email.
+   - **Demographic Role Badge:**
+     - `Parent` (Pastel Blue tone).
+     - `Student` (Pastel Green tone).
+     - `Instructor` (Pastel Amber tone).
+     - `Admin` (Pastel Violet tone).
+2. **Tabbed Content Container:**
+   - **Tab 1: "My Courses" (Default view for learners)**.
+   - **Tab 2: "Account Settings" (Profile management)**.
 
 ---
 
-### 3.3. Tab 2: "Thông tin tài khoản" (Account Settings)
+### 3.2. Tab 1: "My Courses" (Curriculum Progress Tracking)
 
-- Hiển thị danh sách thông tin dạng form rõ ràng:
-  - Họ và tên (`full_name`)
-  - Tên đăng nhập (`username` - chỉ đọc/disabled)
-  - Email (`email` - chỉ đọc/disabled)
-  - Giới tính (Dropdown chọn `Nam`, `Nữ`, `Khác`)
-  - Ngày sinh (Date Picker)
-  - Số điện thoại (`phone_number`)
-  - Giới thiệu bản thân (`bio` - Textarea)
-- **Nút bấm:** "Lưu thay đổi" (Có Toast thông báo thành công sau khi cập nhật qua API `PUT /api/v1/users/profile`).
+#### A. Status Filter Toggles:
+- `All` | `In Progress` (`IN_PROGRESS`) | `Completed` (`COMPLETED`).
 
----
+#### B. Course Progress Card:
+Each enrolled curriculum displays in a structured grid card:
+- **Thumbnail Image:** Rounded aesthetic with subtle shadow.
+- **Course Title:** Bold, accessible typography.
+- **Progress Gauge:**
+  - Gradient progress bar indicating completion percentage.
+  - Progress label: e.g., `60% completed (6 of 10 lessons completed)`.
+- **Status Badge:**
+  - Amber badge: `In Progress`.
+  - Green badge: `Completed`.
+- **Context-Aware Action Button:**
+  - If `status = IN_PROGRESS` $\rightarrow$ Primary CTA: **"Continue Learning"** (Navigates directly to `/courses/[id]/learn`).
+  - If `status = COMPLETED` $\rightarrow$ Outline CTA: **"View Outro & Certificate"** (Navigates to `/courses/[id]/certificate`).
 
-## 4. DANH MỤC SHADCN/UI COMPONENTS SỬ DỤNG
-
-| Component                                        | Mục đích sử dụng                                            |
-| :----------------------------------------------- | :---------------------------------------------------------- |
-| `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | Chuyển đổi mượt mà giữa Tab Tiến độ học và Tab Thông tin    |
-| `Avatar`, `AvatarImage`, `AvatarFallback`        | Hiển thị ảnh đại diện và chữ cái viết tắt nếu chưa có ảnh   |
-| `Progress`                                       | Thanh hiển thị % tiến độ học tập của từng khóa học          |
-| `Badge`                                          | Đánh dấu Role người dùng và trạng thái khóa học             |
-| `Card`, `CardContent`                            | Khung hiển thị các khóa học đã đăng ký                      |
-| `Button`                                         | Nút bấm "Tiếp tục học", "Lưu thay đổi", "Khám phá khóa học" |
-| `Skeleton`                                       | Hiệu ứng tải trang lung linh trong lúc chờ dữ liệu API      |
+#### C. Empty State:
+- Displays when zero courses are enrolled: includes an illustration with copy *"You have not enrolled in any courses yet"* and a CTA button *"Explore Courses"* linking to the course catalog.
 
 ---
 
-## 5. LUỒNG DỮ LIỆU & TƯƠNG TÁC API (FRONTEND DATA FLOW)
+### 3.3. Tab 2: "Account Settings" (Profile Form)
 
-```
-[Truy cập /profile]
-        ⬇
-[Gọi song song 2 API bằng TanStack Query]
-    ├── 1. GET /api/v1/users/profile (Lấy info user)
-    └── 2. GET /api/v1/users/my-courses (Lấy danh sách khóa & % tiến độ)
-        ⬇
-[Render dữ liệu lên giao diện]
-    ├── Đổ dữ liệu vào Hero Section & Tab Thông tin
-    └── Duyệt mảng `my-courses` đổ vào các thẻ Progress Card
-```
+Structured profile management form:
+- Full Name (`full_name`)
+- Username (`username` — read-only)
+- Email (`email` — read-only)
+- Gender (`Male`, `Female`, `Other`)
+- Date of Birth (Calendar date picker)
+- Contact Number (`phone_number`)
+- Biography (`bio` — multi-line textarea)
+- **Primary CTA:** "Save Changes" (Triggers `PUT /api/v1/users/profile` and displays a feedback toast notification).
+
+---
+
+## 4. UI Components & Tokens
+
+| Component | Purpose / Usage |
+| :--- | :--- |
+| `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | Seamless navigation between course progress and profile forms |
+| `Avatar`, `AvatarImage`, `AvatarFallback` | Avatar rendering with fallback initials |
+| `Progress` / Gauge primitives | Visual indicator of course completion percentages |
+| `Badge` | Semantic role codes and enrollment states |
+| `Card`, `CardContent` | Elevation containers for course items |

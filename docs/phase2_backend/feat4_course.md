@@ -1,157 +1,125 @@
-# FEATURE 04: COURSE & CONTENT MANAGEMENT (BACKEND SPECS)
+# Feature Specification 04: Course & Content Management (Backend)
 
 ---
 
-## 1. MÔ TẢ TỔNG QUAN
+## 1. Scope & System Overview
 
-- Quản lý toàn bộ vòng đời của Khóa học (Course) và Bài học (Lesson).
-- Cung cấp API phục vụ đầy đủ luồng trải nghiệm 3 trang:
-  1. **Course Intro API:** Cung cấp thông tin đề cương, mục tiêu và nút đăng ký học.
-  2. **Course Learning API:** Cung cấp danh sách bài học, nội dung chi tiết bài đang học, video/văn bản.
-  3. **Course Outro API:** Cung cấp nội dung tổng kết khi học viên hoàn thành 100% khóa học.
-- Xử lý logic lọc nội dung theo đối tượng hướng đến (**Target Audience Filtering**): `PARENT`, `CHILD`, `BOTH`.
-- Cung cấp bộ API quản trị CRUD (Thêm, Sửa, Xóa, Sắp xếp bài học) dành cho Giảng viên (`INSTRUCTOR`) và Quản trị viên (`ADMIN`).
+- Manages the complete lifecycle of educational **Courses** and **Lesson Units**.
+- Implements endpoints supporting the standardized 3-step learning flow:
+  1. **Course Intro API:** Syllabus outline, objectives, and enrollment initialization.
+  2. **Course Learning API:** Navigation sidebar, granular lesson content, and video streams.
+  3. **Course Outro API:** Graduation synthesis and certificate eligibility validation.
+- Enforces demographic audience targeting (**Target Audience Filtering**): `PARENT`, `CHILD`, `BOTH`.
+- Provides CRUD and curriculum authoring endpoints for `INSTRUCTOR` and `ADMIN` roles.
 
 ---
 
-## 2. PHÂN TẦNG KIẾN TRÚC (LAYERED ARCHITECTURE DESIGN)
+## 2. Layered Architecture Design
+
+```text
+[HTTP Client Request]
+          │
+          ▼
+[1. Controller / Router Layer (course_router.py & lesson_router.py)]
+    - Handles requests for public listings, Intro/Learning/Outro views, and authoring CRUD.
+    - Validates payload schemas with Pydantic.
+    - Applies authentication and RBAC dependency guards.
+    - Delegates to Service Layer and formats responses.
+          │
+          ▼
+[2. Service Layer (course_service.py & lesson_service.py)]
+    - get_public_courses(audience_filter): Filters published courses (is_published = true).
+    - get_course_intro(course_id, current_user): Returns overview, syllabus, and enrollment status.
+    - enroll_course(user_id, course_id): Persists learner enrollment in course_enrollments.
+    - get_course_learning_room(user_id, course_id): Validates enrollment and returns lesson progress map.
+    - get_course_outro(user_id, course_id): Asserts 100% completion before unlocking outro narrative.
+    - create_or_update_course(...): Instructor authoring with ownership checks.
+    - manage_lessons(...): Reordering (order_index), creation, and updates.
+          │
+          ▼
+[3. Repository Layer (course_repository.py & lesson_repository.py)]
+    - Executes ORM queries across courses, lessons, course_enrollments, and lesson_progress.
+          │
+          ▼
+[Database: Supabase PostgreSQL]
 ```
 
-[HTTP Request from Client]
-⬇
-[1. Controller / Router Layer (course_router.py & lesson_router.py)] - Tiếp nhận Request xem danh sách, chi tiết Intro/Learning/Outro và các thao tác CRUD. - Validate dữ liệu đầu vào (DTOs/Pydantic Schemas). - Áp dụng Middleware: Phân quyền theo Role hoặc kiểm tra trạng thái đăng nhập. - Gọi xuống Service Layer và trả về HTTP Response chuẩn.
-⬇
-[2. Service Layer (course_service.py & lesson_service.py)] - `get_public_courses(audience_filter)`: Lọc khóa học đã xuất bản (`is_published = true`) theo đối tượng. - `get_course_intro(course_id, current_user)`: Trả về thông tin giới thiệu, danh sách bài học và trạng thái đăng ký của user hiện tại. - `enroll_course(user_id, course_id)`: Ghi nhận học viên tham gia khóa học vào `course_enrollments`. - `get_course_learning_room(user_id, course_id)`: Kiểm tra quyền học viên, lấy danh mục bài học kèm trạng thái đã học của từng bài. - `get_course_outro(user_id, course_id)`: Kiểm tra điều kiện hoàn thành 100% trước khi mở khóa nội dung Outro. - `create_or_update_course(...)`: Giảng viên tạo/sửa thông tin khóa học do mình sở hữu. - `manage_lessons(...)`: Thêm, sửa, sắp xếp thứ tự (`order_index`), xóa bài học.
-⬇
-[3. Repository Layer (course_repository.py & lesson_repository.py)] - Tương tác trực tiếp với Database qua SQLAlchemy ORM trên các bảng: `courses`, `lessons`, `course_enrollments`, `lesson_progress`.
-⬇
-[Database: Supabase PostgreSQL]
+---
 
-````
+## 3. Business Logic & RBAC Invariants
+
+1. **Target Audience Filtering:**
+   - Learners with `STUDENT_PARENT` role access courses where `target_audience IN ('PARENT', 'BOTH')`.
+   - Learners with `STUDENT_CHILD` role access courses where `target_audience IN ('CHILD', 'BOTH')`.
+2. **Outro View Protection:**
+   - `/api/v1/courses/{course_id}/outro` verifies that `course_enrollments.status == 'COMPLETED'`. Incomplete progress rejects with `HTTP 403 Forbidden` ("You must complete all lessons before accessing course outro").
+3. **Instructor Curriculum Ownership:**
+   - Instructors can only modify or delete courses and lessons where `instructor_id == current_user_id`. `ADMIN` maintains global authoring privileges.
 
 ---
 
-## 3. QUY TRÌNH NGHIỆP VỤ & PHÂN QUYỀN (BUSINESS LOGIC)
+## 4. API Endpoint Index
 
-1. **Quy tắc lọc theo Role học viên:**
-   - Người dùng có vai trò `STUDENT_PARENT` chỉ xem và học được các khóa học có `target_audience IN ('PARENT', 'BOTH')`.
-   - Người dùng có vai trò `STUDENT_CHILD` chỉ xem và học được các khóa học có `target_audience IN ('CHILD', 'BOTH')`.
-2. **Quy tắc bảo vệ trang Outro:**
-   - Endpoint `/api/v1/courses/{course_id}/outro` bắt buộc phải kiểm tra trong `course_enrollments`: Nếu `status != 'COMPLETED'` $\rightarrow$ trả về lỗi `403 Forbidden` ("Bạn chưa hoàn thành tất cả các bài học trong khóa học này").
-3. **Quy tắc quản lý của Giảng viên:**
-   - Giảng viên chỉ được phép chỉnh sửa/xóa bài học hoặc khóa học do chính mình tạo ra (`instructor_id == current_user_id`).
+### 4.1. Learner & Public Flow (3-Step Learning Journey)
 
----
+| # | Method | Endpoint | Authorization | Description |
+| :-: | :--- | :--- | :--- | :--- |
+| 1 | `GET` | `/api/v1/courses` | Public | List published courses (supports `target_audience` filtering) |
+| 2 | `GET` | `/api/v1/courses/{course_id}/intro` | Public / Authenticated | Retrieve Course Intro metadata and syllabus outline |
+| 3 | `POST` | `/api/v1/courses/{course_id}/enroll` | Learners (`PARENT` / `CHILD`) | Enroll in course and initialize progress |
+| 4 | `GET` | `/api/v1/courses/{course_id}/learn` | Enrolled Learners | Retrieve learning player data and lesson syllabus |
+| 5 | `GET` | `/api/v1/courses/{course_id}/lessons/{lesson_id}` | Enrolled Learners | Retrieve active lesson content (video/text) |
+| 6 | `GET` | `/api/v1/courses/{course_id}/outro` | Completed Learners (100%) | Retrieve Outro congratulations and certificate data |
 
-## 4. DANH SÁCH API ENDPOINTS
+### 4.2. Authoring & Management Flow
 
-### 4.1. Dành cho Học viên & Công khai (Learning Flow)
-
-| STT | Method | Endpoint | Quyền truy cập | Mục đích |
-| :---: | :--- | :--- | :--- | :--- |
-| 1 | `GET` | `/api/v1/courses` | Public | Lấy danh sách khóa học (Hỗ trợ lọc theo `target_audience`) |
-| 2 | `GET` | `/api/v1/courses/{course_id}/intro` | Public / Đã đăng nhập | Lấy thông tin trang **Intro** (Đề cương, Giới thiệu) |
-| 3 | `POST` | `/api/v1/courses/{course_id}/enroll` | Học viên (`PARENT` / `CHILD`) | Đăng ký bắt đầu học khóa học |
-| 4 | `GET` | `/api/v1/courses/{course_id}/learn` | Học viên đã đăng ký | Lấy dữ liệu không gian trang **Learning** |
-| 5 | `GET` | `/api/v1/courses/{course_id}/lessons/{lesson_id}` | Học viên đã đăng ký | Lấy chi tiết nội dung 1 bài học (Video/Văn bản) |
-| 6 | `GET` | `/api/v1/courses/{course_id}/outro` | Học viên đã hoàn thành 100% | Lấy nội dung tổng kết trang **Outro** |
-
-### 4.2. Dành cho Giảng viên & Admin (Management Flow)
-
-| STT | Method | Endpoint | Quyền truy cập | Mục đích |
-| :---: | :--- | :--- | :--- | :--- |
-| 7 | `POST` | `/api/v1/courses` | `INSTRUCTOR`, `ADMIN` | Tạo mới khóa học |
-| 8 | `PUT` | `/api/v1/courses/{course_id}` | `INSTRUCTOR`, `ADMIN` | Cập nhật thông tin khóa học / Xuất bản |
-| 9 | `DELETE`| `/api/v1/courses/{course_id}` | `INSTRUCTOR`, `ADMIN` | Xóa khóa học |
-| 10 | `POST` | `/api/v1/courses/{course_id}/lessons` | `INSTRUCTOR`, `ADMIN` | Thêm bài học mới vào khóa |
-| 11 | `PUT` | `/api/v1/courses/{course_id}/lessons/{lesson_id}` | `INSTRUCTOR`, `ADMIN` | Cập nhật nội dung bài học |
-| 12 | `DELETE`| `/api/v1/courses/{course_id}/lessons/{lesson_id}` | `INSTRUCTOR`, `ADMIN` | Xóa một bài học |
+| # | Method | Endpoint | Authorization | Description |
+| :-: | :--- | :--- | :--- | :--- |
+| 7 | `POST` | `/api/v1/courses` | `INSTRUCTOR`, `ADMIN` | Create a new course |
+| 8 | `PUT` | `/api/v1/courses/{course_id}` | `INSTRUCTOR`, `ADMIN` | Update course metadata / publish status |
+| 9 | `DELETE`| `/api/v1/courses/{course_id}` | `INSTRUCTOR`, `ADMIN` | Delete a course |
+| 10 | `POST` | `/api/v1/courses/{course_id}/lessons` | `INSTRUCTOR`, `ADMIN` | Add lesson unit to course |
+| 11 | `PUT` | `/api/v1/courses/{course_id}/lessons/{lesson_id}` | `INSTRUCTOR`, `ADMIN` | Update lesson unit content |
+| 12 | `DELETE`| `/api/v1/courses/{course_id}/lessons/{lesson_id}` | `INSTRUCTOR`, `ADMIN` | Delete a lesson unit |
 
 ---
 
-## 5. ĐẶC TẢ CHI TIẾT REQUEST & RESPONSE (CÁC ENDPOINT QUAN TRỌNG)
+## 5. Detailed Request & Response Specifications
 
-### 5.1. Xem thông tin trang Intro (`GET /api/v1/courses/{course_id}/intro`)
-- **Tầng xử lý:** `course_router.py` $\rightarrow$ `course_service.get_course_intro()` $\rightarrow$ `course_repository.get_course_detail()`
-- **Response Thành công (200 OK):**
+### 5.1. Course Intro View (`GET /api/v1/courses/{course_id}/intro`)
+
+- **Execution Flow:** `course_router.py` $\rightarrow$ `course_service.get_course_intro()` $\rightarrow$ `course_repository.get_course_detail()`
+- **Successful Response (200 OK):**
+
 ```json
 {
   "success": true,
   "data": {
     "course_id": "crs_uuid_101",
-    "title": "Giáo dục giới tính tuổi dậy thì toàn diện",
-    "slug": "giao-duc-gioi-tinh-tuoi-day-thi",
-    "description": "Khóa học trang bị kiến thức sinh lý và tâm lý cho độ tuổi 12-16...",
-    "thumbnail_url": "https://img-url/thumb1.png",
+    "title": "Comprehensive Adolescent Puberty Education",
+    "slug": "puberty-education-adolescents",
+    "description": "Foundational curriculum covering biological and psychological puberty transitions...",
+    "thumbnail_url": "https://storage.example.com/thumb1.png",
     "target_audience": "CHILD",
     "instructor": {
       "id": "usr_uuid_ins_01",
-      "full_name": "TS. Bác sĩ Trần Thị Mai",
-      "avatar_url": "https://img-url/avatar_mai.png"
+      "full_name": "Dr. Tran Thi Mai",
+      "avatar_url": "https://storage.example.com/avatar_mai.png"
     },
     "total_lessons": 10,
     "is_enrolled": false,
     "syllabus": [
-      { "id": "lsn_uuid_201", "order_index": 1, "title": "Bài 1: Cơ thể chúng ta thay đổi như thế nào?", "duration_minutes": 15 },
-      { "id": "lsn_uuid_202", "order_index": 2, "title": "Bài 2: Vệ sinh thân thể đúng cách", "duration_minutes": 20 }
-    ]
-  }
-}
-````
-
----
-
-### 5.2. Đăng ký tham gia khóa học (`POST /api/v1/courses/{course_id}/enroll`)
-
-- **Header:** `Authorization: Bearer <access_token>`
-- **Tầng xử lý:** `course_router.py` $\rightarrow$ `course_service.enroll_course()` $\rightarrow$ `course_repository.create_enrollment()`
-- **Response Thành công (201 Created):**
-
-```json
-{
-  "success": true,
-  "message": "Đăng ký khóa học thành công! Bạn có thể bắt đầu học ngay bây giờ.",
-  "data": {
-    "course_id": "crs_uuid_101",
-    "status": "IN_PROGRESS",
-    "enrolled_at": "2025-01-20T10:00:00Z"
-  }
-}
-```
-
----
-
-### 5.3. Xem nội dung trang Learning (`GET /api/v1/courses/{course_id}/learn`)
-
-- **Header:** `Authorization: Bearer <access_token>`
-- **Tầng xử lý:** `course_router.py` $\rightarrow$ `course_service.get_course_learning_room()` $\rightarrow$ `course_repository.get_lessons_with_user_progress()`
-- **Response Thành công (200 OK):**
-
-```json
-{
-  "success": true,
-  "data": {
-    "course_id": "crs_uuid_101",
-    "course_title": "Giáo dục giới tính tuổi dậy thì toàn diện",
-    "progress_percentage": 20.0,
-    "lessons": [
       {
-        "lesson_id": "lsn_uuid_201",
+        "id": "lsn_uuid_201",
         "order_index": 1,
-        "title": "Bài 1: Cơ thể chúng ta thay đổi như thế nào?",
-        "content_type": "VIDEO",
-        "video_url": "https://video-stream-url/lesson1.mp4",
-        "content_body": "<p>Nội dung hướng dẫn tóm tắt bài 1...</p>",
-        "is_completed": true
+        "title": "Lesson 1: Understanding Physical Body Changes",
+        "duration_minutes": 15
       },
       {
-        "lesson_id": "lsn_uuid_202",
+        "id": "lsn_uuid_202",
         "order_index": 2,
-        "title": "Bài 2: Vệ sinh thân thể đúng cách",
-        "content_type": "TEXT",
-        "video_url": null,
-        "content_body": "<p>Nội dung chi tiết bài đọc số 2...</p>",
-        "is_completed": false
+        "title": "Lesson 2: Personal Hygiene and Daily Care",
+        "duration_minutes": 20
       }
     ]
   }
@@ -160,56 +128,21 @@
 
 ---
 
-### 5.4. Xem nội dung trang Outro (`GET /api/v1/courses/{course_id}/outro`)
+### 5.2. Course Outro View (`GET /api/v1/courses/{course_id}/outro`)
 
-- **Header:** `Authorization: Bearer <access_token>`
-- **Tầng xử lý:** `course_router.py` $\rightarrow$ `course_service.get_course_outro()` $\rightarrow$ `course_repository.verify_completion()`
-- **Response Thành công (200 OK):**
+- **Execution Flow:** `course_router.py` $\rightarrow$ `course_service.get_course_outro()` $\rightarrow$ Validates 100% progress in `course_enrollments`
+- **Successful Response (200 OK):**
 
 ```json
 {
   "success": true,
   "data": {
     "course_id": "crs_uuid_101",
-    "course_title": "Giáo dục giới tính tuổi dậy thì toàn diện",
-    "completed_at": "2025-01-22T15:40:00Z",
-    "outro_content": "Chúc mừng bạn đã xuất sắc hoàn thành toàn bộ khóa học! Hy vọng những kiến thức khoa học này sẽ là hành trang vững chắc giúp bạn tự tin bảo vệ và thấu hiểu bản thân.",
-    "research_survey_url": "https://forms.gle/research_feedback_chichan"
-  }
-}
-```
-
-- **Mã lỗi thường gặp:**
-  - `403 Forbidden`: Học viên chưa hoàn thành đủ 100% bài học trong khóa.
-
----
-
-### 5.5. Tạo khóa học mới - Giảng viên (`POST /api/v1/courses`)
-
-- **Header:** `Authorization: Bearer <access_token>` (`INSTRUCTOR`, `ADMIN`)
-- **Request Body (JSON):**
-
-```json
-{
-  "title": "Kỹ năng tự bảo vệ và phòng chống xâm hại",
-  "slug": "ky-nang-tu-bao-ve-va-phong-chong-xam-hai",
-  "short_description": "Trang bị các kỹ năng nhận biết và phòng tránh nguy cơ xâm hại tình dục.",
-  "description": "Mô tả chi tiết nội dung toàn diện khóa học...",
-  "thumbnail_url": "https://supabase-storage/thumb2.png",
-  "target_audience": "CHILD",
-  "outro_content": "Bạn đã hoàn thành khóa học kỹ năng tự bảo vệ an toàn!"
-}
-```
-
-- **Response Thành công (201 Created):**
-
-```json
-{
-  "success": true,
-  "message": "Tạo khóa học thành công",
-  "data": {
-    "course_id": "crs_uuid_103",
-    "slug": "ky-nang-tu-bao-ve-va-phong-chong-xam-hai"
+    "title": "Comprehensive Adolescent Puberty Education",
+    "completed_at": "2026-09-10T14:30:00Z",
+    "certificate_code": "CHICHAN-A9B8C7D6E5F4",
+    "outro_content": "Congratulations on completing the curriculum! You now possess essential self-care and boundary defense knowledge.",
+    "survey_url": "https://forms.gle/research-feedback"
   }
 }
 ```
