@@ -1,73 +1,73 @@
 # Frontend — ChiChan Platform
 
-Next.js 16 (App Router) + Tailwind v4. Toàn bộ trang là client component; quy ước chi tiết xem `CLAUDE.md` ở repo root.
+Next.js 16 (App Router) + Tailwind CSS v4. All routes are client components; see `CLAUDE.md` at the repository root for code conventions.
 
-## Chạy
+## Getting Started
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000 — không cần file .env nào
-npm run build    # chạy scripts/check-frontend.mjs (env guard) trước khi next build
+npm run dev      # Runs on http://localhost:3000 — no .env required for local development
+npm run build    # Executes scripts/check-frontend.mjs (env guard) prior to next build
 ```
 
-## Cấu trúc `src/`
+## Directory Structure (`src/`)
 
 ```
 src/
-├── proxy.ts                       # Next 16 proxy (thay middleware.ts) — guard route theo cookie
+├── proxy.ts                       # Next.js 16 proxy (replaces middleware.ts) — route guards based on cookies
 ├── app/
-│   ├── layout.tsx                 # root: font + ToastProvider + AuthProvider (không chrome)
-│   ├── (public)/                  # GROUP — mọi trang public, có Header + Footer
-│   │   ├── layout.tsx             #    mount Header/Footer
-│   │   ├── page.tsx               #    trang chủ /
-│   │   ├── _components/           #    Header, Footer (riêng của group này)
-│   │   ├── _home/                 #    4 section landing (hero, journey…)
+│   ├── layout.tsx                 # Root layout: font + ToastProvider + AuthProvider (no chrome)
+│   ├── (public)/                  # GROUP — Public pages with Header + Footer
+│   │   ├── layout.tsx             #    Mounts Header and Footer
+│   │   ├── page.tsx               #    Home page (/)
+│   │   ├── _components/           #    Header, Footer (scoped to public group)
+│   │   ├── _home/                 #    Landing sections (Hero, ThreeStepJourney, Showcase...)
 │   │   ├── about/  profile/  invalid/
-│   │   ├── courses/               #    /courses + /courses/[courseId]/intro|certificate
-│   │   ├── forum/                 #    /forum + /forum/[postId]
-│   │   └── game/                  #    /game + /game/[sessionId] (chat SSE)
-│   ├── (auth)/                    # GROUP — /login + /register, split-screen illustration
-│   ├── (dashboard)/dashboard/     # GROUP — /dashboard|students|users, sidebar ADMIN/INSTRUCTOR
-│   ├── courses/[courseId]/learn/  # NGOÀI group — trang học full-screen, không chrome
+│   │   ├── courses/               #    /courses and /courses/[courseId]/intro|certificate
+│   │   ├── forum/                 #    /forum and /forum/[postId]
+│   │   └── game/                  #    /game and /game/[sessionId] (SSE roleplay chat)
+│   ├── (auth)/                    # GROUP — /login and /register (split-screen layout)
+│   ├── (dashboard)/dashboard/     # GROUP — /dashboard, /dashboard/students, /dashboard/users (Admin/Instructor sidebar)
+│   ├── courses/[courseId]/learn/  # OUTSIDE group — Distraction-free full-screen learning player (no chrome)
 │   │   └── _components/           #    VideoPlayer, CourseGraduationModal
-│   └── api/app-config/            # Route Handler duy nhất (API base URL lúc runtime)
-├── components/                    # shared thật sự: ui/ (11 primitive), CourseCard, Skeleton,
+│   └── api/app-config/            # Route Handler: Resolves runtime API base URL
+├── components/                    # Shared library: ui/ (11 primitives), CourseCard, Skeleton,
 │                                  # roleplay/GuideScriptViewer, illustrations/
-├── features/quiz/                 # QuizEditorModal + QuizPlayer (dùng xuyên dashboard ↔ learn)
+├── features/quiz/                 # QuizEditorModal + QuizPlayer (cross-cutting: dashboard and learning)
 ├── context/                       # AuthContext, ToastContext
 ├── config/                        # branding.ts
 └── lib/                           # api.ts, runtime-config.ts
 ```
 
-### Chrome theo nhóm
+### Layout Chrome by Route Group
 
-| Vị trí | URL | Giao diện bao quanh |
+| Location | Path | Surrounding Chrome |
 |---|---|---|
-| `(public)/` | `/`, `/about`, `/courses/*`, `/forum/*`, `/game/*`, `/profile` | Header + Footer |
-| `(auth)/` | `/login`, `/register` | Split-screen illustration + form |
-| `(dashboard)/` | `/dashboard`, `/dashboard/students`, `/dashboard/users` | Sidebar (ADMIN/INSTRUCTOR) |
-| Ngoài group | `/courses/[courseId]/learn` | Không — full-screen course player |
+| `(public)/` | `/`, `/about`, `/courses/*`, `/forum/*`, `/game/*`, `/profile` | Global Header + Footer |
+| `(auth)/` | `/login`, `/register` | Split-screen illustration layout + form |
+| `(dashboard)/` | `/dashboard`, `/dashboard/students`, `/dashboard/users` | Administrative Sidebar (`ADMIN` / `INSTRUCTOR`) |
+| Outside group | `/courses/[courseId]/learn` | None — Full-screen learning player |
 
-Folder có ngoặc `(group)` là **route group: không xuất hiện trên URL**, chỉ dùng để gom các trang
-dùng chung layout. Folder thường (`dashboard/`, `courses/`) là URL segment thật. Vì vậy URL
-`/courses/*` nằm ở 2 chỗ trên cây: trang có Header/Footer trong `(public)/courses/`, riêng trang
-học full-screen nằm ngoài group ở `courses/[courseId]/learn/` — URL vẫn liền mạch.
+Parenthesized folder names `(group)` denote **route groups**: they do not appear in the browser URL and exist solely to organize shared layouts. Standard folders (`dashboard/`, `courses/`) represent actual URL segments.
 
-### Guard lúc build
+### Build Guard (`scripts/check-frontend.mjs`)
 
-`scripts/check-frontend.mjs` (tự chạy trong `npm run build`) chặn: dùng `NEXT_PUBLIC_*` cho URL
-API, literal `onrender.com` ngoài allowlist, và mất `getApiBaseUrl()` trong trang game SSE.
-Chi tiết cơ chế: mục "API Base URL" bên dưới + `docs/refactor_env_independent_build.md`.
+Executed automatically during `npm run build`, this guard enforces three core invariants:
+1. Rejects any `NEXT_PUBLIC_*` variable used for backend API URLs in `src/`.
+2. Prohibits hardcoded deployment hosts (`onrender.com`) outside the temporary migration allowlist.
+3. Asserts the SSE roleplay invariant: the interactive simulation room must resolve endpoints dynamically via `getApiBaseUrl()`.
 
-## API Base URL / Biến môi trường
+## API Base URL & Environment Decoupling
 
-Frontend **không phụ thuộc biến môi trường lúc build**: cùng một bản `next build` chạy được ở mọi môi trường.
+The frontend build artifact is completely decoupled from build-time environment variables: a single build can be deployed across Development, Staging/Preview, and Production environments without recompilation.
 
-- **Local dev:** không cần file `.env` nào — backend mặc định là `http://127.0.0.1:8000/api/v1`.
-- **Cơ chế:** client gọi `/api/app-config` (Route Handler đọc `process.env.API_BASE_URL` lúc chạy) một lần duy nhất, được cache trong `src/lib/runtime-config.ts`.
-- **Biến duy nhất:** `API_BASE_URL` (server-only, **không** tiền tố `NEXT_PUBLIC_`) — set trên Vercel (Production + Preview scope) với giá trị URL Render, ví dụ `https://sex-education-api.onrender.com/api/v1`.
-- **⚠️ Không bao giờ tái sử dụng `NEXT_PUBLIC_*` cho URL API:** Next.js nhúng giá trị đó vào bundle lúc build, sau build sẽ không phản ứng với thay đổi env. Script `scripts/check-frontend.mjs` (chạy tự động trong `npm run build`) sẽ fail build nếu vi phạm.
+- **Local Development:** Zero configuration needed. The client defaults to `http://127.0.0.1:8000/api/v1`.
+- **Runtime Resolution:** The browser invokes `/api/app-config` once on startup. This server-side Route Handler reads `process.env.API_BASE_URL` at runtime and is cached in-memory and in `localStorage` by `src/lib/runtime-config.ts`.
+- **Server Environment Variable:** `API_BASE_URL` (server-side only, **without** `NEXT_PUBLIC_` prefix) configured in Vercel (Production and Preview scopes), e.g., `https://chichan-api.onrender.com/api/v1`.
+- **Strict Prohibition of `NEXT_PUBLIC_*`:** Next.js inlines `NEXT_PUBLIC_*` values directly into client and server bundles during `next build`. Once baked in, bundles cannot react to environment changes. The build guard will fail the build immediately if violated.
 
-## Deploy
+## Deployment
 
-Hướng dẫn từng bước: `docs/deployment/vercel.md` (frontend/Vercel) và `docs/deployment/render.md` (backend/Render).
+Refer to the deployment runbooks:
+- [Vercel Frontend Deployment Guide](../docs/deployment/vercel.md)
+- [Render Backend Deployment Guide](../docs/deployment/render.md)

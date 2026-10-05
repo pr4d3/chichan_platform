@@ -1,99 +1,99 @@
-# FEATURE DOC 01: AUTHENTICATION & AUTHORIZATION (XÁC THỰC & PHÂN QUYỀN)
+# Feature Specification 01: Authentication & Authorization (Database)
 
 ---
 
-## 1. MỤC TIÊU VÀ PHẠM VI
+## 1. Scope & Technical Objectives
 
-- Quản lý định danh tài khoản, thông tin cơ bản của người dùng.
-- Thực hiện xác thực (Đăng ký, Đăng nhập, Đăng xuất, Lưu phiên làm việc).
-- Cung cấp cơ chế phân quyền (Role-Based Access Control - RBAC) làm nền tảng kiểm soát truy cập cho toàn bộ hệ thống gồm 4 vai trò:
-  1. `ADMIN` (Quản trị viên)
-  2. `INSTRUCTOR` (Giảng viên)
-  3. `STUDENT_PARENT` (Học viên - Phụ huynh)
-  4. `STUDENT_CHILD` (Học viên - Trẻ nhỏ)
-
----
-
-## 2. QUY TẮC NGHIỆP VỤ (BUSINESS LOGIC)
-
-### 2.1. Đăng ký & Tạo tài khoản
-
-- **Đăng ký công khai:** Người dùng tự do đăng ký tài khoản học viên và bắt buộc phải chọn 1 trong 2 loại tài khoản:
-  - `Học viên - Phụ huynh` (`STUDENT_PARENT`)
-  - `Học viên - Trẻ nhỏ` (`STUDENT_CHILD`)
-- **Tài khoản Giảng viên & Admin:** Không mở đăng ký tự do; chỉ được tạo bởi `ADMIN` hoặc được cấp quyền từ hệ thống quản trị.
-
-### 2.2. Đăng nhập & Quản lý phiên
-
-- Đăng nhập bằng Email/Tên đăng nhập và Mật khẩu (mật khẩu bắt buộc được mã hóa 1 chiều).
-- Trạng thái tài khoản: `ACTIVE` (Hoạt động), `INACTIVE` (Chưa kích hoạt), `BANNED` (Bị khóa).
-
-### 2.3. Ma trận phân quyền cốt lõi (RBAC Matrix)
-
-| Chức năng / Quyền hạn                        |  ADMIN  | INSTRUCTOR | STUDENT_PARENT | STUDENT_CHILD |
-| :------------------------------------------- | :-----: | :--------: | :------------: | :-----------: |
-| Quản lý người dùng, cấp quyền Giảng viên     |   Có    |   Không    |     Không      |     Không     |
-| Xem nội dung dành riêng cho Phụ huynh        |   Có    |     Có     |       Có       |     Không     |
-| Xem nội dung dành riêng cho Trẻ nhỏ          |   Có    |     Có     |     Không      |      Có       |
-| Xem nội dung công khai (Cả hai)              |   Có    |     Có     |       Có       |      Có       |
-| Tạo, sửa, quản lý Khóa học & Bài giảng       |   Có    |     Có     |     Không      |     Không     |
-| Xem Bảng điều khiển Giảng viên (Dashboard)   |   Có    |     Có     |     Không      |     Không     |
-| Xem Hồ sơ cá nhân (Profile) & Tiến độ học    |   Có    |     Có     |       Có       |      Có       |
-| Đăng bài, bình luận trên Diễn đàn (Forum)    |   Có    |     Có     |       Có       |      Có       |
-| **Ẩn / Xóa bài viết & bình luận trên Forum** | ** Có** | ** Không** |   ** Không**   |  ** Không**   |
+- Manage account identities, core credentials, and user lifecycle states.
+- Support authentication operations (Registration, Login, Logout, Session Persistence).
+- Provide Role-Based Access Control (RBAC) across four platform roles:
+  1. `ADMIN` (System Administrator)
+  2. `INSTRUCTOR` (Educator / Scientific Researcher)
+  3. `STUDENT_PARENT` (Parent Learner)
+  4. `STUDENT_CHILD` (Adolescent Learner)
 
 ---
 
-## 3. THIẾT KẾ DATABASE SCHEMA (PHASE 1)
+## 2. Business Logic
 
-### 3.1. Bảng `roles` (Bảng danh mục vai trò)
+### 2.1. Registration & Account Creation
 
-_Lưu trữ định nghĩa các vai trò trong hệ thống để quản trị linh hoạt._
+- **Public Self-Service Registration:** Prospective learners can register freely and must select their target demographic role:
+  - `STUDENT_PARENT` (Parent)
+  - `STUDENT_CHILD` (Child / Adolescent)
+- **Privileged Accounts (`INSTRUCTOR` & `ADMIN`):** Excluded from public registration; provisioned exclusively by existing `ADMIN` users via management interfaces.
 
-| Tên trường (Field) | Kiểu dữ liệu (Data Type) | Ràng buộc (Constraints)     | Ý nghĩa / Ghi chú                                                    |
-| :----------------- | :----------------------- | :-------------------------- | :------------------------------------------------------------------- |
-| `id`               | Integer                  | Primary Key, Auto Increment | Khóa chính                                                           |
-| `role_code`        | String (Varchar 50)      | Unique, Not Null            | Mã vai trò: `ADMIN`, `INSTRUCTOR`, `STUDENT_PARENT`, `STUDENT_CHILD` |
-| `role_name`        | String (Varchar 100)     | Not Null                    | Tên hiển thị (VD: "Học viên - Phụ huynh")                            |
-| `description`      | Text                     | Nullable                    | Mô tả chi tiết quyền hạn của vai trò                                 |
+### 2.2. Login & Session Lifecycle
 
----
+- Authentication via Email or Username with one-way salted password hashing (bcrypt / passlib).
+- User lifecycle status: `ACTIVE`, `INACTIVE`, `BANNED`.
 
-### 3.2. Bảng `users` (Bảng thông tin tài khoản cốt lõi)
+### 2.3. Core RBAC Matrix
 
-_Lưu trữ thông tin xác thực và định danh người dùng._
-
-| Tên trường (Field) | Kiểu dữ liệu (Data Type) | Ràng buộc (Constraints)              | Ý nghĩa / Ghi chú                          |
-| :----------------- | :----------------------- | :----------------------------------- | :----------------------------------------- |
-| `id`               | BigInteger / UUID        | Primary Key                          | Khóa chính định danh tài khoản             |
-| `role_id`          | Integer                  | Foreign Key -> `roles(id)`, Not Null | Liên kết tới bảng `roles`                  |
-| `username`         | String (Varchar 50)      | Unique, Not Null                     | Tên tài khoản                              |
-| `email`            | String (Varchar 255)     | Unique, Not Null                     | Email liên lạc/đăng nhập                   |
-| `password_hash`    | String (Varchar 255)     | Not Null                             | Mật khẩu đã băm (Hash)                     |
-| `full_name`        | String (Varchar 150)     | Not Null                             | Họ và tên hiển thị                         |
-| `status`           | String (Varchar 20)      | Not Null, Default: `ACTIVE`          | Trạng thái: `ACTIVE`, `INACTIVE`, `BANNED` |
-| `created_at`       | Timestamp                | Not Null, Default: Current Time      | Thời gian tạo tài khoản                    |
-| `updated_at`       | Timestamp                | Not Null, Default: Current Time      | Thời gian cập nhật gần nhất                |
+| Capability / Permission | ADMIN | INSTRUCTOR | STUDENT_PARENT | STUDENT_CHILD |
+| :--- | :---: | :---: | :---: | :---: |
+| User administration & Instructor privilege provisioning | Yes | No | No | No |
+| Access parent-focused educational curricula | Yes | Yes | Yes | No |
+| Access adolescent puberty & self-defense curricula | Yes | Yes | No | Yes |
+| Access public/universal content | Yes | Yes | Yes | Yes |
+| Author and manage courses and lessons | Yes | Yes | No | No |
+| View Educator Analytics Dashboard | Yes | Yes | No | No |
+| View personal profile and learning progress | Yes | Yes | Yes | Yes |
+| Publish forum threads and post replies | Yes | Yes | Yes | Yes |
+| **Moderate community forum (Hide/Delete threads & comments)** | **Yes** | **No** | **No** | **No** |
 
 ---
 
-### 3.3. Bảng `user_sessions` (Quản lý phiên đăng nhập)
+## 3. Database Schema Design
 
-_Dùng để kiểm soát token/phiên làm việc của người dùng, hỗ trợ cơ chế đăng xuất hoặc thu hồi phiên khi cần._
+### 3.1. Table: `roles` (Role Taxonomy)
 
-| Tên trường (Field) | Kiểu dữ liệu (Data Type) | Ràng buộc (Constraints)                              | Ý nghĩa / Ghi chú                     |
-| :----------------- | :----------------------- | :--------------------------------------------------- | :------------------------------------ |
-| `id`               | BigInteger / UUID        | Primary Key                                          | Khóa chính phiên                      |
-| `user_id`          | BigInteger / UUID        | Foreign Key -> `users(id)`, Not Null, Cascade Delete | Khóa ngoại trỏ đến người dùng         |
-| `refresh_token`    | Text                     | Unique, Not Null                                     | Lưu trữ Refresh Token hoặc Session ID |
-| `user_agent`       | String (Varchar 255)     | Nullable                                             | Thiết bị/Trình duyệt đăng nhập        |
-| `ip_address`       | String (Varchar 45)      | Nullable                                             | Địa chỉ IP đăng nhập                  |
-| `expires_at`       | Timestamp                | Not Null                                             | Thời điểm hết hạn phiên               |
-| `created_at`       | Timestamp                | Not Null, Default: Current Time                      | Thời điểm tạo phiên                   |
+Defines system roles for flexible authorization management.
+
+| Field Name | Data Type | Constraints | Description / Usage |
+| :--- | :--- | :--- | :--- |
+| `id` | Integer | Primary Key, Auto Increment | Unique role identifier |
+| `role_code` | String (Varchar 50) | Unique, Not Null | Unique code: `ADMIN`, `INSTRUCTOR`, `STUDENT_PARENT`, `STUDENT_CHILD` |
+| `role_name` | String (Varchar 100) | Not Null | Display name (e.g., "Student - Parent") |
+| `description` | Text | Nullable | Detailed privilege description |
 
 ---
 
-## 4. QUAN HỆ VÀ RÀNG BUỘC (RELATIONSHIPS)
+### 3.2. Table: `users` (Core Account Identities)
 
-1. **`roles` - `users` (1 - N):** Một vai trò có thể thuộc về nhiều người dùng. Một người dùng chỉ thuộc 1 vai trò chính trong hệ thống.
-2. **`users` - `user_sessions` (1 - N):** Một người dùng có thể đăng nhập trên nhiều thiết bị (nhiều phiên làm việc cùng lúc). Khi xóa user, tất cả session liên quan sẽ bị xóa theo (`Cascade Delete`).
+Persists authentication credentials and identity profiles.
+
+| Field Name | Data Type | Constraints | Description / Usage |
+| :--- | :--- | :--- | :--- |
+| `id` | BigInteger / UUID | Primary Key | Unique user identifier |
+| `role_id` | Integer | Foreign Key -> `roles(id)`, Not Null | Associated system role |
+| `username` | String (Varchar 50) | Unique, Not Null | Account handle |
+| `email` | String (Varchar 255) | Unique, Not Null | Primary contact and sign-in email |
+| `password_hash` | String (Varchar 255) | Not Null | Cryptographic password hash |
+| `full_name` | String (Varchar 150) | Not Null | Display name |
+| `status` | String (Varchar 20) | Not Null, Default: `ACTIVE` | Account status: `ACTIVE`, `INACTIVE`, `BANNED` |
+| `created_at` | Timestamp | Not Null, Default: Current Time | Registration timestamp |
+| `updated_at` | Timestamp | Not Null, Default: Current Time | Last update timestamp |
+
+---
+
+### 3.3. Table: `user_sessions` (Active Session Management)
+
+Tracks active login tokens and client metadata, facilitating token revocation and session invalidation.
+
+| Field Name | Data Type | Constraints | Description / Usage |
+| :--- | :--- | :--- | :--- |
+| `id` | BigInteger / UUID | Primary Key | Unique session identifier |
+| `user_id` | BigInteger / UUID | Foreign Key -> `users(id)`, Not Null, Cascade Delete | User reference |
+| `refresh_token` | Text | Unique, Not Null | Hashed refresh token or session identifier |
+| `user_agent` | String (Varchar 255) | Nullable | Client device or browser user agent |
+| `ip_address` | String (Varchar 45) | Nullable | Client IP address |
+| `expires_at` | Timestamp | Not Null | Expiration timestamp |
+| `created_at` | Timestamp | Not Null, Default: Current Time | Issuance timestamp |
+
+---
+
+## 4. Entity Relationships & Invariants
+
+1. **`roles` → `users` (1 : N):** Each user is assigned exactly one primary system role.
+2. **`users` → `user_sessions` (1 : N):** A user may hold multiple concurrent sessions across devices. Deleting a user cascades to invalidate all active sessions.

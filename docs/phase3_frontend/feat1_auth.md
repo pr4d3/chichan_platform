@@ -1,129 +1,99 @@
-# FEATURE 01: AUTHENTICATION & AUTHORIZATION (FRONTEND UI/UX SPECS)
+# Feature Specification 01: Authentication & Authorization (Frontend UI/UX)
 
 ---
 
-## 1. MỤC TIÊU VÀ PHẠM VI
+## 1. Scope & Technical Objectives
 
-- Xây dựng giao diện Đăng ký, Đăng nhập thân thiện, an toàn và dễ tiếp cận cho cả đối tượng **Phụ huynh** và **Trẻ em/Vị thành niên**.
-- Thiết kế trải nghiệm chọn loại tài khoản trực quan (Role Selection) ngay trong luồng đăng ký.
-- Quản lý phiên đăng nhập (Session/Token) và bảo vệ các trang nhạy cảm thông qua **Next.js Middleware (Protected Routes)**.
+- Build an accessible, clean registration and sign-in interface catering to both **Parents** and **Adolescents / Children**.
+- Implement an intuitive, visual demographic selection step (Role Selector Cards) during onboarding.
+- Manage client-side session states, token lifecycles, and route protection guards.
 
 ---
 
-## 2. CẤU TRÚC ĐỊNH TUYẾN (NEXT.JS APP ROUTER)
+## 2. Next.js Routing Architecture
 
 ```text
 frontend/src/app/
 ├── (auth)/
-│   ├── layout.tsx              # Layout chia đôi màn hình (Split screen: Hình minh họa + Form)
+│   ├── layout.tsx              # Split-screen layout (Hero illustration + Centered form)
 │   ├── login/
-│   │   └── page.tsx            # Trang Đăng nhập (/login)
+│   │   └── page.tsx            # Login route (/login)
 │   └── register/
-│       └── page.tsx            # Trang Đăng ký phân loại Role (/register)
-├── middleware.ts               # Next.js Middleware kiểm tra Token và phân quyền Route
+│       └── page.tsx            # Role-categorized registration route (/register)
+├── proxy.ts                    # Next.js 16 route proxy enforcing authentication cookies
 └── context/
-    └── AuthContext.tsx         # React Context lưu trữ trạng thái đăng nhập và thông tin User
+    └── AuthContext.tsx         # Global user session and authorization context
 ```
 
 ---
 
-## 3. THIẾT KẾ GIAO DIỆN & TRẢI NGHIỆM NGƯỜI DÙNG (UI/UX DESIGN)
+## 3. UI/UX Interface Specifications
 
-### 3.1. Bố cục chung nhóm trang Auth (`(auth)/layout.tsx`)
+### 3.1. Shared Authentication Shell (`(auth)/layout.tsx`)
 
-- **Desktop:** Chia đôi màn hình (50/50).
-  - _Cột trái:_ Banner minh họa sinh động về đề tài giáo dục giới tính an toàn, trích dẫn thông điệp nghiên cứu khoa học.
-  - _Cột phải:_ Khung Form trung tâm (Card) màu nền sáng, bo góc mềm mại, thiết kế tối giản.
-- **Mobile:** Toàn màn hình tập trung vào Form đăng nhập/đăng ký.
-
----
-
-### 3.2. Trang Đăng ký (`/register`)
-
-#### A. Các phần tử trên giao diện:
-
-1. **Tiêu đề:** "Tạo tài khoản học tập" kèm mô tả ngắn "Đồng hành cùng giáo dục giới tính chuẩn khoa học".
-2. **Khu vực Chọn loại tài khoản (Role Selector Cards - Trọng tâm UI):**
-   - Thay vì dùng dropdown khô khan, thiết kế 2 Thẻ tương tác lớn (Interactive Cards) để người dùng click chọn:
-     - **Thẻ 1: "Tôi là Phụ huynh" (`STUDENT_PARENT`)**
-       - Icon: Gia đình / Cha mẹ.
-       - Mô tả ngắn: _Học kỹ năng đồng hành, hướng dẫn và tâm lý lứa tuổi con trẻ._
-     - **Thẻ 2: "Tôi là Học sinh / Trẻ nhỏ" (`STUDENT_CHILD`)**
-       - Icon: Bạn nhỏ / Cặp sách.
-       - Mô tả ngắn: _Khám phá sự thay đổi cơ thể và kỹ năng tự bảo vệ an toàn._
-   - Trạng thái khi click: Viền thẻ sáng lên (Highlight Border Primary), có dấu tích chọn.
-3. **Khu vực Nhập liệu (Form Fields):**
-   - Họ và tên (`full_name`)
-   - Tên đăng nhập (`username`)
-   - Email liên hệ (`email`)
-   - Mật khẩu (`password`) kèm nút ẩn/hiện mật khẩu (Show/Hide Password).
-4. **Nút bấm hành động:** Nút "Đăng ký ngay" (Trạng thái Loading spinner khi đang gửi API).
-5. **Chuyển hướng:** "Đã có tài khoản? Đăng nhập ngay".
+- **Desktop Viewport:** 50/50 split-screen layout.
+  - *Left Column:* Educational illustration highlighting scientific sex education, complemented by research citations.
+  - *Right Column:* Centered, minimal authentication card with clean rounded aesthetics.
+- **Mobile Viewport:** Clean single-column layout prioritizing form interaction and input ergonomics.
 
 ---
 
-### 3.3. Trang Đăng nhập (`/login`)
+### 3.2. Registration Flow (`/register`)
 
-#### A. Các phần tử trên giao diện:
-
-1. **Tiêu đề:** "Chào mừng bạn quay trở lại!".
-2. **Khu vực Nhập liệu:**
-   - Tên đăng nhập hoặc Email.
-   - Mật khẩu.
-3. **Tùy chọn:** Checkbox "Ghi nhớ đăng nhập".
-4. **Nút bấm:** "Đăng nhập".
-5. **Chuyển hướng sau đăng nhập:**
-   - Nếu là `INSTRUCTOR` hoặc `ADMIN` $\rightarrow$ Điều hướng tự động về `/dashboard`.
-   - Nếu là `STUDENT_PARENT` hoặc `STUDENT_CHILD` $\rightarrow$ Điều hướng về `/profile` hoặc `/courses`.
-
----
-
-## 4. DANH MỤC SHADCN/UI COMPONENTS SỬ DỤNG
-
-| Component                           | Mục đích sử dụng                                                 |
-| :---------------------------------- | :--------------------------------------------------------------- |
-| `Card`, `CardHeader`, `CardContent` | Khung bao bọc form đăng nhập / đăng ký                           |
-| `Input`                             | Ô nhập dữ liệu Text, Email, Password                             |
-| `Button`                            | Nút bấm thao tác, hỗ trợ trạng thái `loading` và `disabled`      |
-| `RadioGroup` / `Card`               | Thiết kế thẻ chọn Role Phụ huynh / Trẻ nhỏ                       |
-| `Toast` / `Sonner`                  | Hiển thị thông báo khi đăng ký/đăng nhập thành công hoặc báo lỗi |
-| `Alert`, `AlertDescription`         | Cảnh báo khi tài khoản bị khóa hoặc sai thông tin                |
+#### Interface Elements:
+1. **Headline & Value Proposition:** "Create Your Learning Account" with subtitle "Join a safe, scientifically grounded sex education community".
+2. **Interactive Demographic Selector (Core UX Element):**
+   - Replaces cumbersome select dropdowns with two prominent interactive selection cards:
+     - **Card 1: "I am a Parent" (`STUDENT_PARENT`)**
+       - Icon: Family / Guidance.
+       - Caption: *Learn empathetic communication, active listening, and puberty support skills.*
+     - **Card 2: "I am a Student / Teen" (`STUDENT_CHILD`)**
+       - Icon: Student / Backpack.
+       - Caption: *Explore bodily changes, emotional transitions, and digital self-defense instincts.*
+   - Active state: Highlighted primary border with verification checkmark.
+3. **Form Fields:**
+   - Full Name (`full_name`)
+   - Username (`username`)
+   - Email Address (`email`)
+   - Password (`password`) with visibility toggle (Show/Hide Password).
+4. **Action CTA:** "Create Account" button (displays integrated loading spinner during API dispatch).
+5. **Secondary Navigation:** "Already have an account? Sign In".
 
 ---
 
-## 5. QUẢN LÝ TRẠNG THÁI & PHÂN QUYỀN TRÊN FRONTEND (RBAC)
+### 3.3. Sign-In Flow (`/login`)
 
-### 5.1. Quản lý Token & Session
-
-- Sau khi gọi API `/api/v1/auth/login` thành công:
-  - Lưu `access_token` vào Cookie (hoặc Secure LocalStorage).
-  - Lưu thông tin User (`id`, `full_name`, `role`) vào `AuthContext`.
-
-### 5.2. Next.js Middleware (Protected Routes Guard)
-
-Middleware hoạt động tại tầng mạng trước khi tải trang:
-
-```
-[Người dùng truy cập URL]
-           ⬇
-[Next.js Middleware kiểm tra Cookie Token]
-           │
-           ├── Nếu CHƯA ĐĂNG NHẬP và vào trang bảo vệ (/profile, /learn, /dashboard)
-           │     └── 🔄 Điều hướng về /login
-           │
-           └── Nếu ĐÃ ĐĂNG NHẬP:
-                 ├── Vào trang /dashboard:
-                 │     └── Nếu Role KHÔNG PHẢI "INSTRUCTOR"/"ADMIN"
-                 │           └── 🚫 Chuyển hướng về /unauthorized hoặc /profile
-                 └── Vào trang /login hoặc /register:
-                       └── 🔄 Tự động chuyển hướng về Trang chủ
-```
+#### Interface Elements:
+1. **Headline:** "Welcome Back!".
+2. **Input Fields:**
+   - Username or Email.
+   - Password.
+3. **Session Controls:** "Remember Me" toggle.
+4. **Action CTA:** "Sign In" button.
+5. **Post-Authentication Redirection:**
+   - `INSTRUCTOR` or `ADMIN` $\rightarrow$ Redirects to `/dashboard`.
+   - `STUDENT_PARENT` or `STUDENT_CHILD` $\rightarrow$ Redirects to `/profile` or `/courses`.
 
 ---
 
-## 6. XỬ LÝ LỖI & PHẢN HỒI GIAO DIỆN (ERROR HANDLING)
+## 4. UI Components & Tokens
 
-- **Form Validation (Zod + React Hook Form):** Báo lỗi trực tiếp dưới từng ô input bằng chữ đỏ (VD: _"Email không hợp lệ"_, _"Mật khẩu tối thiểu 8 ký tự"_).
-- **Lỗi từ Backend (Toast Notification):**
-  - Trùng Email/Username $\rightarrow$ Toast đỏ: _"Tên đăng nhập hoặc Email này đã tồn tại trên hệ thống"_.
-  - Sai mật khẩu $\rightarrow$ Toast đỏ: _"Thông tin đăng nhập không chính xác, vui lòng thử lại"_.
+| Component | Purpose / Usage |
+| :--- | :--- |
+| `Card`, `CardHeader`, `CardContent` | Form containers and elevation shells |
+| `Input` | Text, email, and password input fields |
+| `Button` | Action triggers with embedded `loading` and `disabled` states |
+| `RadioGroup` / Custom Cards | Interactive demographic role selection cards |
+| `ToastProvider` / `Toast` | Non-blocking feedback banners upon success or error |
+| `Alert`, `AlertDescription` | Critical security alerts for locked or inactive accounts |
+
+---
+
+## 5. Client State Management & Route Protection
+
+### 5.1. Session Token Lifecycle
+
+Upon receiving a successful response from `POST /api/v1/auth/login`:
+- Persist `access_token` in secure cookies or client-side storage.
+- Populate `AuthContext` with user metadata (`id`, `full_name`, `role`).
+- Attach `Authorization: Bearer <access_token>` headers to downstream API requests.

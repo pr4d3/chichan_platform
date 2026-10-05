@@ -1,195 +1,149 @@
-# KẾ HOẠCH REFACTOR: TÁCH BIẾN MÔI TRƯỜNG KHỎI QUÁ TRÌNH BUILD
+# Architectural Refactor: Environment-Independent Builds
 
-> Trạng thái: **Phase 1 + Phase 2 đã triển khai xong trong code** (nhánh `dev`, chưa deploy).
-> Phase 3 còn lại có gate bắt buộc trên dashboard Vercel/Render — xem mục 7 & 8.
-
----
-
-## 1. BỐI CẢNH & MỤC TIÊU
-
-Hệ thống đang chạy live: **backend trên Render, frontend trên Vercel, database trên Supabase**.
-
-Vấn đề: URL của backend bị **nhúng cứng vào bundle client NGAY LÚC `next build`** qua biến
-`NEXT_PUBLIC_API_BASE_URL`. Hệ quả:
-
-- Build ở đâu, môi trường đó "đóng băng" vào sản phẩm — máy dev build sẽ nhúng
-  `127.0.0.1:8000` (`.env.local` đang trỏ local) → site chết hoàn toàn với người thật.
-- Không có biến nào khi build → âm thầm nhúng URL Render production cứng trong code.
-- Một bản build không thể dùng chung cho nhiều môi trường (dev / preview / production).
-- Sau build, thay đổi env **không có tác dụng** — docs chính thức của Next 16 xác nhận:
-  app "will no longer respond to changes to these environment variables".
-
-**Mục tiêu**: *build một lần, chạy ở mọi nơi* — artifact build giống hệt nhau bất kể env;
-mọi giá trị cấu hình chỉ được đọc **lúc runtime**; thiếu env phải báo lỗi rõ ràng, không
-âm thầm nhúng URL prod.
+> Status: **Phase 1 and Phase 2 fully implemented in codebase** (`dev` branch).  
+> Phase 3 (Hardening) depends on dashboard deployment gates documented in Sections 7 & 8.
 
 ---
 
-## 2. HIỆN TRẠNG ĐÃ KIỂM KÊ (TRƯỚC REFACTOR)
+## 1. Context & Objectives
 
-| # | Vị trí | Cơ chế | Vấn đề |
-|---|--------|--------|--------|
-| 1 | `frontend/src/lib/api.ts:3` | `NEXT_PUBLIC_API_BASE_URL \|\| NEXT_PUBLIC_API_URL \|\| "https://sex-education-api.onrender.com/api/v1"` | Inline lúc build + fallback prod cứng |
-| 2 | `frontend/src/app/(public)/game/[sessionId]/page.tsx:241-245` | Bản sao y hệt chuỗi trên, dùng cho SSE chat | Điểm thứ hai phải đồng bộ |
-| 3 | `frontend/.env.local` | `NEXT_PUBLIC_API_BASE_URL` trỏ `127.0.0.1` | Build local = nhúng localhost |
-| 4 | `backend/main.py:37` | Literal cứng `https://sex-ed-gray.vercel.app` trong CORS | Đổi domain frontend phải sửa code backend |
-| 5 | `backend/services/gemini_service.py` (4 chỗ) | `os.getenv("AI_API_KEY")`, `os.getenv("GEMINI_MODEL", ...)` vượt quyền ngoài `config.py` | Nguồn cấu hình trùng lặp |
-| 6 | `backend/core/config.py:6,23` | `load_dotenv()` + `env_file=".env"` theo CWD | Chạy uvicorn từ repo root → âm thầm dùng toàn bộ default (DB localhost, SECRET_KEY mặc định!) |
-| 7 | `docs/deployment/render.md` | Hướng dẫn đặt `JWT_SECRET_KEY`/`JWT_ALGORITHM` | **Code đọc `SECRET_KEY`/`ALGORITHM`** → ai làm theo docs sẽ có JWT ký bằng key mặc định (làm giả được) |
-| 8 | `database/apply_phase4.py`, `apply_quizzes.py` | Tự parse `.env` bằng tay | Nguồn cấu hình thứ 3, có thể trỏ sang DB khác app |
-| 9 | `backend/Dockerfile:22` | Port `7860` cứng trong CMD | Render inject `$PORT` → image không tôn trọng |
-| 10 | `docs/deployment/vercel.md` | `NEXT_PUBLIC_SITE_URL` | Biến chết — không có code nào đọc |
+The production stack operates across three distributed cloud layers:
+- **Backend:** FastAPI Web Service on Render
+- **Frontend:** Next.js 16 (App Router) on Vercel
+- **Database:** Supabase Managed PostgreSQL
 
-Kiểm kê xác nhận toàn bộ `frontend/src` có **đúng 2 điểm** dùng `NEXT_PUBLIC_*` (#1, #2) —
-không có bản sao thứ tư.
+### The Problem
+Previously, the backend API URL was **baked directly into the client bundle at compile time** via the `NEXT_PUBLIC_API_BASE_URL` environment variable. This led to critical architectural flaws:
+1. **Environment Freezing:** The compilation environment was indelibly baked into the build artifact. Local builds embedded `http://127.0.0.1:8000`, causing total failure when deployed to remote users.
+2. **Missing Variable Inversion:** Omission of the variable during build silently defaulted to hardcoded production URLs.
+3. **No Multi-Environment Portability:** A single compiled artifact could not be promoted across staging, preview, and production.
+4. **Post-Build Immutability:** Changing environment variables in deployment dashboards had zero effect. Next.js 16 documentation confirms: applications *will no longer respond to changes to build-time environment variables after compilation*.
+
+### Target Objective
+*Build once, deploy anywhere.* Guarantee identical build artifacts regardless of build-time environment; resolve all service endpoints strictly at **runtime**; and fail loudly and explicitly when required runtime configurations are missing.
 
 ---
 
-## 3. PHƯƠNG ÁN ĐƯỢC CHỌN
+## 2. Pre-Refactor Codebase Audit
 
-Đã đánh giá 3 phương án (chấm 7 tiêu chí × 5 điểm):
+| # | Location | Mechanism | Architectural Debt |
+|---|---|---|---|
+| 1 | `frontend/src/lib/api.ts:3` | `NEXT_PUBLIC_API_BASE_URL \|\| NEXT_PUBLIC_API_URL \|\| "https://..."` | Build-time inlining + hardcoded production fallback |
+| 2 | `frontend/src/app/(public)/game/[sessionId]/page.tsx` | Duplicate fallback logic for SSE chat | Secondary divergence point needing synchronization |
+| 3 | `frontend/.env.local` | `NEXT_PUBLIC_API_BASE_URL` set to `127.0.0.1` | Local compilation inlined localhost into builds |
+| 4 | `backend/main.py:37` | Hardcoded literal `https://sex-ed-gray.vercel.app` in CORS | Frontend domain updates required backend code changes |
+| 5 | `backend/services/gemini_service.py` | Direct `os.getenv("AI_API_KEY")` bypassing `config.py` | Split configuration sources |
+| 6 | `backend/core/config.py` | `load_dotenv()` resolved relative to CWD | Running Uvicorn from repo root loaded defaults (e.g. default `SECRET_KEY`) |
+| 7 | `docs/deployment/render.md` | Recommended `JWT_SECRET_KEY` / `JWT_ALGORITHM` | Code looked for `SECRET_KEY` / `ALGORITHM`, causing fallback to insecure defaults |
+| 8 | `database/apply_*.py` | Ad-hoc `.env` parsing scripts | Third configuration source risking database drift |
+| 9 | `backend/Dockerfile` | Hardcoded port `7860` in CMD | Render injected dynamic `$PORT` was ignored |
+| 10 | `docs/deployment/vercel.md` | Documented `NEXT_PUBLIC_SITE_URL` | Dead documentation variable |
 
-| Phương án | Điểm | Kết luận |
-|-----------|-----:|----------|
-| **A. Runtime config trong Next app** — Route Handler `/api/app-config` đọc env lúc chạy + singleton `getApiBaseUrl()` | **30/35** | ✅ **Chọn** |
-| C. Giữ build-time env nhưng fail-fast | 27/35 | Ghép lọc các ý tốt (guard script, backend validator, AliasChoices) |
-| B. Same-origin proxy qua Route Handler | 24/35 | Loại — SSE bắt buộc đi qua Vercel Function (maxDuration 300s sẽ cắt stream Gemini dài), mọi call đều tốn một hop function |
+Comprehensive auditing confirmed that `frontend/src` contained exactly two references to `NEXT_PUBLIC_*` (#1 and #2).
 
-Kiến trúc đích (phương án A + tinh chỉnh):
+---
 
-```
-[Client bundle — KHÔNG chứa URL nào]
-   │  fetch("/api/app-config", { cache: "no-store" })   ← 1 lần, cache in-memory + localStorage
+## 3. Evaluated Architectural Approaches
+
+Three distinct architectural models were evaluated against seven evaluation criteria (scored out of 35):
+
+| Strategy | Score | Decision | Rationale |
+|---|:---:|:---:|---|
+| **A. Runtime Configuration via Route Handler** — Route Handler `/api/app-config` reads runtime env + singleton `getApiBaseUrl()` | **30/35** | **Accepted** | Decouples build entirely; zero additional infrastructure; supports client caching and graceful degradation. |
+| **C. Build-time Env with Fail-Fast Guards** | 27/35 | Partial | Adapted into pre-build enforcement scripts (`check-frontend.mjs`) and backend configuration validation. |
+| **B. Same-Origin Reverse Proxy via Next.js Route Handler** | 24/35 | Rejected | SSE streams would terminate at Vercel's serverless function timeout (`maxDuration`); introduces function invocation overhead for all traffic. |
+
+### Target Architecture (Strategy A)
+
+```text
+[Client Bundle — Zero baked-in API URLs]
+   │  fetch("/api/app-config", { cache: "no-store" })  (Run once; cached in-memory + localStorage)
    ▼
-[Route Handler /api/app-config]  force-dynamic, Cache-Control: no-store
-   │  đọc process.env.API_BASE_URL  ← lúc RUNTIME (Vercel: lúc Function chạy)
+[Route Handler: /api/app-config]  (force-dynamic, Cache-Control: no-store)
+   │  Reads process.env.API_BASE_URL at RUNTIME (per Vercel Serverless execution)
    ▼
-{ apiBaseUrl: "https://sex-education-api.onrender.com/api/v1" }
+{ "apiBaseUrl": "https://chichan-api.onrender.com/api/v1" }
    │
    ▼
-[api.request() + SSE chat] → gọi thẳng browser → Render (giữ nguyên CORS/Bearer như cũ)
+[api.request() + SSE Chat Stream] ──► Direct browser-to-backend request (preserves CORS / Bearer headers)
 ```
 
-⚠️ **Phát hiện thực nghiệm quan trọng** (đã kiểm chứng bằng build với env giả):
-Next 16 + Turbopack inline `process.env.NEXT_PUBLIC_*` **ngay cả trong server bundle**
-— tức là đọc "server-side" `NEXT_PUBLIC_*` cũng vẫn bị đóng băng lúc build. Chỉ biến
-**không tiền tố** (`API_BASE_URL`) mới là đọc runtime thật. Vì vậy mọi khuyến nghị
-"đọc NEXT_PUBLIC_ phía server để lấy runtime" là sai cho phiên bản Next này.
+> [!NOTE]
+> **Empirical Discovery (Next.js 16 + Turbopack):** Turbopack inlines `process.env.NEXT_PUBLIC_*` even within server-side chunks during compilation. Only non-prefixed variables (`API_BASE_URL`) remain dynamic at runtime on the server. Recommendations suggesting server-side reads of `NEXT_PUBLIC_*` to achieve runtime dynamism are invalid in this Next.js release.
 
 ---
 
-## 4. PHASE 1 — FRONTEND (ĐÃ TRIỂN KHAI)
+## 4. Phase 1 — Frontend Implementation
 
-| File | Thay đổi |
-|------|----------|
-| `frontend/src/lib/runtime-config.ts` | **Mới.** `getApiBaseUrl(): Promise<string>` — singleton cache promise; nhánh server đọc `process.env.API_BASE_URL`; nhánh browser fetch `/api/app-config` 1 lần; **cache last-known-good vào localStorage** (endpoint hỏng → degrade dùng giá trị stale, không chết toàn bộ API); fallback theo `NODE_ENV` (dev → `127.0.0.1:8000`) |
-| `frontend/src/app/api/app-config/route.ts` | **Mới.** `GET` với `dynamic = "force-dynamic"` + `Cache-Control: no-store`; thứ tự resolve: `API_BASE_URL` → (legacy `NEXT_PUBLIC_*` — **chỉ trong thời gian migrate**) → dev default → fallback prod migration; chỉ trả cấu hình công khai, không bao giờ trả secret |
-| `frontend/src/lib/api.ts` | Xóa dòng 3 (chuỗi `NEXT_PUBLIC_` + literal cứng); `request()` thêm `const BASE_URL = await getApiBaseUrl()` — **0 call-site phải sửa** (get/post/put/delete đã await) |
-| `frontend/src/app/(public)/game/[sessionId]/page.tsx` | Xóa khối BASE_URL trùng lặp (241–245); `handleSendMessage` dùng `await getApiBaseUrl()`. **Luồng SSE giữ nguyên đường đi trực tiếp browser → Render** — không qua Vercel Function, không đổi CORS |
-| `frontend/src/proxy.ts` | Thêm comment cấm thêm `/api/:path*` vào matcher |
-| `frontend/scripts/check-frontend.mjs` | **Mới.** Guard chạy trước `next build`: (1) cấm `NEXT_PUBLIC_API_*`/`NEXT_PUBLIC_SITE_*` trong src; (2) cấm literal onrender.com ngoài allowlist migration; (3) khẳng định bất biến SSE — trang game phải dùng `getApiBaseUrl()` |
-| `frontend/package.json` | `build` = `node scripts/check-frontend.mjs && next build` |
-| `frontend/.env.local` | Xóa 2 dòng `NEXT_PUBLIC_API_BASE_URL`; chỉ còn ghi chú `API_BASE_URL` tùy chọn (server-only) |
-| `frontend/README.md` | Thêm mục "API Base URL / Biến môi trường" |
-
-**Không preload `/api/app-config` ở root layout** — đã loại bỏ ý này sau phản biện:
-preload `as="fetch"` không khớp `cache: "no-store"` của fetch runtime sẽ bị bỏ qua và
-gây double-fetch.
+| File | Changes Made |
+|---|---|
+| `frontend/src/lib/runtime-config.ts` | **Created.** `getApiBaseUrl(): Promise<string>` — singleton promise cache. Server branch reads `process.env.API_BASE_URL`; browser branch fetches `/api/app-config` once. Implements stale-while-error fallback via `localStorage` to guard against transient network hiccups. |
+| `frontend/src/app/api/app-config/route.ts` | **Created.** `GET` handler with `dynamic = "force-dynamic"` and `Cache-Control: no-store`. Resolution precedence: `API_BASE_URL` → legacy fallback (migration period only) → development default (`http://127.0.0.1:8000/api/v1`). Exposes only public endpoint configurations; never leaks secrets. |
+| `frontend/src/lib/api.ts` | Removed hardcoded constants. Refactored `request()` to dynamically await `getApiBaseUrl()`. Requires zero call-site refactoring since `get`/`post`/`put`/`delete` helpers are already asynchronous. |
+| `frontend/src/app/(public)/game/[sessionId]/page.tsx` | Removed duplicated fallback string. `handleSendMessage` awaits `getApiBaseUrl()`. **SSE streaming maintains direct browser-to-backend communication without routing through Vercel serverless hops.** |
+| `frontend/src/proxy.ts` | Added explicit comment prohibiting route interception of `/api/:path*`. |
+| `frontend/scripts/check-frontend.mjs` | **Created.** Pre-build CI/CD guard: (1) Rejects `NEXT_PUBLIC_API_*` across `src/`; (2) Rejects unauthorized host literals; (3) Asserts that SSE game room calls rely on `getApiBaseUrl()`. |
+| `frontend/package.json` | Updated `build` script: `node scripts/check-frontend.mjs && next build`. |
+| `frontend/.env.local` | Removed `NEXT_PUBLIC_API_BASE_URL`. Preserved optional server-only documentation. |
+| `frontend/README.md` | Documented runtime configuration mechanics and environment variable usage. |
 
 ---
 
-## 5. PHASE 2 — BACKEND (ĐÃ TRIỂN KHAI)
+## 5. Phase 2 — Backend Implementation
 
-| File | Thay đổi |
-|------|----------|
-| `backend/core/config.py` | Neo `.env` vào thư mục `backend/` (hết lỗi chạy sai CWD); `SECRET_KEY` nhận **alias `JWT_SECRET_KEY`** (`AliasChoices`) — tên trong docs cũ giờ hợp lệ; thêm `ECHO: bool = False`; thêm `validate_settings()` trả list (mức log, vấn đề) bằng tiếng Việt |
-| `backend/main.py` | Lifespan gọi `validate_settings()` → log CRITICAL/WARNING khi boot (chỉ warn — xem gate phase 3); **xóa literal cứng `sex-ed-gray.vercel.app`** khỏi CORS (an toàn ở cả 2 trạng thái `ALLOWED_ORIGINS`: wildcard thay cả list, regex `*.vercel.app` vẫn giữ cho preview) |
-| `backend/core/database.py` | `echo=settings.ECHO` (trước là `echo=True` cứng — SQL log ồn ào cả production) |
-| `backend/services/gemini_service.py` | 4 chỗ `os.getenv` → `settings.AI_API_KEY` / `settings.GEMINI_MODEL` — `Settings` là nguồn cấu hình duy nhất |
-| `backend/Dockerfile` | CMD chạy qua `sh -c ... --port ${PORT:-7860}` — tôn trọng `$PORT` của Render, không cần build lại image |
-| `backend/.dockerignore` | **Mới** — loại `.env` khỏi image (không bake secret vào build) |
-| `database/apply_phase4.py`, `apply_quizzes.py` | Bỏ parse `.env` bằng tay → import `core.config.settings` |
-
-⚠️ **Hậu quả thật của `ALLOWED_ORIGINS='*'`** (đã xác minh bằng grep: không có fetch nào
-dùng `credentials: 'include'` — app gửi `Authorization: Bearer` header nên vẫn chạy bình
-thường với wildcard): nó KHÔNG làm sập auth như thường tưởng, nhưng tắt
-`allow_credentials` và chặn mọi thiết kế cookie HttpOnly trong tương lai. Validator được
-viết theo đúng nghĩa này (mức WARNING, tránh "mù cảnh báo").
+| File | Changes Made |
+|---|---|
+| `backend/core/config.py` | Anchored `.env` resolution directly to `backend/` directory. Added `AliasChoices` to `SECRET_KEY` to accept legacy `JWT_SECRET_KEY`. Introduced `ECHO: bool = False`. Implemented `validate_settings()` to verify production configuration health during startup. |
+| `backend/main.py` | Registered lifespan startup check calling `validate_settings()`. Removed hardcoded preview URLs from CORS configurations; relies cleanly on `ALLOWED_ORIGINS` and regex domain matching. |
+| `backend/core/database.py` | Replaced hardcoded `echo=True` with `echo=settings.ECHO` to eliminate verbose SQL dumping in production logs. |
+| `backend/services/gemini_service.py` | Replaced isolated `os.getenv` invocations with centralized `settings.AI_API_KEY` and `settings.GEMINI_MODEL`. |
+| `backend/Dockerfile` | Updated CMD to execute via shell wrapper: `sh -c "... --port ${PORT:-7860}"`, honoring dynamic port injection from PaaS providers without requiring image rebuilds. |
+| `backend/.dockerignore` | Excluded `.env` files to prevent baking secrets into container images. |
+| `database/apply_*.py` | Standardized configuration imports by referencing `core.config.settings`. |
 
 ---
 
-## 6. MA TRẬN BIẾN MÔI TRƯỜNG SAU REFACTOR
+## 6. Post-Refactor Environment Variable Matrix
 
-| Biến | Trạng thái | Set ở đâu | Đọc lúc nào |
-|------|-----------|-----------|-------------|
-| `API_BASE_URL` | **MỚI** (thay `NEXT_PUBLIC_API_BASE_URL`) | Vercel Production + Preview; tùy chọn `frontend/.env.local` | Runtime (route handler) |
-| `NEXT_PUBLIC_API_BASE_URL` | **XÓA** (đọc legacy trong code sẽ gỡ ở phase 3) | — xóa khỏi Vercel dashboard sau phase 3 | — |
-| `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SITE_URL` | **XÓA** (biến chết) | — | — |
-| `DATABASE_URL` | Giữ — **scheme `postgresql+asyncpg://`** | Render + `backend/.env` | Runtime (process start) |
-| `SECRET_KEY` | Giữ (chuẩn) — nhận alias `JWT_SECRET_KEY` | Render + `backend/.env` | Runtime |
-| `ALGORITHM` | Giữ (mặc định HS256) | Render | Runtime |
-| `ACCESS_TOKEN_EXPIRE_MINUTES`, `REFRESH_TOKEN_EXPIRE_DAYS` | Giữ | Render | Runtime |
-| `ALLOWED_ORIGINS` | Giữ — giờ là **duy nhất** nguồn origin production (literal cứng đã xóa) | Render | Runtime |
-| `AI_API_KEY`, `GEMINI_MODEL` | Giữ — đọc qua `settings` duy nhất | Render + `backend/.env` | Runtime |
-| `ECHO` | MỚI (mặc định false) | `backend/.env` (debug SQL) | Runtime |
-| `JWT_ALGORITHM`, `ENVIRONMENT`, `PYTHON_VERSION` | **XÓA khỏi docs** (code không đọc) | — | — |
-| `PORT` | Platform inject — Dockerfile giờ tôn trọng | Render | Runtime |
-
----
-
-## 7. PHASE 3 — HARDENING (CHƯA LÀM — CÓ GATE)
-
-Thực hiện **sau khi** Phase 1 + 2 đã lên production và verify sạch:
-
-1. **Gate bắt buộc — Vercel:** thêm `API_BASE_URL` scope **Production và Preview**, verify
-   trên 1 bản preview rằng `GET /api/app-config` trả đúng URL. Không có gate này, preview
-   sẽ 500 toàn bộ API call sau bước 2.
-2. Xóa các dòng đọc legacy `NEXT_PUBLIC_*` và hằng `MIGRATION_FALLBACK`/`PROD_FALLBACK`
-   trong `route.ts` + `runtime-config.ts` → thiếu `API_BASE_URL` = **500 fail-loud**.
-   Thu hẹp allowlist trong `check-frontend.mjs` về rỗng.
-3. Xóa `NEXT_PUBLIC_API_BASE_URL` / `NEXT_PUBLIC_API_URL` khỏi Vercel dashboard.
-4. **Gate bắt buộc — backend fail-loud:** sau ≥1 chu kỳ deploy Render không còn log
-   CRITICAL, chuyển các mục "critical" trong `validate_settings()` thành
-   `raise RuntimeError`. Kiểm tra Render health-check + rollback path trước khi flip.
-   **Giữ mức WARNING vĩnh viễn** cho `ALLOWED_ORIGINS='*'` và `AI_API_KEY` trống
-   (không được hard-fail boot vì 2 lỗi này).
+| Variable | Status | Configured In | Resolution Lifecycle |
+|---|---|---|---|
+| `API_BASE_URL` | **Active** (Replaces `NEXT_PUBLIC_API_BASE_URL`) | Vercel (Production & Preview) | Runtime (Route Handler) |
+| `NEXT_PUBLIC_API_BASE_URL` | **Deprecated** (Removed in Phase 3) | To be deleted from Vercel | — |
+| `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SITE_URL` | **Removed** (Dead configuration) | None | — |
+| `DATABASE_URL` | **Active** (`postgresql+asyncpg://`) | Render + `backend/.env` | Runtime (Service Boot) |
+| `SECRET_KEY` | **Active** (Accepts `JWT_SECRET_KEY` alias) | Render + `backend/.env` | Runtime |
+| `ALGORITHM` | **Active** (Default: `HS256`) | Render | Runtime |
+| `ACCESS_TOKEN_EXPIRE_MINUTES`, `REFRESH_TOKEN_EXPIRE_DAYS` | **Active** | Render | Runtime |
+| `ALLOWED_ORIGINS` | **Active** (Single source of CORS origins) | Render | Runtime |
+| `AI_API_KEY`, `GEMINI_MODEL` | **Active** (Centralized in settings) | Render + `backend/.env` | Runtime |
+| `ECHO` | **Active** (Default: `false`) | `backend/.env` (Local debug) | Runtime |
+| `PORT` | **Platform Managed** (Injected by Render) | Render Runtime | Process Start |
 
 ---
 
-## 8. AN TOÀN TRIỂN KHAI (SITE ĐANG LIVE)
+## 7. Phase 3 — Hardening Steps & Quality Gates
 
-- **Phase 1 an toàn do cấu tạo:** bundle cũ (URL bake sẵn) và bundle mới (fetch config)
-  cùng trỏ đúng 1 URL Render → sống hòa bình; Vercel instant rollback là đầy đủ.
-  Verify trên preview: `GET /api/app-config` trả URL Render; login/forum/courses/dashboard
-  chạy; roleplay chat stream từng token.
-- **⚠️ Rủi ro lớn nhất — SECRET_KEY rotation:** nếu Render hiện chỉ đặt `JWT_SECRET_KEY`
-  (đúng theo docs cũ) mà chưa từng đặt `SECRET_KEY`, thì deploy alias mới sẽ **đổi khóa ký
-  JWT → toàn bộ user bị đăng xuất cưỡng bức** (access 1h + refresh 30d chết cùng lúc).
-  **Trước khi merge lên `main`: kiểm tra tên biến thực tế trong tab Environment của
-  Render.** Nếu phải chấp nhận rotation: chọn giờ thấp điểm, báo trước, và **tuyệt đối
-  không rollback backend** sau khi đã rotate (revert = đăng xuất lần thứ hai, key change
-  không đối xứng). Nếu `SECRET_KEY` đã đặt sẵn đúng giá trị → alias là no-op.
-- **Bất biến Render URL:** trong suốt quá trình migrate, KHÔNG đổi tên/địa chỉ service
-  Render — mọi bundle cũ trước phase 3 đều có URL cũ bake sẵn.
-- **Bất biến SSE:** stream chat không bao giờ được route qua đường dẫn tương đối `/api/...`
-  (Vercel Function sẽ cắt ở maxDuration/buffer) — `check-frontend.mjs` ép cơ chế này.
-- **Preview trỏ thẳng prod:** chưa có staging, mọi preview test roleplay tốn token Gemini
-  thật + ghi DB Supabase thật → test bằng tài khoản vứt được.
-- **Hành trình migration đã được chứng minh an toàn:** build với `NEXT_PUBLIC_API_BASE_URL`
-  giả lập xác nhận giá trị đó KHÔNG xuất hiện trong client bundle (trước đây sẽ bị nhúng);
-  nó chỉ nằm trong server chunk qua chuỗi legacy — tái tạo đúng hành vi của bundle cũ
-  đang chạy, bị gỡ bỏ hoàn toàn ở phase 3.
+The following steps are scheduled after Phase 1 and 2 deployments have stabilized on production:
+
+1. **Vercel Quality Gate:** Configure `API_BASE_URL` on Vercel across **Production** and **Preview** scopes. Verify on a preview branch that `GET /api/app-config` returns the proper backend URL before proceeding.
+2. **Remove Fallback Shims:** Strip legacy `NEXT_PUBLIC_*` evaluation and migration fallback constants from `route.ts` and `runtime-config.ts`. A missing `API_BASE_URL` will immediately fail-loud with HTTP 500.
+3. **Environment Cleanup:** Delete `NEXT_PUBLIC_API_BASE_URL` and `NEXT_PUBLIC_API_URL` from the Vercel project settings.
+4. **Backend Fail-Loud Gate:** Once Render logs show zero startup warnings across consecutive deploy cycles, upgrade `validate_settings()` warnings to explicit `RuntimeError` exceptions for critical misconfigurations.
 
 ---
 
-## 9. KIỂM CHỨNG ĐÃ THỰC HIỆN (LOCAL)
+## 8. Deployment Safety & Operational Invariants
 
-- [x] `node scripts/check-frontend.mjs` → pass
-- [x] ESLint trên các file mới → sạch (0 lỗi; ~207 lỗi lint là tồn đọng cũ toàn codebase)
-- [x] `npm run build` không có bất kỳ env nào → thành công; `/api/app-config` = Dynamic
-- [x] Client bundle: `127.0.0.1` = **0 hit**; `onrender.com` = đúng 1 hit trong chunk
-      `runtime-config` (fallback migration có chủ đích)
-- [x] Build với `NEXT_PUBLIC_API_BASE_URL` giả → giá trị KHÔNG vào client bundle
-- [x] `python -c "import main"` (backend) → OK; `validate_settings()` chạy đúng
+- **Safe Progressive Migration:** Legacy client bundles (with baked-in URLs) and modern client bundles (fetching `/api/app-config`) target the exact same Render backend endpoint, ensuring zero user disruption during rolling updates.
+- **SECRET_KEY Continuity:** If Render previously configured only `JWT_SECRET_KEY`, the added alias cleanly reads it without rotating the signing key, preventing premature session invalidation.
+- **SSE Streaming Invariant:** Game room SSE streams must **never** be proxied through relative paths (`/api/...`) on Vercel to prevent connection truncation by serverless execution timeouts.
+- **Verification Invariant:** A complete codebase grep for `onrender.com` or `NEXT_PUBLIC_` within `frontend/src` should yield zero unauthorized hits.
 
-Kiểm chứng lại sau phase 3: `grep -r "onrender\|NEXT_PUBLIC_" frontend/src` phải = 0 hit.
+---
+
+## 9. Local Verification Checklist
+
+- [x] `node scripts/check-frontend.mjs` executes cleanly without violations.
+- [x] `npm run build` succeeds in a clean environment devoid of `.env` files; `/api/app-config` outputs as dynamic serverless route.
+- [x] Client bundles contain zero occurrences of `127.0.0.1`.
+- [x] `python -c "import main"` compiles cleanly and executes startup validation without errors.

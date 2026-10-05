@@ -1,82 +1,80 @@
-# KẾ HOẠCH TRIỂN KHAI BACKEND LÊN CLOUD RENDER (DEPLOYMENT PLAN)
+# Backend Deployment Guide: Cloud Render
 
 ---
 
-## 1. MỤC TIÊU VÀ LỢI THẾ
+## 1. Overview & Objectives
 
-- Triển khai ứng dụng Backend Python (FastAPI/SQLAlchemy) thành một **Web Service** trên nền tảng **Render.com**.
-- Kết nối tự động 100% với kho lưu trữ GitHub: mỗi khi bạn push code lên nhánh `main`, Render sẽ tự động build và cập nhật phiên bản mới.
-- Kết nối an toàn với cơ sở dữ liệu **Supabase PostgreSQL** trên Cloud.
+- Deploy the Python FastAPI backend application as a managed **Web Service** on [Render](https://render.com).
+- Continuous Deployment (CD) via GitHub: commits pushed to the `main` branch trigger automated builds and rolling deployments.
+- Secure connection to the cloud-hosted **Supabase PostgreSQL** database via connection pooling.
 
 ---
 
-## 2. QUY TRÌNH KỸ THUẬT TRÊN RENDER
+## 2. Technical Specifications
 
-1. **Cơ chế hoạt động:**
-   - Render tự động phát hiện ứng dụng Python qua `requirements.txt` hoặc `Dockerfile`.
-   - Cung cấp sẵn đường dẫn HTTPS bảo mật dạng: `https://[ten-service-cua-ban].onrender.com`.
-2. **Xử lý thư mục gốc (Root Directory):**
-   - Do dự án của bạn chia làm 3 thư mục (`backend/`, `frontend/`, `docs/`), trên Render ta chỉ cần đặt **Root Directory** là `backend` $\rightarrow$ Render sẽ chỉ tập trung đọc mã nguồn trong thư mục này.
-3. **Lệnh Build & Lệnh Start:**
+1. **Execution Runtime:**
+   - Render automatically provisions the Python runtime via `requirements.txt` or `Dockerfile`.
+   - Provides automated HTTPS certificate provisioning: `https://[your-service-name].onrender.com`.
+2. **Repository Root Directory:**
+   - The repository is organized into distinct subdirectories (`backend/`, `frontend/`, `docs/`).
+   - Configure **Root Directory** as `backend` on Render so that the service context is properly isolated.
+3. **Build & Start Commands:**
    - **Build Command:** `pip install --upgrade pip && pip install -r requirements.txt`
    - **Start Command:** `uvicorn main:app --host 0.0.0.0 --port $PORT`
 
 ---
 
-## 3. DANH SÁCH BIẾN MÔI TRƯỜNG CẦN CẤU HÌNH (RENDER ENVIRONMENT VARIABLES)
+## 3. Environment Variable Configuration
 
-Cấu hình các biến sau tại tab **Environment** trên Dashboard của Render. Tất cả biến đều
-được đọc lúc **runtime** (lúc khởi động process uvicorn) — build chỉ `pip install`, không
-nhúng giá trị nào.
+Configure the following variables in the **Environment** tab on the Render Dashboard. All configuration values are loaded strictly at **runtime** when the Uvicorn process initializes:
 
-| Tên biến (Key)                | Mục đích                                             | Ví dụ giá trị                                                                                 |
-| :---------------------------- | :--------------------------------------------------- | :-------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                | Chuỗi kết nối Supabase (Transaction Pooler) — **bắt buộc dùng scheme `postgresql+asyncpg://`** (driver async); kèm `?statement_cache_size=0` không cần thiết vì code đã đặt sẵn trong `core/database.py` | `postgresql+asyncpg://postgres.xxx:[PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres` |
-| `SECRET_KEY`                  | Khóa bí mật ký JWT (tên chuẩn trong code). **`JWT_SECRET_KEY` (tên cũ trong tài liệu này) vẫn được chấp nhận như alias** | `chuoi_bi_mat_ngau_nhien_64_ky_tu_cuc_kho_doan`                                               |
-| `ALGORITHM`                   | Thuật toán ký JWT (mặc định `HS256`)                 | `HS256`                                                                                       |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Thời hạn của Access Token (phút, mặc định 60)        | `60`                                                                                          |
-| `REFRESH_TOKEN_EXPIRE_DAYS`   | Thời hạn của Refresh Token / phiên đăng nhập (ngày, mặc định 30) | `30`                                                                              |
-| `ALLOWED_ORIGINS`             | Danh sách domain Frontend được phép gọi API (CORS), phân tách bởi dấu phẩy; `*` = cho tất cả (tắt credentials) | domain Vercel production                        |
-| `AI_API_KEY`                  | API key Google Gemini (bắt buộc cho roleplay AI)     | `AIza...`                                                                                     |
-| `GEMINI_MODEL`                | Model Gemini cho chat/eval (mặc định `gemini-flash-lite-latest`) | `gemini-flash-lite-latest`                                                        |
-| `ECHO`                        | Bật SQL logging của SQLAlchemy (mặc định `false`)    | `false`                                                                                       |
+| Variable Name | Description | Example / Recommended Value |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | Supabase Transaction Pooler connection string. **Must use the async driver scheme: `postgresql+asyncpg://`**. (`statement_cache_size=0` is automatically handled in `core/database.py`). | `postgresql+asyncpg://postgres.[REF]:[PASSWORD]@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres` |
+| `SECRET_KEY` | High-entropy secret key used to sign and verify JWT tokens (minimum 32 characters, recommended 64-char hex string). Accepts `JWT_SECRET_KEY` as a backward-compatible alias. | `[generated_random_64_char_secret_string]` |
+| `ALGORITHM` | JWT signing algorithm (default: `HS256`). | `HS256` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Access Token lifespan in minutes (default: `60`). | `60` |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | Refresh Token / user session validity period in days (default: `30`). | `30` |
+| `ALLOWED_ORIGINS` | Comma-separated list of allowed Frontend origins for CORS. Supports regex matching for preview deployments. Set to `*` for testing (disables credentialed cookies). | `https://chichan.vercel.app` |
+| `AI_API_KEY` | Google Gemini API Key (required for AI Roleplay simulations and evaluation). | `AIzaSy...` |
+| `GEMINI_MODEL` | Gemini model identifier for roleplay dialogue and evaluations (default: `gemini-flash-lite-latest`). | `gemini-flash-lite-latest` |
+| `ECHO` | Toggles SQLAlchemy SQL query debugging logs (default: `false`). | `false` |
 
-Các biến **không còn hiệu lực** (code không bao giờ đọc): `JWT_ALGORITHM` (tên chuẩn là
-`ALGORITHM`), `ENVIRONMENT`, `PYTHON_VERSION` (chỉ ý nghĩa với native Python runtime của
-Render, không tác dụng khi build bằng Dockerfile `python:3.12-slim`).
+> [!NOTE]
+> Deprecated variables that are no longer referenced by the codebase: `JWT_ALGORITHM` (standardized to `ALGORITHM`), `ENVIRONMENT`, and `PYTHON_VERSION` (superseded by Docker / native runtime defaults).
 
-> ⚠️ Khi khởi động, backend tự kiểm tra cấu hình (`validate_settings()` trong
-> `core/config.py`) và log mức **CRITICAL/WARNING** nếu `SECRET_KEY` còn mặc định,
-> `DATABASE_URL` sai scheme, thiếu `AI_API_KEY`, hoặc `ALLOWED_ORIGINS='*'`.
+> [!IMPORTANT]
+> During startup, the backend invokes `validate_settings()` in `core/config.py`. It outputs **CRITICAL** or **WARNING** log diagnostics if `SECRET_KEY` retains its default placeholder, `DATABASE_URL` uses an invalid driver scheme, `AI_API_KEY` is omitted, or `ALLOWED_ORIGINS` uses wildcard mode.
 
 ---
 
-## 4. QUY TRÌNH CÁC BƯỚC THỰC HIỆN TRÊN GIAO DIỆN RENDER (STEP-BY-STEP)
+## 4. Step-by-Step Deployment Walkthrough
 
-1. **Bước 1: Đăng nhập & Tạo Web Service mới**
-   - Truy cập `dashboard.render.com`, đăng nhập bằng tài khoản **GitHub**.
-   - Bấm nút **New +** ở góc trên bên phải $\rightarrow$ Chọn **Web Service**.
-2. **Bước 2: Kết nối GitHub Repository**
-   - Chọn kho lưu trữ (Repository) của dự án bạn đang làm việc.
-3. **Bước 3: Cấu hình thông số dự án**
-   - **Name:** Đặt tên cho Backend (VD: `sex-education-api`).
-   - **Region:** Chọn `Singapore` (để tối ưu tốc độ nhanh nhất về Việt Nam).
-   - **Branch:** Chọn `main`.
-   - **Root Directory:** Nhập `backend`.
-   - **Runtime:** Chọn `Python 3`.
-   - **Build Command:** `pip install -r requirements.txt`
+1. **Step 1: Sign in and Create Web Service**
+   - Access [dashboard.render.com](https://dashboard.render.com) and authenticate with your GitHub account.
+   - Click **New +** in the upper right corner and select **Web Service**.
+2. **Step 2: Connect GitHub Repository**
+   - Select the `chichan_platform` repository from the repository list.
+3. **Step 3: Configure Service Parameters**
+   - **Name:** Assign an identifier (e.g., `chichan-api`).
+   - **Region:** Select `Singapore` (optimal latency for users in Southeast Asia).
+   - **Branch:** Select `main` (or designated release branch).
+   - **Root Directory:** Enter `backend`.
+   - **Runtime:** Select `Python 3`.
+   - **Build Command:** `pip install --upgrade pip && pip install -r requirements.txt`
    - **Start Command:** `uvicorn main:app --host 0.0.0.0 --port $PORT`
-   - **Instance Type:** Chọn **Free** ($0/month).
-4. **Bước 4: Nhập Biến Môi trường (Environment Variables)**
-   - Cuộn xuống phần _Environment Variables_, thêm các cặp Key - Value đã liệt kê ở **Mục 3**.
-5. **Bước 5: Hoàn tất & Triển khai**
-   - Bấm nút **Create Web Service**.
-   - Render sẽ bắt đầu kéo code, cài đặt thư viện và khởi chạy ứng dụng.
+   - **Instance Type:** Select Free tier (or appropriate compute tier).
+4. **Step 4: Populate Environment Variables**
+   - In the **Environment Variables** section, enter the Key-Value pairs specified in Section 3.
+5. **Step 5: Deploy**
+   - Click **Create Web Service**.
+   - Render initiates the build process, installs dependencies, and launches the application.
 
 ---
 
-## 5. TIÊU CHÍ NGHIỆM THU (ACCEPTANCE CRITERIA)
+## 5. Verification & Acceptance Criteria
 
-- [ ] Render hiển thị trạng thái **Live** (Chấm xanh lá cây).
-- [ ] Mở đường link `https://[ten-service].onrender.com/docs` hiển thị giao diện tương tác Swagger UI đầy đủ 6 Features.
-- [ ] Thực hiện test gọi API Đăng ký (`POST /api/v1/auth/register`) thành công và dữ liệu lập tức hiển thị trên Supabase Table Editor.
+- [ ] Render service status transitions to **Live** with a green indicator.
+- [ ] Navigating to `https://[your-service-name].onrender.com/docs` opens the interactive Swagger UI displaying all API endpoints.
+- [ ] Calling the health check endpoint `GET /` returns `{"message": "ChiChan Platform API is running!", "status": "healthy"}`.
+- [ ] Registering an account via `POST /api/v1/auth/register` succeeds and creates a corresponding record in the Supabase `users` table.

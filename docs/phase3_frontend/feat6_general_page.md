@@ -1,108 +1,90 @@
-# FEATURE 06: GENERAL PAGES (FRONTEND UI/UX SPECS)
+# Feature Specification 06: General Pages & CMS Settings (Frontend UI/UX)
 
 ---
 
-## 1. MỤC TIÊU VÀ PHẠM VI
+## 1. Scope & Technical Objectives
 
-- Xây dựng giao diện công khai đón tiếp người dùng với phong cách thân thiện, chuẩn mực khoa học và xóa tan rào cản e ngại:
-  1. **Trang Chủ (Home Page):** Truyền tải thông điệp sứ mệnh, phân loại khóa học trực quan theo 2 nhóm đối tượng (`Phụ huynh` và `Trẻ nhỏ`) và giới thiệu diễn đàn cộng đồng.
-  2. **Trang Giới thiệu (About Us Page):** Trình bày chi tiết đề tài nghiên cứu khoa học, phương pháp tiếp cận, đội ngũ tác giả/chuyên gia và tiếp nhận đóng góp ý kiến.
+- Deliver public-facing pages welcoming learners with a warm, scientific, and stigma-free design language:
+  1. **Home Page (`/`):** Communicates the platform mission, provides demographic tabs separating parent and adolescent curricula, showcases the AI roleplay simulator, and highlights community discussions.
+  2. **About Us (`/about`):** Details the scientific research origin at Giong Ong To High School, pedagogical framework, advisory board disclosures, and academic feedback channels.
 
 ---
 
-## 2. CẤU TRÚC ĐỊNH TUYẾN (NEXT.JS APP ROUTER)
+## 2. Next.js Routing Architecture
 
 ```text
 frontend/src/app/
-├── (main)/
-│   ├── page.tsx                        # Trang Chủ (/ - Home Page)
-│   ├── about/
-│   │   └── page.tsx                    # Trang Giới thiệu nghiên cứu (/about)
-│   └── components/
-│       ├── Header.tsx                  # Thanh điều hướng chung (Navbar)
-│       ├── Footer.tsx                  # Chân trang & Thông tin đề tài
-│       ├── HeroBanner.tsx              # Banner mở đầu trang chủ
-│       ├── AudienceCourseTabs.tsx      # Tab chuyển đổi khóa học Phụ huynh / Trẻ nhỏ
-│       └── ResearchMissionCard.tsx     # Khối trình bày mục tiêu nghiên cứu khoa học
+└── (public)/
+    ├── page.tsx                        # Home Page (/)
+    ├── about/
+    │   └── page.tsx                    # Scientific Research Overview (/about)
+    ├── _components/
+    │   ├── Header.tsx                  # Public Navigation Shell
+    │   └── Footer.tsx                  # Footer & Institutional Disclosures
+    └── _home/
+        ├── HeroTypingTitle.tsx         # Animated Hero Title
+        ├── HeroVisualShowcase.tsx      # Interactive Hero Visual Canvas
+        ├── ThreeStepJourney.tsx        # 3-Step Educational Philosophy
+        └── FeaturedRoleplaySection.tsx # AI Simulation Room Showcase
 ```
 
 ---
 
-## 3. THIẾT KẾ GIAO DIỆN & TRẢI NGHIỆM NGƯỜI DÙNG (UI/UX DESIGN)
+## 3. UI/UX Interface Specifications
+
+### 3.1. Home Page (`/`)
+
+#### A. Hero Banner:
+- **Visual Design:** Warm, welcoming palette (Pastel Indigo, Coral Peach) depicting supportive family connections and adolescent growth.
+- **Primary Headline (H1):** *"Scientific Sex Education & Digital Safety Platform"*.
+- **Subtitle:** Medically grounded, stigma-free learning designed to empower Vietnamese youth and foster open parent-child conversations.
+- **Call-to-Action Triggers:**
+  - Primary CTA: **"Explore Courses"** $\rightarrow$ Scrolls to course catalog section.
+  - Secondary CTA: **"Learn About Our Research"** $\rightarrow$ Navigates to `/about`.
+
+#### B. Three Core Educational Pillars:
+1. **Medically Verified Science:** Curricula reviewed by adolescent healthcare specialists.
+2. **Empathetic & Accessible:** Non-judgmental language and visual storytelling tailored to developmental stages.
+3. **Safe & Moderated Discourse:** Anonymous community forum and AI roleplay rooms for risk-free experiential learning.
+
+#### C. Audience-Targeted Course Tabs:
+Tabs allowing learners to toggle between audience segments:
+- **Tab 1: "For Parents"**
+  - Features 3–4 parent-focused courses (e.g., *"Guiding Adolescents Through Puberty", "Active Listening Strategies"*).
+- **Tab 2: "For Teens & Students"**
+  - Features 3–4 youth-focused courses (e.g., *"Understanding Body Transitions", "Online Safety & Boundary Defense"*).
+- **Catalog Navigation:** "View All Courses →" anchor linking to `/courses`.
+
+#### D. Community Forum Highlights:
+- Displays top 3 recent discussions from the moderated forum.
+- Anchor button: **"Join Community Forum"** linking to `/forum`.
 
 ---
 
-### 3.1. Trang Chủ — Home Page (`/`)
+### 3.2. About Us Page (`/about`)
 
-#### A. Khu vực Hero Banner (Khu vực mở đầu):
+#### A. Academic Research Background:
+- **Initiative Headline:** *"Scientific Research Initiative: Digital Sex Education & Self-Defense Platform for Vietnamese Adolescents"*.
+- **Institutional Context:** Originating at Giong Ong To High School, addressing communication barriers and promoting evidence-based sex education.
 
-- **Bối cảnh hình ảnh/đồ họa:** Hình minh họa ấm áp, gắn kết gia đình và tuổi học trò (Tông màu Pastel: Xanh dương nhạt, Cam đào).
-- **Khẩu hiệu chính (H1):** _"Giáo dục Giới tính Chuẩn Khoa học — Đồng hành An toàn cùng Bạn & Gia đình"_.
-- **Mô tả phụ:** Nền tảng học tập trực tuyến chuẩn y khoa, giúp thanh thiếu niên tự tin hiểu rõ cơ thể và phụ huynh dễ dàng chia sẻ cùng con.
-- **Nút Kêu gọi Hành động (CTA Buttons):**
-  - Nút 1 (Primary): **"Khám phá Khóa học"** $\rightarrow$ Cuộn xuống khu vực Tab Khóa học.
-  - Nút 2 (Outline): **"Tìm hiểu Đề tài Nghiên cứu"** $\rightarrow$ Chuyển sang trang `/about`.
+#### B. Information Cards:
+1. **Research Objectives:** Developing technological solutions to enhance adolescent self-defense, mitigate cyber exploitation risks, and bridge generational communication divides.
+2. **Pedagogical Methodology:** Age-stratified modular curricula coupled with interactive AI roleplay simulation training.
+3. **Research Team & Advisors:**
+   - Author profile cards: Portrait, name, institutional affiliation, project role.
+   - Medical advisors and academic consultation panel disclosures.
 
-#### B. Khu vực Giá trị Cốt lõi (3 Core Pillars Grid):
-
-- **Cột 1: Chuẩn Y khoa & Khoa học** (Icon Khiên bảo vệ/Kính lúp) — Kiến thức chính xác, được kiểm duyệt bởi chuyên gia y tế.
-- **Cột 2: Không Rào cản & Thân thiện** (Icon Trái tim/Nụ cười) — Ngôn ngữ cởi mở, hình ảnh sinh động, phù hợp từng lứa tuổi.
-- **Cột 3: Cộng đồng Thảo luận An toàn** (Icon Bong bóng chat) — Nơi trao đổi câu hỏi tế nhị với sự kiểm duyệt chặt chẽ.
-
-#### C. Khu vực Khóa học Nổi bật theo Đối tượng (Audience Course Tabs):
-
-Sử dụng Shadcn `Tabs` lớn để phân loại rõ ràng:
-
-- **Tab 1: "Dành cho Phụ huynh" 👨‍👩‍👧‍👦**
-  - Hiển thị danh sách 3–4 thẻ khóa học có `target_audience IN ('PARENT', 'BOTH')`.
-  - Tiêu đề ví dụ: _"Kỹ năng trò chuyện về giới tính cùng con", "Đồng hành qua giai đoạn dậy thì"_.
-- **Tab 2: "Dành cho Học sinh / Trẻ nhỏ" 🎒**
-  - Hiển thị danh sách 3–4 thẻ khóa học có `target_audience IN ('CHILD', 'BOTH')`.
-  - Tiêu đề ví dụ: _"Cơ thể tôi đang thay đổi như thế nào?", "Kỹ năng nhận biết và phòng tránh xâm hại"_.
-- Nút bấm dưới cùng: **"Xem toàn bộ khóa học →"** $\rightarrow$ Dẫn sang `/courses`.
-
-#### D. Khu vực Thảo luận Diễn đàn Mới nhất (Recent Forum Feed):
-
-- Hiển thị 3 thẻ bài viết câu hỏi/chia sẻ mới nhất trên Diễn đàn.
-- Nút bấm: **"Tham gia Diễn đàn Cộng đồng"** $\rightarrow$ Dẫn sang `/forum`.
+#### C. Academic Feedback Channel:
+- Dedicated institutional contact module allowing educators, researchers, and healthcare professionals to submit feedback on pedagogical content.
 
 ---
 
-### 3.2. Trang Giới thiệu — About Us (`/about`)
+## 4. UI Components & Tokens
 
-#### A. Tiêu đề & Bối cảnh Đề tài (Research Header):
-
-- **Tiêu đề đề tài (H1):** _"Đề tài Nghiên cứu Khoa học: Nền tảng E-learning trong Phổ cập Giáo dục Giới tính tại Việt Nam"_.
-- **Thông điệp sứ mệnh:** Xóa bỏ sự e ngại, mang đến nguồn kiến thức giáo dục giới tính bình đẳng, dễ tiếp cận cho mọi trẻ em và cha mẹ trên khắp cả nước.
-
-#### B. Các nội dung chính được trình bày theo dạng Khối (Cards):
-
-1. **Mục tiêu Nghiên cứu:** Cung cấp giải pháp công nghệ nhằm nâng cao nhận thức giới tính, giảm thiểu nguy cơ xâm hại và định hướng sức khỏe sinh sản tuổi vị thành niên.
-2. **Phương pháp Tiếp cận:** Phân loại nội dung học tập theo đúng tâm lý đối tượng (Phụ huynh vs Học sinh), kết hợp diễn đàn hỏi đáp an toàn.
-3. **Đội ngũ Nghiên cứu & Giảng viên Cố vấn:**
-   - Thẻ thông tin thành viên nghiên cứu: Ảnh, Họ tên, Đơn vị/Trường nghiên cứu, Vai trò dự án.
-   - Thẻ thông tin Chuyên gia/Bác sĩ cố vấn chuyên môn.
-
-#### C. Khung Đóng góp Ý kiến Nghiên cứu (Academic Feedback Section):
-
-- Hộp thông tin liên hệ gửi thư điện tử tiếp nhận phản hồi từ các nhà khoa học, nhà giáo dục và người dùng quan tâm đến đề tài.
-
----
-
-## 4. DANH MỤC SHADCN/UI COMPONENTS SỬ DỤNG
-
-| Component                                        | Mục đích sử dụng                                                          |
-| :----------------------------------------------- | :------------------------------------------------------------------------ |
-| `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | Chuyển đổi giữa 2 nhóm khóa học Phụ huynh và Trẻ nhỏ trên trang chủ       |
-| `Card`, `CardHeader`, `CardTitle`, `CardContent` | Khung hiển thị các khóa học, trụ cột giá trị và thông tin nhóm nghiên cứu |
-| `Badge`                                          | Gắn nhãn đối tượng (`PARENT` / `CHILD`)                                   |
-| `Avatar`, `AvatarImage`, `AvatarFallback`        | Ảnh đại diện của đội ngũ nghiên cứu và giảng viên cố vấn                  |
-| `Button`                                         | Nút kêu gọi hành động CTA ("Khám phá khóa học", "Đăng ký ngay")           |
-| `Separator`                                      | Đường phân chia thẩm mỹ giữa các phân đoạn nội dung trên trang            |
-
----
-
-## 5. TỐI ƯU HÓA TỐC ĐỘ & SEO (NEXT.JS SERVER COMPONENTS)
-
-- Toàn bộ trang Home (`/`) và trang About (`/about`) được render dưới dạng **Server Components (SSR)**.
-- Dữ liệu khóa học nổi bật và thông tin nghiên cứu được nạp trước từ Backend $\rightarrow$ Tốc độ tải trang đạt mức tức thì (dưới 1 giây) và tối ưu hóa SEO hoàn hảo cho bài báo khoa học.
+| Component | Purpose / Usage |
+| :--- | :--- |
+| `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | Demographic course filtering tabs on the landing page |
+| `Card`, `CardHeader`, `CardTitle`, `CardContent` | Course preview cards, core pillar tiles, and research credits |
+| `Badge` | Target audience tags (`PARENT` / `CHILD`) |
+| `Avatar`, `AvatarImage`, `AvatarFallback` | Portraits for authors and advisory board members |
+| `Button` | High-visibility CTA anchors and navigation controls |

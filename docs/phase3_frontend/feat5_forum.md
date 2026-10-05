@@ -1,141 +1,96 @@
-# FEATURE 05: FORUM & COMMUNITY (FRONTEND UI/UX SPECS)
+# Feature Specification 05: Forum & Community (Frontend UI/UX)
 
 ---
 
-## 1. MỤC TIÊU VÀ PHẠM VI
+## 1. Scope & Technical Objectives
 
-- Xây dựng giao diện Diễn đàn thảo luận cộng đồng an toàn, văn minh và cởi mở về các vấn đề giáo dục giới tính.
-- Cho phép người dùng:
-  - Duyệt bài viết theo chuyên mục/chủ đề và tìm kiếm câu hỏi.
-  - Đăng bài viết chia sẻ thắc mắc.
-  - Viết bình luận và trả lời bình luận lồng nhau (Nested Comment Thread).
-- **Giao diện Kiểm duyệt Độc quyền (Admin Moderation UI):**
-  - Chỉ tài khoản có Role `ADMIN` mới nhìn thấy menu thao tác **Ẩn (`Hide`)** hoặc **Xóa (`Delete`)** bài viết/bình luận.
-  - Người dùng bình thường và Giảng viên hoàn toàn không nhìn thấy các nút kiểm duyệt này.
+- Deliver a safe, civil, and open community forum interface for discussions on sex education, reproductive health, and digital safety.
+- User capabilities:
+  - Browse discussions by thematic categories and perform keyword searches.
+  - Publish new inquiry threads.
+  - Submit comments and engage in nested reply conversations.
+- **Exclusive Administrative Moderation Interface:**
+  - Action triggers to **Hide (`HIDDEN`)** or **Delete (`DELETED`)** content are rendered **strictly for accounts with the `ADMIN` role**.
+  - Standard learners and educators have zero exposure to moderation controls.
 
 ---
 
-## 2. CẤU TRÚC ĐỊNH TUYẾN (NEXT.JS APP ROUTER)
+## 2. Next.js Routing Architecture
 
 ```text
 frontend/src/app/
-├── (main)/
-│   └── forum/
-│       ├── page.tsx                        # Trang Danh sách bài viết Diễn đàn (/forum)
-│       └── [postId]/
-│           └── page.tsx                    # Trang Chi tiết bài viết & Thảo luận (/forum/[postId])
-└── components/forum/
-    ├── CategoryFilterChips.tsx             # Thanh chọn chuyên mục dạng viên thuốc (Pill Chips)
-    ├── PostFeedCard.tsx                    # Thẻ hiển thị tóm tắt bài viết trên Feed
-    ├── CreatePostModal.tsx                 # Modal tạo bài viết thảo luận mới
-    ├── CommentThread.tsx                   # Khung bình luận và trả lời lồng nhau
-    └── AdminModerationActions.tsx          # Menu Ẩn/Xóa ĐỘC QUYỀN cho Admin
+└── (public)/
+    └── forum/
+        ├── page.tsx                        # Forum Feed & Categorized Listing (/forum)
+        └── [postId]/
+            └── page.tsx                    # Detailed Thread & Comment Tree (/forum/[postId])
 ```
 
 ---
 
-## 3. THIẾT KẾ GIAO DIỆN & TRẢI NGHIỆM NGƯỜI DÙNG (UI/UX DESIGN)
+## 3. UI/UX Interface Specifications
 
-### 3.1. Trang Danh sách Diễn đàn (`/forum`)
+### 3.1. Forum Feed Listing (`/forum`)
 
-#### A. Thanh công cụ đầu trang (Header & Actions):
+#### A. Header & Search Controls:
+- **Title:** "Community Forum & Sex Education Q&A".
+- **Search Bar:** Real-time debounced keyword search input.
+- **Primary CTA:** "+ Ask Question / Start Discussion" (Requires authentication $\rightarrow$ Triggers `CreatePostModal`).
+- **Category Filter Chips:**
+  - Rounded pills: `All` | `Reproductive Health` | `Puberty Psychology` | `Safety & Boundary Defense` | `Parent Corner`.
 
-- **Tiêu đề:** "Diễn đàn Hỏi đáp & Chia sẻ Kiến thức Giới tính".
-- **Thanh tìm kiếm (Search Input):** Tìm kiếm bài viết theo từ khóa.
-- **Nút hành động nổi bật:** Nút Primary **"+ Đặt câu hỏi / Đăng bài"** (Chỉ hiển thị khi đã đăng nhập $\rightarrow$ Mở `CreatePostModal`).
-- **Thanh lọc chuyên mục (Category Chips):**
-  - Dạng nút bấm bo tròn: `Tất cả` | `Sức khỏe sinh sản` | `Tâm lý tuổi dậy thì` | `Kỹ năng an toàn & Phòng chống xâm hại` | `Góc Phụ huynh`.
-
-#### B. Danh sách Bài viết (Post Feed Cards):
-
-Mỗi bài viết là một Card trang nhã với:
-
-- **Thông tin tác giả:** Avatar + Tên tác giả + Badge vai trò (`Phụ huynh`, `Học sinh`, `Giảng viên`, `Admin`) + Thời gian đăng (VD: _2 giờ trước_).
-- **Chuyên mục:** Badge nhỏ (VD: _Tâm lý tuổi dậy thì_).
-- **Tiêu đề bài viết:** In đậm, cỡ chữ vừa phải.
-- **Nội dung tóm tắt:** 2 dòng ngắn gọn.
-- **Chân thẻ:** Icon bình luận kèm số lượng (VD: `💬 8 bình luận`).
-- **Nút kiểm duyệt Admin (Chỉ Admin nhìn thấy):** Icon 3 chấm góc trên bên phải chứa nút _Ẩn bài viết_ và _Xóa bài viết_.
+#### B. Thread Feed Cards:
+Each discussion card displays:
+- **Author Identity:** Avatar + Name + Demographic Badge (`Parent`, `Student`, `Instructor`, `Admin`) + Relative Timestamp (e.g., *2 hours ago*).
+- **Category Tag:** Compact thematic badge (e.g., *Puberty Psychology*).
+- **Title:** Semibold typography linking to the full thread.
+- **Excerpt:** Two-line truncated synopsis.
+- **Card Footer:** Comment counter with icon (e.g., `8 replies`).
+- **Admin Moderation Trigger (ADMIN Only):** Contextual three-dot dropdown containing *Hide Thread* and *Delete Thread* actions.
 
 ---
 
-### 3.2. Trang Chi tiết Bài viết & Bình luận (`/forum/[postId]`)
+### 3.2. Detailed Thread & Nested Discussions (`/forum/[postId]`)
 
-#### A. Khu vực Bài viết chính:
+#### A. Primary Thread Section:
+- "← Back to Forum" return anchor.
+- Full post headline and categorized metadata.
+- Author profile information.
+- Complete thread body.
+- Administrative moderation triggers (Hide/Delete) if caller holds `ADMIN` privileges.
 
-- Nút "← Quay lại Diễn đàn".
-- Tiêu đề bài viết đầy đủ.
-- Thông tin tác giả chi tiết.
-- Nội dung văn bản chia sẻ đầy đủ.
-- Menu kiểm duyệt dành riêng cho Admin (Ẩn/Xóa).
+#### B. Comment Submission Box:
+- Authenticated view: Multi-line textarea with "Submit Comment" button.
+- Unauthenticated view: Banner prompting *"Sign in to join the conversation"* linking to the sign-in route.
 
-#### B. Khung Gửi Bình luận (Comment Input Box):
-
-- Nếu đã đăng nhập: Khung Textarea nhập nội dung + Nút "Gửi bình luận".
-- Nếu chưa đăng nhập: Banner nhỏ _"Vui lòng đăng nhập để tham gia thảo luận"_ kèm nút bấm chuyển sang trang Login.
-
-#### C. Cây Danh sách Bình luận (Nested Comments Thread):
-
-- **Bình luận cấp 1:**
-  - Avatar + Tên người bình luận + Badge Role + Thời gian.
-  - Nội dung bình luận.
-  - Nút "Trả lời" (Reply) $\rightarrow$ Mở ô nhập liệu nhỏ ngay bên dưới.
-  - **Menu kiểm duyệt của Admin (Chỉ Admin nhìn thấy):** Nút _Ẩn bình luận_ / _Xóa bình luận_.
-- **Bình luận cấp 2 (Phản hồi thụt đầu dòng):**
-  - Hiển thị lùi vào 1 khoảng (Indented `pl-6 border-l-2`) để phân biệt rõ câu trả lời cho bình luận nào.
+#### C. Nested Comment Tree:
+- **Top-Level Comments:**
+  - Avatar, author name, demographic role badge, and timestamp.
+  - Comment text.
+  - "Reply" trigger toggling inline reply input.
+  - Admin moderation actions (Hide/Delete).
+- **Nested Replies (Indented Conversation):**
+  - Indented visual hierarchy (`pl-6 border-l-2`) visually grouping replies beneath their parent comment.
 
 ---
 
-### 3.3. Thiết kế Kiểm duyệt Admin (Admin Moderation UI Modal)
+### 3.3. Administrative Moderation Modal
 
-- Khi Admin click chọn "Ẩn bài viết" hoặc "Xóa bình luận":
-- Hiển thị một **AlertDialog (Hộp thoại xác nhận)** của Shadcn:
-  - _Tiêu đề:_ "Xác nhận kiểm duyệt nội dung"
-  - _Nội dung:_ "Bạn có chắc chắn muốn ẩn/xóa bài viết này khỏi diễn đàn công khai?"
-  - _Nút bấm:_ "Hủy" và Nút đỏ nguy hiểm: "Xác nhận Ẩn/Xóa".
-- Sau khi bấm xác nhận: Gọi API kiểm duyệt $\rightarrow$ Ẩn nội dung ngay lập tức trên UI và bắn Toast thông báo.
-
----
-
-## 4. DANH MỤC SHADCN/UI COMPONENTS SỬ DỤNG
-
-| Component                                 | Mục đích sử dụng                                      |
-| :---------------------------------------- | :---------------------------------------------------- |
-| `Card`, `CardHeader`, `CardContent`       | Khung hiển thị các bài viết trên Feed                 |
-| `Dialog`, `DialogContent`, `DialogHeader` | Modal tạo bài viết thảo luận mới                      |
-| `AlertDialog`, `AlertDialogAction`        | Hộp thoại xác nhận Ẩn / Xóa dành riêng cho Admin      |
-| `DropdownMenu`, `DropdownMenuItem`        | Menu tùy chọn 3 chấm kiểm duyệt của Admin             |
-| `Badge`                                   | Đánh dấu Role của tác giả và nhãn Chuyên mục bài viết |
-| `Avatar`, `AvatarImage`, `AvatarFallback` | Ảnh đại diện của người đăng bài và người bình luận    |
-| `Textarea`, `Input`                       | Ô nhập nội dung bài viết và bình luận                 |
-| `Button`                                  | Nút "Đăng bài", "Gửi bình luận", "Trả lời"            |
+- Clicking "Hide Thread" or "Delete Comment" displays a confirmation modal:
+  - *Title:* "Confirm Content Moderation"
+  - *Message:* "Are you sure you want to remove this content from the public community forum?"
+  - *Actions:* "Cancel" and a destructive "Confirm Moderation" button.
+- Confirmation triggers the moderation API, removes the item from the active feed, and displays a feedback toast notification.
 
 ---
 
-## 5. ĐIỀU KIỆN ẨN/HIỆN GIAO DIỆN KIỂM DUYỆT (ROLE GUARD LOGIC)
+## 4. UI Components & Tokens
 
-```tsx
-// Logic hiển thị nút kiểm duyệt trên React Component
-{
-  currentUser?.role === "ADMIN" && (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <MoreVertical className="h-4 w-4 text-gray-500" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => handleModerate("HIDE")}>
-          Ẩn bài viết
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => handleModerate("DELETE")}
-          className="text-red-600"
-        >
-          Xóa bài viết
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-```
+| Component | Purpose / Usage |
+| :--- | :--- |
+| `Card`, `CardContent` | Feed discussion cards and comment blocks |
+| `Input` | Forum search input |
+| `Textarea` | Post creation and comment submission forms |
+| `Badge` | Category tags and user demographic badges |
+| `DropdownMenu` | Administrative moderation action menus |
+| `AlertDialog` | Destructive action confirmation dialogs |

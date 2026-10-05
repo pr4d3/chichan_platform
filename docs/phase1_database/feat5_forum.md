@@ -1,89 +1,89 @@
-# FEATURE DOC 05: FORUM & COMMUNITY (DIỄN ĐÀN THẢO LUẬN)
+# Feature Specification 05: Forum & Community (Database)
 
 ---
 
-## 1. MỤC TIÊU VÀ PHẠM VI
+## 1. Scope & Technical Objectives
 
-- Tạo không gian trao đổi, giải đáp thắc mắc cởi mở và an toàn về giáo dục giới tính giữa học viên, phụ huynh và giảng viên/chuyên gia.
-- Đảm bảo môi trường thảo luận chuẩn mực thông qua cơ chế kiểm duyệt chặt chẽ: **Chỉ có `ADMIN` mới có quyền Ẩn hoặc Xóa bài viết / bình luận**.
-
----
-
-## 2. QUY TẮC NGHIỆP VỤ (BUSINESS LOGIC)
-
-### 2.1. Quyền tương tác và Đăng tải
-
-- Tất cả người dùng đã đăng nhập (`ADMIN`, `INSTRUCTOR`, `STUDENT_PARENT`, `STUDENT_CHILD`) đều có quyền:
-  - Tạo bài viết thảo luận mới (`Posts`) theo từng chủ đề/danh mục cụ thể.
-  - Viết bình luận (`Comments`) hoặc phản hồi bình luận của người khác trong bài viết.
-  - Xem các bài viết và bình luận đang ở trạng thái công khai (`PUBLISHED`).
-
-### 2.2. Quy tắc Kiểm duyệt Độc quyền của Admin (Admin Moderation Rule)
-
-- **Quyền hạn duy nhất:** Chỉ duy nhất tài khoản có vai trò `ADMIN` mới có quyền thay đổi trạng thái bài viết/bình luận sang **Ẩn (`HIDDEN`)** hoặc **Xóa (`DELETED`)**.
-- Giảng viên và Học viên không có quyền xóa/ẩn bình luận của người khác.
-- Khi một bình luận/bài viết bị Admin chuyển sang `HIDDEN` hoặc `DELETED`:
-  - Người dùng thông thường sẽ không thể nhìn thấy nội dung đó nữa.
-  - Bản ghi trong Database vẫn được giữ lại (Cơ chế Xóa mềm - Soft Delete) để phục vụ việc đối soát hoặc thu thập dữ liệu nghiên cứu hành vi.
+- Provide an open, safe, and moderated community forum for learners, parents, and educators to discuss sensitive sex education and safety topics.
+- Enforce strict content moderation invariants: **Only `ADMIN` users hold authority to Hide or Delete posts and comments**.
 
 ---
 
-## 3. THIẾT KẾ DATABASE SCHEMA (PHASE 1)
+## 2. Business Logic
 
-### 3.1. Bảng `forum_categories` (Chủ đề / Chuyên mục thảo luận)
+### 2.1. Participation & Interaction Rules
 
-_Phân loại các chủ đề giáo dục giới tính (VD: Sức khỏe sinh sản, Tâm lý dậy thì, Kỹ năng an toàn...)._
+- Authenticated users across all four roles (`ADMIN`, `INSTRUCTOR`, `STUDENT_PARENT`, `STUDENT_CHILD`) can:
+  - Create new discussion threads (`Posts`) categorized by domain topics.
+  - Submit comments and replies to peer discussions.
+  - View public discussions in `PUBLISHED` status.
 
-| Tên trường (Field) | Kiểu dữ liệu (Data Type) | Ràng buộc (Constraints)         | Ý nghĩa / Ghi chú               |
-| :----------------- | :----------------------- | :------------------------------ | :------------------------------ |
-| `id`               | Integer                  | Primary Key, Auto Increment     | Khóa chính                      |
-| `name`             | String (Varchar 100)     | Unique, Not Null                | Tên chuyên mục                  |
-| `slug`             | String (Varchar 100)     | Unique, Not Null                | Đường dẫn tĩnh                  |
-| `description`      | Text                     | Nullable                        | Mô tả định hướng của chuyên mục |
-| `created_at`       | Timestamp                | Not Null, Default: Current Time | Thời gian tạo                   |
+### 2.2. Exclusive Administrative Moderation
 
----
-
-### 3.2. Bảng `forum_posts` (Bài viết thảo luận)
-
-_Lưu các bài viết do người dùng đăng lên diễn đàn._
-
-| Tên trường (Field) | Kiểu dữ liệu (Data Type) | Ràng buộc (Constraints)                         | Ý nghĩa / Ghi chú                            |
-| :----------------- | :----------------------- | :---------------------------------------------- | :------------------------------------------- |
-| `id`               | BigInteger / UUID        | Primary Key                                     | Khóa chính bài viết                          |
-| `category_id`      | Integer                  | Foreign Key -> `forum_categories(id)`, Not Null | Thuộc chuyên mục nào                         |
-| `author_id`        | BigInteger / UUID        | Foreign Key -> `users(id)`, Not Null            | Người đăng bài                               |
-| `title`            | String (Varchar 255)     | Not Null                                        | Tiêu đề bài viết                             |
-| `content`          | Text / LongText          | Not Null                                        | Nội dung câu hỏi/chia sẻ                     |
-| `status`           | String (Varchar 20)      | Not Null, Default: `PUBLISHED`                  | Trạng thái: `PUBLISHED`, `HIDDEN`, `DELETED` |
-| `moderated_by`     | BigInteger / UUID        | Foreign Key -> `users(id)`, Nullable            | Admin thực hiện ẩn/xóa bài                   |
-| `created_at`       | Timestamp                | Not Null, Default: Current Time                 | Thời gian tạo                                |
-| `updated_at`       | Timestamp                | Not Null, Default: Current Time                 | Thời gian sửa                                |
+- **Exclusive Authority:** Only accounts with the `ADMIN` role can update content status to `HIDDEN` or `DELETED`.
+- Instructors and students cannot hide or delete third-party content.
+- Soft-Delete Discipline: When content is marked `HIDDEN` or `DELETED`:
+  - It is instantly filtered from public view.
+  - The record is preserved in the database to maintain audit trails and support research analytics into online discourse safety.
 
 ---
 
-### 3.3. Bảng `forum_comments` (Bình luận & Phản hồi)
+## 3. Database Schema Design
 
-_Lưu các bình luận trao đổi trong từng bài viết._
+### 3.1. Table: `forum_categories` (Topic Categorization)
 
-| Tên trường (Field)  | Kiểu dữ liệu (Data Type) | Ràng buộc (Constraints)                                    | Ý nghĩa / Ghi chú                            |
-| :------------------ | :----------------------- | :--------------------------------------------------------- | :------------------------------------------- |
-| `id`                | BigInteger / UUID        | Primary Key                                                | Khóa chính bình luận                         |
-| `post_id`           | BigInteger / UUID        | Foreign Key -> `forum_posts(id)`, Not Null, Cascade Delete | Thuộc bài viết nào                           |
-| `author_id`         | BigInteger / UUID        | Foreign Key -> `users(id)`, Not Null                       | Người viết bình luận                         |
-| `parent_comment_id` | BigInteger / UUID        | Foreign Key -> `forum_comments(id)`, Nullable              | Bình luận cha (nếu phản hồi lồng nhau)       |
-| `content`           | Text                     | Not Null                                                   | Nội dung bình luận                           |
-| `status`            | String (Varchar 20)      | Not Null, Default: `PUBLISHED`                             | Trạng thái: `PUBLISHED`, `HIDDEN`, `DELETED` |
-| `moderated_by`      | BigInteger / UUID        | Foreign Key -> `users(id)`, Nullable                       | Admin thực hiện ẩn/xóa bình luận             |
-| `created_at`        | Timestamp                | Not Null, Default: Current Time                            | Thời gian tạo                                |
-| `updated_at`        | Timestamp                | Not Null, Default: Current Time                            | Thời gian cập nhật                           |
+Structures discussion categories (e.g., Reproductive Anatomy, Puberty Psychology, Digital Safety).
+
+| Field Name | Data Type | Constraints | Description / Usage |
+| :--- | :--- | :--- | :--- |
+| `id` | Integer | Primary Key, Auto Increment | Unique category identifier |
+| `name` | String (Varchar 100) | Unique, Not Null | Category title |
+| `slug` | String (Varchar 100) | Unique, Not Null | URL-safe slug |
+| `description` | Text | Nullable | Guidelines and thematic description |
+| `created_at` | Timestamp | Not Null, Default: Current Time | Creation timestamp |
 
 ---
 
-## 4. QUAN HỆ VÀ RÀNG BUỘC (RELATIONSHIPS)
+### 3.2. Table: `forum_posts` (Discussion Threads)
 
-1. **`forum_categories` - `forum_posts` (1 - N):** Một danh mục có nhiều bài viết.
-2. **`users` - `forum_posts` (1 - N):** Một người dùng có thể tạo nhiều bài thảo luận.
-3. **`forum_posts` - `forum_comments` (1 - N):** Một bài viết có thể có nhiều lượt bình luận.
-4. **`forum_comments` - `forum_comments` (1 - N) [Tự quan hệ / Self-reference]:** Hỗ trợ trả lời trực tiếp một bình luận cụ thể qua `parent_comment_id`.
-5. **`users(ADMIN)` - `moderated_by`:** Truy vết định danh tài khoản Admin đã thực hiện thao tác ẩn/xóa nội dung.
+Persists community forum threads.
+
+| Field Name | Data Type | Constraints | Description / Usage |
+| :--- | :--- | :--- | :--- |
+| `id` | BigInteger / UUID | Primary Key | Unique post identifier |
+| `category_id` | Integer | Foreign Key -> `forum_categories(id)`, Not Null | Associated discussion category |
+| `author_id` | BigInteger / UUID | Foreign Key -> `users(id)`, Not Null | Post author |
+| `title` | String (Varchar 255) | Not Null | Thread title |
+| `content` | Text / LongText | Not Null | Thread body |
+| `status` | String (Varchar 20) | Not Null, Default: `PUBLISHED` | State: `PUBLISHED`, `HIDDEN`, `DELETED` |
+| `moderated_by` | BigInteger / UUID | Foreign Key -> `users(id)`, Nullable | Admin moderating the thread |
+| `created_at` | Timestamp | Not Null, Default: Current Time | Creation timestamp |
+| `updated_at` | Timestamp | Not Null, Default: Current Time | Last update timestamp |
+
+---
+
+### 3.3. Table: `forum_comments` (Thread Replies & Discussions)
+
+Tracks replies and threaded discussions within posts.
+
+| Field Name | Data Type | Constraints | Description / Usage |
+| :--- | :--- | :--- | :--- |
+| `id` | BigInteger / UUID | Primary Key | Unique comment identifier |
+| `post_id` | BigInteger / UUID | Foreign Key -> `forum_posts(id)`, Not Null, Cascade Delete | Target thread |
+| `author_id` | BigInteger / UUID | Foreign Key -> `users(id)`, Not Null | Comment author |
+| `parent_comment_id` | BigInteger / UUID | Foreign Key -> `forum_comments(id)`, Nullable | Parent comment for nested reply threads |
+| `content` | Text | Not Null | Comment text |
+| `status` | String (Varchar 20) | Not Null, Default: `PUBLISHED` | State: `PUBLISHED`, `HIDDEN`, `DELETED` |
+| `moderated_by` | BigInteger / UUID | Foreign Key -> `users(id)`, Nullable | Admin moderating the comment |
+| `created_at` | Timestamp | Not Null, Default: Current Time | Creation timestamp |
+| `updated_at` | Timestamp | Not Null, Default: Current Time | Last update timestamp |
+
+---
+
+## 4. Entity Relationships & Invariants
+
+1. **`forum_categories` → `forum_posts` (1 : N):** Categories contain multiple discussion threads.
+2. **`users` → `forum_posts` (1 : N):** Users may create multiple forum threads.
+3. **`forum_posts` → `forum_comments` (1 : N):** Posts accumulate replies.
+4. **`forum_comments` → `forum_comments` (1 : N Self-Reference):** Supports nested conversational responses.
+5. **`users(ADMIN)` → `moderated_by`:** Maintains clear audit logging of administrative moderation actions.
