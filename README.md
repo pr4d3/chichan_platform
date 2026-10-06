@@ -43,9 +43,9 @@ Under the hood, **Google Gemini** powers the experience with token-by-token stre
 
 | Modern Landing Page | E-Learning Course Catalog |
 |:---:|:---:|
-| ![Landing Page](docs/assets/screenshots/01_hero_landing.png) | ![Courses Catalog](docs/assets/screenshots/03_courses_catalog.png) |
+| ![Modern Landing Page](docs/assets/demo-landing.gif) | ![E-Learning Course Catalog](docs/assets/demo-courses.gif) |
 | **Interactive AI Roleplay Room** | **Anonymous Moderated Community Forum** |
-| ![AI Roleplay Room](docs/assets/screenshots/08_ai_roleplay_responded.png) | ![Community Forum](docs/assets/screenshots/07_community_forum.png) |
+| ![Interactive AI Roleplay Room](docs/assets/demo-roleplay.gif) | ![Anonymous Moderated Community Forum](docs/assets/demo-forum.gif) |
 
 ---
 
